@@ -312,3 +312,16 @@ test('Nei documenti i farmaci compaiono come scritti: mai note, schede, informaz
   assert.ok(sezRemota(p).length > 0)
   assert.deepEqual(sezRemota(paziente('Neri')), [])
 })
+
+test('farmaci: chi ha già il database riceve i nomi commerciali aggiunti dopo', () => {
+  assicuraIniziali()
+  const db = getDb()
+  // Simula un database creato con la prima tranche: senza Brufen e Buscopan, versione 1.
+  db.prepare("DELETE FROM farmaco_nomi WHERE nome_norm IN ('brufen', 'buscopan')").run()
+  db.prepare("DELETE FROM farmaco_meta WHERE chiave = 'nomi_versione'").run()
+  assicuraIniziali()
+  const nomi = indiceFarmaci().nomi
+  assert.ok(nomi[normalizza('Brufen')]?.length, 'Brufen deve essere riconosciuto')
+  assert.ok(nomi[normalizza('Buscopan')]?.length, 'Buscopan deve essere riconosciuto')
+  assert.ok(riconosciNelTesto('prende Buscopan al bisogno').some((p) => p.refs.length > 0))
+})

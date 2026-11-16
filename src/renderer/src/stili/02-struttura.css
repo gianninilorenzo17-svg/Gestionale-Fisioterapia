@@ -182,8 +182,20 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* Le linguette della Configurazione stanno sempre su una riga: se la finestra
+   e' stretta scorrono di lato, ma non vanno mai a capo su due righe. */
 .config-tabs-top {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  max-width: 100%;
   margin-bottom: 18px;
+}
+
+.config-tabs-top button {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 7px 11px;
 }
 
 .config-wrapper {

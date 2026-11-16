@@ -101,7 +101,7 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   vince sull'elenco) e parole da non sottolineare. Il paziente ha solo `paziente_farmaci` (testo scritto + nota
   facoltativa): la scheda si ritrova dal nome, quindi un collegamento fatto dopo vale anche per il passato.
   Logica in `main/farmaci.ts` (le schede iniziali, tutte in bozza, in `main/farmaci-iniziali.ts`, caricate una
-  sola volta al primo uso), riconoscimento nel testo e lettura del CSV AIFA in `shared/farmaci.ts`. L'importazione
+  sola volta al primo uso); i nomi commerciali in `NOMI_INIZIALI` si completano a ogni salita di `NOMI_VERSIONE` anche su database già esistenti, riconoscimento nel testo e lettura del CSV AIFA in `shared/farmaci.ts`. L'importazione
   AIFA (CSV delle liste di trasparenza, Windows-1252) si UNISCE: non toglie mai schede, collegamenti o nomi di prima.
   Nel campo «Storia precedente» (`components/farmaci/TestoConFarmaci.tsx`) il `<textarea>` resta quello di prima;
   dietro c'e' un livello trasparente con le sottolineature (stessi stili copiati, scorrimento sincronizzato), il

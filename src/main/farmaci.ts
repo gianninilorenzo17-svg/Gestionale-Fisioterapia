@@ -30,6 +30,7 @@ import {
   ETICHETTE_INIZIALI,
   FONTE_BOZZA,
   NOMI_INIZIALI,
+  NOMI_VERSIONE,
   PAROLE_ESCLUSE_INIZIALI,
   SCHEDE_INIZIALI
 } from './farmaci-iniziali'
@@ -45,7 +46,10 @@ const oggi = (): string => new Date().toISOString().slice(0, 10)
 // volta sola: chi le elimina non se le ritrova.
 export function assicuraIniziali(): void {
   const db = getDb()
-  if (meta(db, 'iniziali')) return
+  if (meta(db, 'iniziali')) {
+    completaNomiIniziali()
+    return
+  }
   db.transaction(() => {
     const nuova = db.prepare('INSERT OR IGNORE INTO farmaco_etichette (nome, ordine) VALUES (?, ?)')
     ETICHETTE_INIZIALI.forEach((n, i) => nuova.run(n, i))
@@ -94,6 +98,23 @@ export function assicuraIniziali(): void {
     const insEsclusa = db.prepare('INSERT OR IGNORE INTO farmaco_escluse (parola) VALUES (?)')
     for (const p of PAROLE_ESCLUSE_INIZIALI) insEsclusa.run(p)
     impostaMeta(db, 'iniziali', oggi())
+    impostaMeta(db, 'nomi_versione', String(NOMI_VERSIONE))
+  })()
+}
+
+// Chi ha gia' il database riceve i nomi commerciali aggiunti dopo (una volta per
+// versione dell'elenco). Non si toglie e non si cambia niente: si aggiunge solo quello che manca.
+function completaNomiIniziali(): void {
+  const db = getDb()
+  if (!meta(db, 'iniziali')) return
+  if (Number(meta(db, 'nomi_versione') ?? 1) >= NOMI_VERSIONE) return
+  db.transaction(() => {
+    const insNome = db.prepare(
+      `INSERT OR IGNORE INTO farmaco_nomi (nome_norm, nome, principio, origine)
+       VALUES (?, ?, ?, 'iniziale')`
+    )
+    for (const [nome, principio] of NOMI_INIZIALI) insNome.run(normalizza(nome), nome, principio)
+    impostaMeta(db, 'nomi_versione', String(NOMI_VERSIONE))
   })()
 }
 
