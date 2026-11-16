@@ -34,6 +34,7 @@ import {
   PAROLE_ESCLUSE_INIZIALI,
   SCHEDE_INIZIALI,
   SCHEDE_V2,
+  SCHEDE_V3,
   SCHEDE_VERSIONE,
   type SchedaIniziale
 } from './farmaci-iniziali'
@@ -61,7 +62,7 @@ export function assicuraIniziali(): void {
         (e) => [e.nome, e.id]
       )
     )
-    aggiungiSchede(db, SCHEDE_INIZIALI.concat(SCHEDE_V2))
+    aggiungiSchede(db, SCHEDE_INIZIALI.concat(SCHEDE_V2, SCHEDE_V3))
     const insNome = db.prepare(
       `INSERT OR IGNORE INTO farmaco_nomi (nome_norm, nome, principio, origine)
        VALUES (?, ?, ?, 'iniziale')`
@@ -124,7 +125,8 @@ function completaNomiIniziali(): void {
   const db = getDb()
   if (!meta(db, 'iniziali')) return
   const nomiOk = Number(meta(db, 'nomi_versione') ?? 1) >= NOMI_VERSIONE
-  const schedeOk = Number(meta(db, 'schede_versione') ?? 1) >= SCHEDE_VERSIONE
+  const schedeVersione = Number(meta(db, 'schede_versione') ?? 1)
+  const schedeOk = schedeVersione >= SCHEDE_VERSIONE
   if (nomiOk && schedeOk) return
   db.transaction(() => {
     if (!nomiOk) {
@@ -136,7 +138,8 @@ function completaNomiIniziali(): void {
       impostaMeta(db, 'nomi_versione', String(NOMI_VERSIONE))
     }
     if (!schedeOk) {
-      aggiungiSchede(db, SCHEDE_V2)
+      if (schedeVersione < 2) aggiungiSchede(db, SCHEDE_V2)
+      if (schedeVersione < 3) aggiungiSchede(db, SCHEDE_V3)
       impostaMeta(db, 'schede_versione', String(SCHEDE_VERSIONE))
     }
   })()

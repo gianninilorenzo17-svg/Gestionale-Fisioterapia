@@ -382,8 +382,6 @@ export const SCHEDE_INIZIALI: SchedaIniziale[] = [
 
 // Seconda tranche di schede (sempre «bozza da verificare»). Chi ha gia' il database
 // le riceve all'avvio successivo (una volta); quelle eliminate prima non tornano.
-export const SCHEDE_VERSIONE = 2
-
 const ANTIBIOTICO: Classe = {
   classe: 'Antibiotico',
   usi: 'Infezioni batteriche.',
@@ -620,6 +618,447 @@ export const SCHEDE_V2: SchedaIniziale[] = [
     avvertenze: '',
     livello: 0,
     etichette: []
+  }
+]
+
+// Terza tranche di schede (sempre «bozza da verificare»): le classi dei nomi commerciali
+// aggiunti dopo. Stesse regole della seconda: chi ha gia' il database le riceve una volta.
+export const SCHEDE_VERSIONE = 3
+
+const BENZODIAZEPINE: Classe = {
+  classe: 'Benzodiazepina',
+  usi: 'Ansia, insonnia, spasmi muscolari, epilessia.',
+  info_fisio:
+    'Sedazione, riflessi più lenti e minore equilibrio: più rischio di cadute. Hanno anche un effetto rilassante sui muscoli.',
+  avvertenze: 'Con oppioidi, altri sedativi o alcol l’effetto sedativo aumenta. Uso prolungato: dipendenza.',
+  livello: 1,
+  etichette: [EQUILIBRIO, MASCHERA]
+}
+
+const ANTIACIDO: Classe = {
+  classe: 'Antiacido',
+  usi: 'Bruciore e reflusso occasionali.',
+  info_fisio: 'Di solito nessun effetto sulla riabilitazione.',
+  avvertenze: '',
+  livello: 0,
+  etichette: []
+}
+
+const ANTISTAMINICO: Classe = {
+  classe: 'Antistaminico',
+  usi: 'Allergie, rinite, orticaria.',
+  info_fisio: 'Indica allergia. Può dare un po’ di sonnolenza (soprattutto cetirizina).',
+  avvertenze: '',
+  livello: 0,
+  etichette: []
+}
+
+const ANTIEPILETTICO: Classe = {
+  classe: 'Antiepilettico',
+  usi: 'Epilessia; alcuni anche dolore neuropatico o disturbi dell’umore.',
+  info_fisio: 'Possibili sonnolenza, vertigini e instabilità: attenzione a equilibrio e cadute.',
+  avvertenze: 'Con altri sedativi o alcol l’effetto sedativo aumenta.',
+  livello: 1,
+  etichette: [EQUILIBRIO]
+}
+
+const ANTIPSICOTICO: Classe = {
+  classe: 'Antipsicotico',
+  usi: 'Disturbi psichiatrici (schizofrenia, disturbo bipolare, depressione resistente).',
+  info_fisio:
+    'Sedazione, vertigini cambiando posizione (calo di pressione) e talvolta rigidità o tremori: più rischio di cadute.',
+  avvertenze: 'Possibile aumento di peso e della glicemia.',
+  livello: 1,
+  etichette: [EQUILIBRIO]
+}
+
+const SGLT2: Classe = {
+  classe: 'Antidiabetico (SGLT2)',
+  usi: 'Diabete di tipo 2, scompenso cardiaco, malattia dei reni.',
+  info_fisio:
+    'Fanno perdere liquidi con le urine: con caldo, sudore e sforzo possibili disidratazione, vertigini e calo di pressione.',
+  avvertenze: 'Più infezioni genitali e urinarie. Indica diabete.',
+  livello: 1,
+  etichette: [EQUILIBRIO]
+}
+
+const GLP1: Classe = {
+  classe: 'Antidiabetico (GLP-1)',
+  usi: 'Diabete di tipo 2, obesità.',
+  info_fisio:
+    'Riducono l’appetito e il peso: con il peso può calare anche la massa muscolare. Possibili nausea e vomito, soprattutto all’inizio. Si assume con iniezione sottocutanea.',
+  avvertenze: 'Da soli danno raramente ipoglicemia, più spesso se associati a insulina o sulfaniluree.',
+  livello: 0,
+  etichette: []
+}
+
+const ALFA_BLOCCANTI: Classe = {
+  classe: 'Alfa-bloccante',
+  usi: 'Ipertrofia prostatica; alcuni anche ipertensione.',
+  info_fisio: 'Possibili vertigini e calo di pressione alzandosi in piedi o dopo lo sforzo: attenzione ai cambi di posizione.',
+  avvertenze: '',
+  livello: 1,
+  etichette: [EQUILIBRIO]
+}
+
+const INALATORI: Classe = {
+  classe: 'Broncodilatatore inalatorio',
+  usi: 'Asma, broncopneumopatia cronica (BPCO).',
+  info_fisio:
+    'Indica una malattia respiratoria: attenzione a fiato corto e asma da sforzo. Possono dare tremori e battito accelerato.',
+  avvertenze: '',
+  livello: 0,
+  etichette: [CUORE]
+}
+
+const CORTISONE_INALATORIO: Classe = {
+  classe: 'Corticosteroide inalatorio',
+  usi: 'Asma, broncopneumopatia cronica (BPCO).',
+  info_fisio:
+    'Indica una malattia respiratoria. A dosi alte e prolungate sono descritti effetti sulle ossa; di solito molto meno di un cortisone per bocca.',
+  avvertenze: 'Possibile candidosi della bocca se non si risciacqua dopo l’uso.',
+  livello: 0,
+  etichette: [OSSO]
+}
+
+const PARKINSON: Classe = {
+  classe: 'Antiparkinson',
+  usi: 'Malattia di Parkinson.',
+  info_fisio:
+    'Indica Parkinson: rigidità, lentezza, instabilità. L’effetto varia nelle ore dopo la dose: conta l’orario della seduta rispetto alle dosi. Possibili vertigini alzandosi in piedi.',
+  avvertenze: 'Movimenti involontari (discinesie) possono comparire con l’uso prolungato.',
+  livello: 2,
+  etichette: [EQUILIBRIO]
+}
+
+export const SCHEDE_V3: SchedaIniziale[] = [
+  // dolore e infiammazione
+  ...dalla(FANS, [['Acido tiaprofenico'], ['Flurbiprofene']]),
+  {
+    principio_attivo: 'Metamizolo',
+    classe: 'Analgesico e antipiretico',
+    usi: 'Dolore intenso, febbre.',
+    info_fisio: 'Attenua il dolore ma non è antinfiammatorio: il dolore riferito può essere più basso di quello reale.',
+    avvertenze:
+      'Può far calare la pressione. Raramente alterazioni gravi del sangue: febbre alta o mal di gola improvvisi vanno riferiti.',
+    livello: 0,
+    etichette: [MASCHERA]
+  },
+  {
+    principio_attivo: 'Butilscopolamina',
+    classe: 'Spasmolitico',
+    usi: 'Crampi e dolori da spasmo (addome, vie urinarie).',
+    info_fisio: 'Attenua il dolore da spasmo. Può dare bocca secca e battito più rapido.',
+    avvertenze: 'Possibili vertigini e vista offuscata.',
+    livello: 0,
+    etichette: [MASCHERA]
+  },
+  ...dalla(CORTISONICI, [['Desametasone'], ['Triamcinolone']]),
+  // oppioidi e neurologici
+  ...dalla(OPPIOIDI, [
+    [
+      'Buprenorfina',
+      {
+        avvertenze:
+          'Se in cerotto: il calore sulla zona del cerotto (termoforo, lampade, diatermia) può aumentarne l’assorbimento.'
+      }
+    ],
+    ['Tapentadolo']
+  ]),
+  {
+    principio_attivo: 'Naloxone',
+    classe: 'Antagonista degli oppioidi',
+    usi: 'In associazione agli oppioidi, per ridurre la stitichezza.',
+    info_fisio: 'Indica che si sta assumendo un oppioide in compresse.',
+    avvertenze: '',
+    livello: 0,
+    etichette: []
+  },
+  ...dalla(ANTIEPILETTICO, [
+    [
+      'Carbamazepina',
+      {
+        usi: 'Epilessia, nevralgia del trigemino, disturbo bipolare.',
+        info_fisio:
+          'Sonnolenza, vertigini e instabilità. Nell’uso prolungato è descritto un effetto sulla densità ossea.',
+        etichette: [EQUILIBRIO, OSSO]
+      }
+    ],
+    [
+      'Acido valproico',
+      {
+        info_fisio:
+          'Possibili sonnolenza, tremori e instabilità. Nell’uso prolungato è descritto un effetto sulla densità ossea.',
+        etichette: [EQUILIBRIO, OSSO]
+      }
+    ],
+    ['Lamotrigina', { usi: 'Epilessia, disturbo bipolare.' }]
+  ]),
+  ...dalla(PARKINSON, [
+    ['Levodopa'],
+    [
+      'Benserazide',
+      { usi: 'Sempre associata alla levodopa (ne aumenta l’effetto).', info_fisio: 'Indica Parkinson in cura con levodopa.' }
+    ],
+    [
+      'Carbidopa',
+      { usi: 'Sempre associata alla levodopa (ne aumenta l’effetto).', info_fisio: 'Indica Parkinson in cura con levodopa.' }
+    ]
+  ]),
+  // psicofarmaci
+  ...dalla(SSRI, [
+    ['Fluoxetina'],
+    ['Paroxetina'],
+    [
+      'Venlafaxina',
+      {
+        classe: 'Antidepressivo (SNRI)',
+        avvertenze: 'Può alzare la pressione.',
+        etichette: [EQUILIBRIO, OSSO, MASCHERA]
+      }
+    ],
+    [
+      'Mirtazapina',
+      {
+        classe: 'Antidepressivo',
+        info_fisio: 'Sedazione e aumento dell’appetito: più rischio di cadute, soprattutto la mattina.',
+        etichette: [EQUILIBRIO]
+      }
+    ]
+  ]),
+  ...dalla(ANTIPSICOTICO, [['Quetiapina'], ['Aripiprazolo', { info_fisio: 'Possibili irrequietezza, tremori e vertigini cambiando posizione.' }]]),
+  ...dalla(BENZODIAZEPINE, [
+    ['Alprazolam'],
+    ['Lorazepam'],
+    ['Bromazepam'],
+    ['Diazepam'],
+    ['Clonazepam'],
+    ['Triazolam', { usi: 'Insonnia.' }],
+    ['Lormetazepam', { usi: 'Insonnia.' }],
+    ['Brotizolam', { usi: 'Insonnia.' }]
+  ]),
+  {
+    principio_attivo: 'Zolpidem',
+    classe: 'Ipnotico',
+    usi: 'Insonnia.',
+    info_fisio: 'Sedazione, confusione e riflessi più lenti, soprattutto al risveglio: più rischio di cadute.',
+    avvertenze: 'Con alcol o altri sedativi l’effetto aumenta. Raramente sonnambulismo.',
+    livello: 1,
+    etichette: [EQUILIBRIO]
+  },
+  // sangue
+  ...dalla(ANTICOAGULANTI, [
+    ['Dabigatran'],
+    ['Edoxaban'],
+    ['Acenocumarolo', { avvertenze: 'Controllo periodico dell’INR. Molte interazioni con altri farmaci.' }],
+    ['Nadroparina', { usi: 'Prevenzione e cura delle trombosi, spesso dopo interventi o immobilizzazione (iniezioni).' }]
+  ]),
+  // cuore e pressione
+  ...dalla(BETABLOCCANTI, [['Carvedilolo'], ['Propranololo']]),
+  ...dalla(ANTIPERTENSIVI, [
+    ['Lisinopril', { classe: 'ACE-inibitore', avvertenze: 'Può dare tosse secca persistente.' }],
+    ['Enalapril', { classe: 'ACE-inibitore', avvertenze: 'Può dare tosse secca persistente.' }],
+    ['Perindopril', { classe: 'ACE-inibitore', avvertenze: 'Può dare tosse secca persistente.' }],
+    ['Valsartan', { classe: 'Sartano' }],
+    ['Losartan', { classe: 'Sartano' }],
+    ['Olmesartan', { classe: 'Sartano' }],
+    ['Irbesartan', { classe: 'Sartano' }],
+    ['Candesartan', { classe: 'Sartano' }],
+    ['Telmisartan', { classe: 'Sartano' }],
+    ['Lercanidipina', { classe: 'Calcio-antagonista', avvertenze: 'Possibile gonfiore alle caviglie.' }],
+    [
+      'Torasemide',
+      {
+        classe: 'Diuretico',
+        info_fisio:
+          'Fa perdere liquidi e sali: possibili crampi, disidratazione con caldo e sudore, vertigini.',
+        avvertenze: ''
+      }
+    ],
+    [
+      'Spironolattone',
+      {
+        classe: 'Diuretico',
+        info_fisio:
+          'Fa perdere liquidi e trattiene il potassio: possibili crampi, disidratazione con caldo e sudore, vertigini.',
+        avvertenze: ''
+      }
+    ],
+    ['Doxazosin', { classe: 'Alfa-bloccante', avvertenze: 'Possibile calo di pressione alzandosi in piedi.' }]
+  ]),
+  {
+    principio_attivo: 'Digossina',
+    classe: 'Glicoside cardiaco',
+    usi: 'Scompenso cardiaco, fibrillazione atriale.',
+    info_fisio:
+      'Indica una malattia del cuore. Rallenta la frequenza cardiaca: la frequenza non misura bene l’intensità dello sforzo.',
+    avvertenze:
+      'Tra dose utile e dose tossica il margine è stretto: nausea, vista alterata o battito molto lento vanno riferiti.',
+    livello: 1,
+    etichette: [CUORE]
+  },
+  {
+    principio_attivo: 'Amiodarone',
+    classe: 'Antiaritmico',
+    usi: 'Aritmie (fibrillazione atriale e altre).',
+    info_fisio:
+      'Indica un’aritmia. Rallenta la frequenza cardiaca: la frequenza non misura bene l’intensità dello sforzo.',
+    avvertenze: 'Possibili sensibilità alla luce, tremori, effetti su tiroide e polmoni.',
+    livello: 1,
+    etichette: [CUORE]
+  },
+  {
+    principio_attivo: 'Ezetimibe',
+    classe: 'Ipolipemizzante',
+    usi: 'Colesterolo alto (da solo o con una statina).',
+    info_fisio: 'Indica un quadro di rischio cardiovascolare. Raramente dolore muscolare.',
+    avvertenze: '',
+    livello: 0,
+    etichette: []
+  },
+  // ossa
+  ...dalla(BIFOSFONATI, [['Acido ibandronico']]),
+  {
+    principio_attivo: 'Teriparatide',
+    classe: 'Osteoporosi (stimola la formazione di osso)',
+    usi: 'Osteoporosi grave.',
+    info_fisio: 'Indica osteoporosi grave, spesso con fratture già avvenute. Si assume con iniezione quotidiana.',
+    avvertenze: 'All’inizio possibili crampi alle gambe e vertigini.',
+    livello: 1,
+    etichette: [OSSO]
+  },
+  {
+    principio_attivo: 'Denosumab',
+    classe: 'Osteoporosi (anticorpo)',
+    usi: 'Osteoporosi; perdita di osso da altre cure.',
+    info_fisio: 'Indica osteoporosi. Si assume con iniezione ogni sei mesi.',
+    avvertenze:
+      'Se si interrompe senza passare a un’altra cura, le ossa si indeboliscono rapidamente e sono descritte fratture vertebrali multiple.',
+    livello: 1,
+    etichette: [OSSO]
+  },
+  {
+    principio_attivo: 'Raloxifene',
+    classe: 'Osteoporosi (SERM)',
+    usi: 'Osteoporosi dopo la menopausa.',
+    info_fisio: 'Indica osteoporosi. Aumenta il rischio di trombosi venosa (gonfiore e dolore a un polpaccio).',
+    avvertenze: 'Possibili crampi alle gambe e vampate.',
+    livello: 1,
+    etichette: [OSSO]
+  },
+  // stomaco
+  ...dalla(PPI, [['Lansoprazolo'], ['Rabeprazolo']]),
+  ...dalla(ANTIACIDO, [['Alluminio idrossido'], ['Magnesio idrossido'], ['Alginato di sodio'], ['Bicarbonato']]),
+  {
+    principio_attivo: 'Domperidone',
+    classe: 'Procinetico',
+    usi: 'Nausea, vomito, digestione lenta.',
+    info_fisio: 'Di solito nessun effetto sulla riabilitazione.',
+    avvertenze: 'A dosi alte o con altri farmaci può alterare il ritmo del cuore.',
+    livello: 0,
+    etichette: []
+  },
+  {
+    principio_attivo: 'Metoclopramide',
+    classe: 'Procinetico',
+    usi: 'Nausea, vomito.',
+    info_fisio: 'Possibili sonnolenza e vertigini.',
+    avvertenze: 'Raramente movimenti involontari o rigidità, soprattutto nei giovani e negli anziani.',
+    livello: 0,
+    etichette: [EQUILIBRIO]
+  },
+  {
+    principio_attivo: 'Loperamide',
+    classe: 'Antidiarroico',
+    usi: 'Diarrea.',
+    info_fisio: 'Con la diarrea possibili disidratazione e perdita di sali.',
+    avvertenze: '',
+    livello: 0,
+    etichette: []
+  },
+  // diabete e tiroide
+  {
+    principio_attivo: 'Sitagliptin',
+    classe: 'Antidiabetico (DPP-4)',
+    usi: 'Diabete di tipo 2.',
+    info_fisio:
+      'Indica diabete. Con questa classe sono stati descritti rari casi di dolori articolari forti.',
+    avvertenze: 'Da solo dà raramente ipoglicemia.',
+    livello: 0,
+    etichette: []
+  },
+  ...dalla(SGLT2, [['Empagliflozin'], ['Dapagliflozin']]),
+  ...dalla(GLP1, [['Semaglutide'], ['Liraglutide'], ['Dulaglutide']]),
+  {
+    principio_attivo: 'Glibenclamide',
+    classe: 'Antidiabetico (sulfanilurea)',
+    usi: 'Diabete di tipo 2.',
+    info_fisio:
+      'Può causare ipoglicemia, soprattutto con esercizio, digiuno o pasti saltati: sudore, tremori, confusione, debolezza.',
+    avvertenze: 'Rischio di ipoglicemia più alto di altre sulfaniluree.',
+    livello: 1,
+    etichette: [EQUILIBRIO]
+  },
+  {
+    principio_attivo: 'Tiamazolo',
+    classe: 'Antitiroideo',
+    usi: 'Ipertiroidismo.',
+    info_fisio:
+      'Indica ipertiroidismo: palpitazioni, tremori, debolezza muscolare e, se non controllato, perdita di densità ossea.',
+    avvertenze: 'Raramente mal di gola e febbre improvvisi (alterazioni del sangue).',
+    livello: 0,
+    etichette: [CUORE, OSSO]
+  },
+  // respiro e allergie
+  ...dalla(INALATORI, [['Salbutamolo', { usi: 'Asma: al bisogno, per sciogliere il broncospasmo.' }], ['Formoterolo'], ['Salmeterolo']]),
+  ...dalla(CORTISONE_INALATORIO, [['Budesonide'], ['Fluticasone']]),
+  {
+    principio_attivo: 'Montelukast',
+    classe: 'Antiasmatico',
+    usi: 'Asma, rinite allergica.',
+    info_fisio: 'Indica asma o allergia: attenzione all’asma da sforzo.',
+    avvertenze: 'Raramente disturbi del sonno o dell’umore.',
+    livello: 0,
+    etichette: []
+  },
+  ...dalla(ANTISTAMINICO, [['Cetirizina', { etichette: [EQUILIBRIO] }], ['Loratadina'], ['Desloratadina']]),
+  // prostata
+  ...dalla(ALFA_BLOCCANTI, [['Tamsulosina']]),
+  {
+    principio_attivo: 'Finasteride',
+    classe: 'Inibitore della 5-alfa-reduttasi',
+    usi: 'Ipertrofia prostatica, caduta dei capelli.',
+    info_fisio: 'Di solito nessun effetto sulla riabilitazione.',
+    avvertenze: '',
+    livello: 0,
+    etichette: []
+  },
+  {
+    principio_attivo: 'Sildenafil',
+    classe: 'Inibitore della PDE5',
+    usi: 'Disfunzione erettile; a dosi diverse anche ipertensione polmonare.',
+    info_fisio: 'Abbassa un po’ la pressione. Non si associa ai nitrati.',
+    avvertenze: '',
+    livello: 0,
+    etichette: [CUORE]
+  },
+  {
+    principio_attivo: 'Tadalafil',
+    classe: 'Inibitore della PDE5',
+    usi: 'Disfunzione erettile, ipertrofia prostatica; a dosi diverse anche ipertensione polmonare.',
+    info_fisio: 'Abbassa un po’ la pressione. Possibili dolori muscolari e alla schiena. Non si associa ai nitrati.',
+    avvertenze: '',
+    livello: 0,
+    etichette: [CUORE]
+  },
+  // altro
+  ...dalla(ANTIBIOTICO, [['Sulfametossazolo'], ['Trimetoprim'], ['Acido clavulanico']]),
+  {
+    ...INTEGRATORE,
+    principio_attivo: 'Potassio',
+    classe: 'Integratore (minerale)',
+    usi: 'Carenza di potassio (per esempio con i diuretici), crampi.',
+    info_fisio: 'Spesso assunto per crampi o debolezza muscolare con diuretici.'
   }
 ]
 
