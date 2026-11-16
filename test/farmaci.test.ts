@@ -37,7 +37,7 @@ import {
   type FarmacoSchedaInput
 } from '../src/shared/farmaci'
 import { eliminaPazienteDefinitivamente } from '../src/main/pazienti'
-import { SCHEDE_INIZIALI } from '../src/main/farmaci-iniziali'
+import { SCHEDE_INIZIALI, SCHEDE_V2 } from '../src/main/farmaci-iniziali'
 import { sezRemota } from '../src/main/cartella-sezioni'
 import { relazioneAnamnesi } from '../src/main/relazione-anamnesi'
 
@@ -160,7 +160,7 @@ test('La prima volta ci sono etichette, schede in bozza e nomi comuni', () => {
   assicuraIniziali() // una volta sola
   const indice = indiceFarmaci()
   assert.equal(indice.etichette.length, 6)
-  assert.equal(indice.schede.length, SCHEDE_INIZIALI.length)
+  assert.equal(indice.schede.length, SCHEDE_INIZIALI.length + SCHEDE_V2.length)
   assert.ok(indice.schede.every((s) => s.stato === 'bozza' && s.fonte && s.data_revisione))
   // niente e' inventato: dove non c'e' certezza il campo e' vuoto, non "-"
   assert.ok(indice.schede.every((s) => s.avvertenze === null || s.avvertenze.trim() !== ''))
@@ -196,7 +196,7 @@ test('Importare l elenco AIFA: nomi commerciali, associazioni, aggiornamenti sen
     ['Amoxicillina', 'Acido clavulanico']
   )
   // un principio senza scheda si riconosce lo stesso, ma senza scheda
-  assert.ok(aug.refs.every((r) => r.schedaId == null))
+  assert.ok(aug.refs.find((r) => r.principio === 'Acido clavulanico')?.schedaId == null)
   // il sale non cambia il principio attivo
   assert.equal(riconosciNelTesto('Contramal')[0].refs[0].schedaId != null, true)
   assert.equal(riconosciNelTesto('Cacit')[0].refs.length, 2)
@@ -212,8 +212,8 @@ test('Importare l elenco AIFA: nomi commerciali, associazioni, aggiornamenti sen
 
 test('Scheda: principio unico, etichette, livello; un nome sconosciuto si collega a mano', () => {
   const base: FarmacoSchedaInput = {
-    principio_attivo: 'Dexketoprofene',
-    classe: 'FANS',
+    principio_attivo: 'Dapagliflozin',
+    classe: 'Antidiabetico',
     usi: null,
     info_fisio: '  ',
     avvertenze: null,
@@ -234,27 +234,27 @@ test('Scheda: principio unico, etichette, livello; un nome sconosciuto si colleg
   assert.throws(() => salvaSchedaFarmaco({ ...base, principio_attivo: ' ' }), /principio attivo/)
   assert.throws(() => salvaSchedaFarmaco({ ...base, principio_attivo: 'X', livello: 5 as 1 }), /livello/)
 
-  // "Enantyum" l'app non lo conosce: resta testo libero...
-  assert.deepEqual(riconosciNelTesto('prende Enantyum'), [])
-  // ...e si collega: "Enantyum = Dexketoprofene"
-  const link = collegaNomeFarmaco('Enantyum', id)
-  assert.equal(collegaNomeFarmaco('enantyum', id), link, 'lo stesso collegamento non si ripete')
-  const r = riconosciNelTesto('prende Enantyum')[0]
-  assert.deepEqual(r.refs, [{ schedaId: id, principio: 'Dexketoprofene' }])
-  assert.equal(collegamentiFarmaci().find((c) => c.id === link)?.principio_attivo, 'Dexketoprofene')
+  // "Xigduo" l'app non lo conosce: resta testo libero...
+  assert.deepEqual(riconosciNelTesto('prende Xigduo'), [])
+  // ...e si collega: "Xigduo = Dapagliflozin"
+  const link = collegaNomeFarmaco('Xigduo', id)
+  assert.equal(collegaNomeFarmaco('xigduo', id), link, 'lo stesso collegamento non si ripete')
+  const r = riconosciNelTesto('prende Xigduo')[0]
+  assert.deepEqual(r.refs, [{ schedaId: id, principio: 'Dapagliflozin' }])
+  assert.equal(collegamentiFarmaci().find((c) => c.id === link)?.principio_attivo, 'Dapagliflozin')
   // un collegamento a mano vale piu' dell'elenco AIFA
   collegaNomeFarmaco('Brufen', id)
-  assert.deepEqual(riconosciNelTesto('Brufen')[0].refs.map((x) => x.principio), ['Dexketoprofene'])
+  assert.deepEqual(riconosciNelTesto('Brufen')[0].refs.map((x) => x.principio), ['Dapagliflozin'])
   scollegaNomeFarmaco(getDb().prepare("SELECT id FROM farmaco_nomi WHERE nome_norm = 'brufen' AND origine = 'manuale'").pluck().get() as number)
   assert.equal(riconosciNelTesto('Brufen')[0].refs[0].principio, 'Ibuprofene')
 
   // un aggiornamento dell'elenco non tocca schede e collegamenti
   importaListaAifa(ELENCO)
-  assert.equal(riconosciNelTesto('Enantyum').length, 1)
+  assert.equal(riconosciNelTesto('Xigduo').length, 1)
 
   // eliminare la scheda toglie i suoi collegamenti, non i testi dei pazienti
   eliminaSchedaFarmaco(id)
-  assert.deepEqual(riconosciNelTesto('prende Enantyum'), [])
+  assert.deepEqual(riconosciNelTesto('prende Xigduo'), [])
 })
 
 test('Parole da escludere: si aggiungono e si tolgono', () => {
@@ -324,4 +324,24 @@ test('farmaci: chi ha già il database riceve i nomi commerciali aggiunti dopo',
   assert.ok(nomi[normalizza('Brufen')]?.length, 'Brufen deve essere riconosciuto')
   assert.ok(nomi[normalizza('Buscopan')]?.length, 'Buscopan deve essere riconosciuto')
   assert.ok(riconosciNelTesto('prende Buscopan al bisogno').some((p) => p.refs.length > 0))
+})
+
+test('farmaci: le schede e i nomi della terza tranche arrivano anche a chi ha già il database', () => {
+  assicuraIniziali()
+  const db = getDb()
+  // Simula un database fermo alla seconda tranche: senza Nicetile, senza la scheda di Anastrozolo.
+  db.prepare("DELETE FROM farmaco_nomi WHERE nome_norm IN ('nicetile', 'arimidex')").run()
+  db.prepare("DELETE FROM farmaco_schede WHERE principio_attivo IN ('Anastrozolo', 'Acetilcarnitina')").run()
+  db.prepare("UPDATE farmaco_meta SET valore = '1' WHERE chiave IN ('nomi_versione', 'schede_versione')").run()
+  assicuraIniziali()
+  const indice = indiceFarmaci()
+  const ref = indice.nomi[normalizza('Nicetile')]
+  assert.ok(ref?.length, 'Nicetile deve essere riconosciuto')
+  const scheda = indice.schede.find((s) => s.principio_attivo === 'Acetilcarnitina')
+  assert.ok(scheda, 'la scheda di Acetilcarnitina deve esserci')
+  assert.equal(scheda.stato, 'bozza')
+  assert.equal(ref[0].schedaId, scheda.id)
+  const aromatasi = indice.schede.find((s) => s.principio_attivo === 'Anastrozolo')
+  assert.ok(aromatasi && aromatasi.livello === 2)
+  assert.ok(indice.nomi[normalizza('Arimidex')]?.length)
 })

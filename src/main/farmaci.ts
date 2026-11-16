@@ -32,7 +32,10 @@ import {
   NOMI_INIZIALI,
   NOMI_VERSIONE,
   PAROLE_ESCLUSE_INIZIALI,
-  SCHEDE_INIZIALI
+  SCHEDE_INIZIALI,
+  SCHEDE_V2,
+  SCHEDE_VERSIONE,
+  type SchedaIniziale
 } from './farmaci-iniziali'
 
 type Db = ReturnType<typeof getDb>
@@ -58,38 +61,7 @@ export function assicuraIniziali(): void {
         (e) => [e.nome, e.id]
       )
     )
-    const esistenti = new Set(
-      (db.prepare('SELECT principio_attivo FROM farmaco_schede').all() as { principio_attivo: string }[]).map(
-        (s) => chiavePrincipio(s.principio_attivo)
-      )
-    )
-    const insScheda = db.prepare(
-      `INSERT INTO farmaco_schede
-         (principio_attivo, classe, usi, info_fisio, avvertenze, livello, fonte, data_revisione, stato)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'bozza')`
-    )
-    const insLegame = db.prepare(
-      'INSERT OR IGNORE INTO farmaco_scheda_etichette (scheda_id, etichetta_id) VALUES (?, ?)'
-    )
-    for (const s of SCHEDE_INIZIALI) {
-      if (esistenti.has(chiavePrincipio(s.principio_attivo))) continue
-      const id = Number(
-        insScheda.run(
-          s.principio_attivo,
-          vuotoNull(s.classe),
-          vuotoNull(s.usi),
-          vuotoNull(s.info_fisio),
-          vuotoNull(s.avvertenze),
-          s.livello,
-          FONTE_BOZZA,
-          oggi()
-        ).lastInsertRowid
-      )
-      for (const e of s.etichette) {
-        const eid = idEtichetta.get(e)
-        if (eid != null) insLegame.run(id, eid)
-      }
-    }
+    aggiungiSchede(db, SCHEDE_INIZIALI.concat(SCHEDE_V2))
     const insNome = db.prepare(
       `INSERT OR IGNORE INTO farmaco_nomi (nome_norm, nome, principio, origine)
        VALUES (?, ?, ?, 'iniziale')`
@@ -99,22 +71,74 @@ export function assicuraIniziali(): void {
     for (const p of PAROLE_ESCLUSE_INIZIALI) insEsclusa.run(p)
     impostaMeta(db, 'iniziali', oggi())
     impostaMeta(db, 'nomi_versione', String(NOMI_VERSIONE))
+    impostaMeta(db, 'schede_versione', String(SCHEDE_VERSIONE))
   })()
 }
 
-// Chi ha gia' il database riceve i nomi commerciali aggiunti dopo (una volta per
-// versione dell'elenco). Non si toglie e non si cambia niente: si aggiunge solo quello che manca.
+// Inserisce le schede che non ci sono ancora (si confronta il principio attivo), tutte
+// in bozza. Quelle gia' presenti, modificate o validate non si toccano.
+function aggiungiSchede(db: Db, schede: SchedaIniziale[]): void {
+  const idEtichetta = new Map(
+    (db.prepare('SELECT id, nome FROM farmaco_etichette').all() as { id: number; nome: string }[]).map(
+      (e) => [e.nome, e.id]
+    )
+  )
+  const esistenti = new Set(
+    (db.prepare('SELECT principio_attivo FROM farmaco_schede').all() as { principio_attivo: string }[]).map(
+      (s) => chiavePrincipio(s.principio_attivo)
+    )
+  )
+  const insScheda = db.prepare(
+    `INSERT INTO farmaco_schede
+       (principio_attivo, classe, usi, info_fisio, avvertenze, livello, fonte, data_revisione, stato)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'bozza')`
+  )
+  const insLegame = db.prepare(
+    'INSERT OR IGNORE INTO farmaco_scheda_etichette (scheda_id, etichetta_id) VALUES (?, ?)'
+  )
+  for (const s of schede) {
+    if (esistenti.has(chiavePrincipio(s.principio_attivo))) continue
+    const id = Number(
+      insScheda.run(
+        s.principio_attivo,
+        vuotoNull(s.classe),
+        vuotoNull(s.usi),
+        vuotoNull(s.info_fisio),
+        vuotoNull(s.avvertenze),
+        s.livello,
+        FONTE_BOZZA,
+        oggi()
+      ).lastInsertRowid
+    )
+    for (const e of s.etichette) {
+      const eid = idEtichetta.get(e)
+      if (eid != null) insLegame.run(id, eid)
+    }
+  }
+}
+
+// Chi ha gia' il database riceve i nomi commerciali e le schede aggiunti dopo (una
+// volta per versione dell'elenco). Non si toglie e non si cambia niente: si aggiunge solo
+// quello che manca; le schede eliminate nelle versioni precedenti non tornano.
 function completaNomiIniziali(): void {
   const db = getDb()
   if (!meta(db, 'iniziali')) return
-  if (Number(meta(db, 'nomi_versione') ?? 1) >= NOMI_VERSIONE) return
+  const nomiOk = Number(meta(db, 'nomi_versione') ?? 1) >= NOMI_VERSIONE
+  const schedeOk = Number(meta(db, 'schede_versione') ?? 1) >= SCHEDE_VERSIONE
+  if (nomiOk && schedeOk) return
   db.transaction(() => {
-    const insNome = db.prepare(
-      `INSERT OR IGNORE INTO farmaco_nomi (nome_norm, nome, principio, origine)
-       VALUES (?, ?, ?, 'iniziale')`
-    )
-    for (const [nome, principio] of NOMI_INIZIALI) insNome.run(normalizza(nome), nome, principio)
-    impostaMeta(db, 'nomi_versione', String(NOMI_VERSIONE))
+    if (!nomiOk) {
+      const insNome = db.prepare(
+        `INSERT OR IGNORE INTO farmaco_nomi (nome_norm, nome, principio, origine)
+         VALUES (?, ?, ?, 'iniziale')`
+      )
+      for (const [nome, principio] of NOMI_INIZIALI) insNome.run(normalizza(nome), nome, principio)
+      impostaMeta(db, 'nomi_versione', String(NOMI_VERSIONE))
+    }
+    if (!schedeOk) {
+      aggiungiSchede(db, SCHEDE_V2)
+      impostaMeta(db, 'schede_versione', String(SCHEDE_VERSIONE))
+    }
   })()
 }
 

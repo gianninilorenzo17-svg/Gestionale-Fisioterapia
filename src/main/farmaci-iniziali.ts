@@ -380,6 +380,249 @@ export const SCHEDE_INIZIALI: SchedaIniziale[] = [
   }
 ]
 
+// Seconda tranche di schede (sempre «bozza da verificare»). Chi ha gia' il database
+// le riceve all'avvio successivo (una volta); quelle eliminate prima non tornano.
+export const SCHEDE_VERSIONE = 2
+
+const ANTIBIOTICO: Classe = {
+  classe: 'Antibiotico',
+  usi: 'Infezioni batteriche.',
+  info_fisio: 'Indica un’infezione in corso o recente.',
+  avvertenze: '',
+  livello: 0,
+  etichette: []
+}
+
+const ANTIGOTTOSO: Classe = {
+  classe: 'Antigottoso',
+  usi: 'Gotta: prevenzione e cura degli attacchi.',
+  info_fisio:
+    'Indica gotta: articolazioni (spesso alluce, caviglia, ginocchio) dolenti e gonfie a crisi.',
+  avvertenze: '',
+  livello: 0,
+  etichette: []
+}
+
+const ANTIREUMATICO_BIOLOGICO: Classe = {
+  classe: 'Biologico (anti-TNF)',
+  usi: 'Artrite reumatoide, spondiloartriti, artrite psoriasica, psoriasi.',
+  info_fisio:
+    'Indica una malattia reumatica infiammatoria: articolazioni fragili, rigidità al mattino, stanchezza. Si è più suscettibili alle infezioni.',
+  avvertenze: 'Febbre o un’infezione in corso sono da riferire al medico. Si assume con iniezione sottocutanea.',
+  livello: 1,
+  etichette: []
+}
+
+const INIBITORI_AROMATASI: Classe = {
+  classe: 'Inibitore dell’aromatasi',
+  usi: 'Tumore al seno ormono-sensibile (dopo la menopausa).',
+  info_fisio:
+    'Indica una storia di tumore al seno. Riduce la densità ossea (più fragilità e fratture) e dà spesso dolore e rigidità a articolazioni e muscoli, a volte tendinopatie.',
+  avvertenze: 'Il dolore articolare compare di solito nei primi mesi di cura e peggiora al mattino.',
+  livello: 2,
+  etichette: [OSSO, TENDINE]
+}
+
+const TRIPTANI: Classe = {
+  classe: 'Triptano',
+  usi: 'Attacco di emicrania.',
+  info_fisio:
+    'Indica emicrania. Possono dare sensazione di pesantezza o oppressione a collo, torace e mandibola.',
+  avvertenze: 'Non si usano in chi ha cardiopatia ischemica o pressione non controllata.',
+  livello: 0,
+  etichette: []
+}
+
+const INTEGRATORE: Classe = {
+  classe: 'Integratore',
+  usi: '',
+  info_fisio: '',
+  avvertenze: '',
+  livello: 0,
+  etichette: []
+}
+
+export const SCHEDE_V2: SchedaIniziale[] = [
+  ...dalla(FANS, [
+    ['Dexketoprofene'],
+    [
+      'Ketorolac',
+      { avvertenze: 'Uso breve (pochi giorni). Possibili effetti su stomaco, reni e sanguinamento.' }
+    ],
+    ['Meloxicam'],
+    ['Piroxicam'],
+    ['Acido mefenamico'],
+    ['Indometacina'],
+    [
+      'Celecoxib',
+      {
+        classe: 'FANS (COX-2)',
+        avvertenze: 'Può alzare la pressione. Meno effetti sullo stomaco, ma attenzione al cuore.',
+        etichette: [MASCHERA, CUORE]
+      }
+    ]
+  ]),
+  ...dalla(ANTIGOTTOSO, [
+    [
+      'Colchicina',
+      {
+        info_fisio:
+          'Indica gotta. In rari casi dolore e debolezza muscolare, soprattutto con statine o problemi ai reni.',
+        avvertenze: 'Diarrea e nausea sono i primi segnali di dose troppo alta.',
+        livello: 1,
+        etichette: [TENDINE]
+      }
+    ],
+    ['Allopurinolo', { avvertenze: 'Raramente reazioni della pelle: da riferire al medico.' }],
+    ['Febuxostat']
+  ]),
+  {
+    principio_attivo: 'Diacereina',
+    classe: 'Antiartrosico',
+    usi: 'Artrosi (anca, ginocchio).',
+    info_fisio: 'Indica artrosi.',
+    avvertenze: 'All’inizio può dare diarrea; le urine possono diventare più scure (innocuo).',
+    livello: 0,
+    etichette: []
+  },
+  {
+    principio_attivo: 'Lidocaina',
+    classe: 'Anestetico locale',
+    usi: 'Dolore localizzato (cerotti, creme, infiltrazioni).',
+    info_fisio: 'Riduce la sensibilità e il dolore nella zona: il dolore riferito può essere più basso di quello reale.',
+    avvertenze: 'Sul cerotto il calore può aumentare l’assorbimento.',
+    livello: 0,
+    etichette: [MASCHERA]
+  },
+  {
+    principio_attivo: 'Acido ialuronico',
+    classe: 'Infiltrazione articolare',
+    usi: 'Artrosi, soprattutto del ginocchio.',
+    info_fisio:
+      'Indica artrosi trattata con infiltrazioni: dopo l’infiltrazione la zona può restare dolente o gonfia per qualche giorno.',
+    avvertenze: '',
+    livello: 0,
+    etichette: []
+  },
+  {
+    ...INTEGRATORE,
+    principio_attivo: 'Acetilcarnitina',
+    classe: 'Integratore (nervi)',
+    usi: 'Neuropatie periferiche: formicolii, dolore ai nervi.',
+    info_fisio:
+      'Indica una neuropatia periferica (formicolio, dolore, sensibilità ridotta): attenzione a sensibilità e stabilità.'
+  },
+  {
+    ...INTEGRATORE,
+    principio_attivo: 'Acido alfa-lipoico',
+    classe: 'Integratore (antiossidante)',
+    usi: 'Neuropatia, soprattutto diabetica.',
+    info_fisio: 'Indica spesso una neuropatia, in particolare diabetica.',
+    avvertenze: 'Nei diabetici può abbassare la glicemia.'
+  },
+  {
+    ...INTEGRATORE,
+    principio_attivo: 'Vitamine del gruppo B',
+    classe: 'Integratore (vitamine B)',
+    usi: 'Carenze, neuropatie periferiche, nevralgie.',
+    info_fisio: 'Spesso assunte per formicolii, dolore ai nervi o carenza di vitamina B12.'
+  },
+  {
+    ...INTEGRATORE,
+    principio_attivo: 'Metilcobalamina',
+    classe: 'Integratore (vitamina B12)',
+    usi: 'Carenza di vitamina B12, neuropatie.',
+    info_fisio: 'Spesso assunta per formicolii, dolore ai nervi o carenza accertata.'
+  },
+  {
+    ...INTEGRATORE,
+    principio_attivo: 'Magnesio',
+    classe: 'Integratore (minerale)',
+    usi: 'Crampi, stanchezza, carenza.',
+    info_fisio: 'Spesso assunto per crampi o dopo sudorazione intensa.',
+    avvertenze: 'A dosi alte può dare diarrea.'
+  },
+  {
+    ...INTEGRATORE,
+    principio_attivo: 'Glucosamina',
+    classe: 'Integratore (articolazioni)',
+    usi: 'Artrosi.',
+    info_fisio: 'Indica artrosi.',
+    avvertenze: 'Può interferire con il warfarin (controllo dell’INR).'
+  },
+  {
+    ...INTEGRATORE,
+    principio_attivo: 'Condroitina',
+    classe: 'Integratore (articolazioni)',
+    usi: 'Artrosi.',
+    info_fisio: 'Indica artrosi.'
+  },
+  {
+    ...INTEGRATORE,
+    principio_attivo: 'Collagene',
+    usi: 'Tendini, cartilagine, pelle.',
+    info_fisio: 'Spesso assunto per tendinopatie o artrosi.'
+  },
+  {
+    ...INTEGRATORE,
+    principio_attivo: 'Omega-3',
+    classe: 'Integratore / farmaco',
+    usi: 'Trigliceridi alti, prevenzione cardiovascolare, effetto antinfiammatorio.',
+    info_fisio: 'A dosi alte può aumentare un poco la tendenza al sanguinamento.',
+    etichette: [EMORRAGICO]
+  },
+  {
+    ...INTEGRATORE,
+    principio_attivo: 'Melatonina',
+    classe: 'Integratore (sonno)',
+    usi: 'Disturbi del sonno.',
+    info_fisio: 'Può lasciare sonnolenza la mattina.',
+    etichette: [EQUILIBRIO]
+  },
+  ...dalla(ANTIBIOTICO, [['Amoxicillina'], ['Azitromicina']]),
+  ...dalla(INIBITORI_AROMATASI, [['Anastrozolo'], ['Letrozolo'], ['Exemestane']]),
+  {
+    principio_attivo: 'Tamoxifene',
+    classe: 'Antiestrogeno',
+    usi: 'Tumore al seno ormono-sensibile.',
+    info_fisio:
+      'Indica una storia di tumore al seno. Aumenta il rischio di trombosi venosa (gonfiore e dolore a un polpaccio).',
+    avvertenze: 'Gonfiore, dolore o calore a una gamba sono segnali da riferire al medico.',
+    livello: 1,
+    etichette: []
+  },
+  {
+    principio_attivo: 'Metotrexato',
+    classe: 'Immunosoppressore (antireumatico)',
+    usi: 'Artrite reumatoide, artrite psoriasica, psoriasi.',
+    info_fisio:
+      'Indica una malattia reumatica infiammatoria: articolazioni fragili, rigidità al mattino, stanchezza. Si è più suscettibili alle infezioni.',
+    avvertenze: 'Si assume una volta alla settimana. Possibili stanchezza, nausea, afte in bocca.',
+    livello: 1,
+    etichette: []
+  },
+  {
+    principio_attivo: 'Idrossiclorochina',
+    classe: 'Antireumatico (antimalarico)',
+    usi: 'Artrite reumatoide, lupus.',
+    info_fisio: 'Indica una malattia reumatica o autoimmune.',
+    avvertenze: 'Raramente effetti sulla vista e debolezza muscolare.',
+    livello: 0,
+    etichette: []
+  },
+  ...dalla(ANTIREUMATICO_BIOLOGICO, [['Adalimumab'], ['Etanercept']]),
+  ...dalla(TRIPTANI, [['Sumatriptan'], ['Rizatriptan'], ['Eletriptan'], ['Zolmitriptan']]),
+  {
+    principio_attivo: 'Estroprogestinici',
+    classe: 'Contraccettivo ormonale',
+    usi: 'Contraccezione, regolazione del ciclo.',
+    info_fisio: 'Lieve aumento del rischio di trombosi venosa (gonfiore e dolore a un polpaccio).',
+    avvertenze: '',
+    livello: 0,
+    etichette: []
+  }
+]
+
 // Nomi commerciali comuni che l'elenco AIFA non contiene. Ogni riga e' un nome
 // e il principio attivo (nelle associazioni, i principi separati da «+»).
 export const NOMI_INIZIALI: [nome: string, principio: string][] = [
@@ -536,12 +779,92 @@ export const NOMI_INIZIALI: [nome: string, principio: string][] = [
   ['Tapazole', 'Tiamazolo'],
   // gotta
   ['Zyloric', 'Allopurinolo'],
-  ['Adenuric', 'Febuxostat']
+  ['Adenuric', 'Febuxostat'],
+
+  // --- aggiunti nella terza tranche (v3) ---
+  // antinfiammatori, dolore, articolazioni
+  ['Ketesse', 'Dexketoprofene'],
+  ['Enantyum', 'Dexketoprofene'],
+  ['Ponstil', 'Acido mefenamico'],
+  ['Artrodar', 'Diacereina'],
+  ['Versatis', 'Lidocaina'],
+  ['Hyalgan', 'Acido ialuronico'],
+  ['Synvisc', 'Acido ialuronico'],
+  ['Ostenil', 'Acido ialuronico'],
+  // integratori e nervi
+  ['Nicetile', 'Acetilcarnitina'],
+  ['Tiobec', 'Acido alfa-lipoico'],
+  ['Neurobion', 'Vitamine del gruppo B'],
+  ['Polase', 'Magnesio + Potassio'],
+  ['Condrosulf', 'Condroitina'],
+  ['Esapent', 'Omega-3'],
+  ['Eskim', 'Omega-3'],
+  ['Omacor', 'Omega-3'],
+  ['Circadin', 'Melatonina'],
+  // antibiotici
+  ['Ciproxin', 'Ciprofloxacina'],
+  ['Tavanic', 'Levofloxacina'],
+  ['Avelox', 'Moxifloxacina'],
+  ['Augmentin', 'Amoxicillina + Acido clavulanico'],
+  ['Zimox', 'Amoxicillina'],
+  ['Zithromax', 'Azitromicina'],
+  ['Bactrim', 'Sulfametossazolo + Trimetoprim'],
+  // tumore al seno, reumatologia, emicrania, ormoni
+  ['Arimidex', 'Anastrozolo'],
+  ['Femara', 'Letrozolo'],
+  ['Aromasin', 'Exemestane'],
+  ['Nolvadex', 'Tamoxifene'],
+  ['Plaquenil', 'Idrossiclorochina'],
+  ['Humira', 'Adalimumab'],
+  ['Enbrel', 'Etanercept'],
+  ['Benepali', 'Etanercept'],
+  ['Imigran', 'Sumatriptan'],
+  ['Maxalt', 'Rizatriptan'],
+  ['Relpax', 'Eletriptan'],
+  ['Zomig', 'Zolmitriptan'],
+  ['Yasmin', 'Estroprogestinici'],
+  ['Yaz', 'Estroprogestinici'],
+  // respiro e allergie
+  ['Ventolin', 'Salbutamolo'],
+  ['Symbicort', 'Budesonide + Formoterolo'],
+  ['Seretide', 'Salmeterolo + Fluticasone'],
+  ['Singulair', 'Montelukast'],
+  ['Zirtec', 'Cetirizina'],
+  ['Aerius', 'Desloratadina'],
+  ['Clarityn', 'Loratadina'],
+  // cuore e pressione
+  ['Zanedip', 'Lercanidipina'],
+  ['Olmetec', 'Olmesartan'],
+  ['Aprovel', 'Irbesartan'],
+  ['Atacand', 'Candesartan'],
+  ['Micardis', 'Telmisartan'],
+  ['Dilatrend', 'Carvedilolo'],
+  ['Diuresix', 'Torasemide'],
+  ['Cordarone', 'Amiodarone'],
+  ['Ezetrol', 'Ezetimibe'],
+  // stomaco, prostata
+  ['Maalox', 'Alluminio idrossido + Magnesio idrossido'],
+  ['Gaviscon', 'Alginato di sodio + Bicarbonato'],
+  ['Motilium', 'Domperidone'],
+  ['Plasil', 'Metoclopramide'],
+  ['Imodium', 'Loperamide'],
+  ['Omnic', 'Tamsulosina'],
+  ['Proscar', 'Finasteride'],
+  ['Viagra', 'Sildenafil'],
+  ['Cialis', 'Tadalafil'],
+  // psicofarmaci e neurologia
+  ['Remeron', 'Mirtazapina'],
+  ['Seroquel', 'Quetiapina'],
+  ['Abilify', 'Aripiprazolo'],
+  ['Depakin', 'Acido valproico'],
+  ['Lamictal', 'Lamotrigina'],
+  ['Madopar', 'Levodopa + Benserazide'],
+  ['Sinemet', 'Levodopa + Carbidopa']
 ]
 
 // Si alza ogni volta che si aggiungono nomi a NOMI_INIZIALI: chi ha gia' il database
 // li riceve all'avvio successivo (i nomi gia' presenti e quelli aggiunti a mano non cambiano).
-export const NOMI_VERSIONE = 2
+export const NOMI_VERSIONE = 3
 
 // Parole che coincidono con altre di uso comune: non si sottolineano mai (la
 // lista si cambia da Configurazione → Farmaci). Alcune sono nomi di prodotti
