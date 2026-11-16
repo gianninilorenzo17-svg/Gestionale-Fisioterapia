@@ -56,7 +56,11 @@ export function useScorciatoie(scorciatoie: Scorciatoia[]): void {
         // senza Ctrl la scorciatoia non deve rubare le lettere a chi scrive
         if (!s.ctrl && !s.inCasella && dentroACasella(e)) continue
         // un menu a tendina aperto usa Esc per chiudersi: la finestra resta
-        if (s.tasto === 'Escape' && document.querySelector('.menu-scelta-popup, .elenco-scelta'))
+        // (e una scheda di farmaco aperta sopra la finestra chiude se stessa)
+        if (
+          s.tasto === 'Escape' &&
+          document.querySelector('.menu-scelta-popup, .elenco-scelta, .modale-farmaco')
+        )
           continue
         e.preventDefault()
         s.azione()

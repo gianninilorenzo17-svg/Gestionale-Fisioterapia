@@ -11,6 +11,7 @@ import { TIPI_NEURO, tipiNeuro } from '../../../shared/sintomi'
 import { ListaSintomi } from './anamnesi/ListaSintomi'
 import { Grafici } from './anamnesi/Grafici'
 import { Scelta } from './anamnesi/Campi'
+import TestoConFarmaci from './farmaci/TestoConFarmaci'
 
 // Colloquio con il paziente: nessun campo obbligatorio e nessun ordine da
 // seguire. Tutto sta in una schermata sola, cosi' se il paziente anticipa una
@@ -189,7 +190,9 @@ export default function AnamnesiProssima({
           Storia precedente
           {/* La casella grande: e' dove si scrive il racconto del problema,
               quello che prima finiva tutto nel motivo del consulto. */}
-          <textarea
+          {/* Come un campo di testo qualunque; in più sottolinea i nomi di farmaci
+              (solo a video: il testo salvato resta testo semplice). */}
+          <TestoConFarmaci
             rows={8}
             className="testo-ampio"
             style={{ ['--altezza-minima' as string]: '12em' }}

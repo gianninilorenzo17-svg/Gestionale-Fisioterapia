@@ -1,0 +1,389 @@
+/* ---- Farmaci: sottolineatura nel testo, bolla, lista del paziente, scheda ---- */
+
+/* Livello di attenzione: un pallino. Grigio = nessuna, ambra = da tenere presente,
+   rosso = alta attenzione. I colori sono quelli del tema. */
+.farmaco-livello {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: baseline;
+  flex: none;
+  background: var(--border-forte);
+}
+.farmaco-livello.livello-1 {
+  background: var(--attenzione);
+}
+.farmaco-livello.livello-2 {
+  background: var(--danger);
+}
+.bolla-farmaco-livello {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.bolla-farmaco-livello.livello-1 {
+  color: var(--attenzione);
+}
+.bolla-farmaco-livello.livello-2 {
+  color: var(--danger);
+}
+
+/* "Bozza da verificare": ben visibile ma senza gridare. */
+.farmaco-bozza {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--attenzione);
+  border: 1px solid var(--attenzione);
+  border-radius: 999px;
+  padding: 0 8px;
+  margin: 2px 0 4px;
+  white-space: nowrap;
+}
+
+/* ---- il campo con i farmaci sottolineati ---- */
+.testo-farmaci {
+  position: relative;
+}
+.testo-farmaci > textarea {
+  display: block;
+  width: 100%;
+  position: relative;
+  background: transparent;
+}
+/* Il livello dietro al campo: stesso testo, trasparente. Prende lo sfondo del
+   campo (che davanti e' trasparente) e solo i farmaci hanno la sottolineatura. */
+.testo-farmaci-sotto {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  color: transparent;
+  background: var(--campo);
+  border-style: solid;
+  border-color: transparent;
+  pointer-events: none;
+  user-select: none;
+}
+.farmaco-sottolineato {
+  color: transparent;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+/* ---- la bolla ---- */
+.bolla-farmaco {
+  position: fixed;
+  z-index: 400;
+  box-sizing: border-box;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.bolla-farmaco-pezzo + .bolla-farmaco-pezzo {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.bolla-farmaco-titolo {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+.bolla-farmaco-classe {
+  margin-left: 8px;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.bolla-farmaco-pezzo p {
+  margin: 4px 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.bolla-farmaco-vuoto {
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.bolla-farmaco-piede {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* ---- la scheda completa e il modulo ---- */
+.modale-farmaco textarea {
+  resize: vertical;
+}
+.farmaco-scheda + .farmaco-scheda {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.farmaco-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 2px 0 6px;
+}
+.farmaco-blocco p {
+  margin: 2px 0 8px;
+  white-space: pre-wrap;
+}
+.farmaco-fonte {
+  margin-top: 8px;
+}
+.farmaco-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+}
+.farmaco-livelli,
+.farmaco-stato,
+.farmaco-etichette-scelta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.farmaco-livello-scelta,
+.farmaco-stato button,
+.farmaco-etichetta {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-forte);
+  background: var(--surface);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.farmaco-livello-scelta.attivo,
+.farmaco-stato button.attivo,
+.farmaco-etichetta.attiva {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.farmaco-etichetta.sola-lettura {
+  cursor: default;
+}
+
+/* ---- la lista del paziente: leggera ---- */
+.farmaci-paziente {
+  margin: 2px 0 10px;
+}
+.farmaci-chiuso .link-btn {
+  font-size: 13px;
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.farmaci-riga {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.farmaci-titolo {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.farmaco-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 1px 4px 1px 10px;
+  font-size: 14px;
+}
+.farmaco-chip.sconosciuto {
+  background: none;
+  border: 1px dashed var(--border-forte);
+}
+.farmaco-chip-nome {
+  background: none;
+  border: none;
+  padding: 2px 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.farmaco-chip-nota-testo {
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-dim);
+  font-size: 12px;
+  margin-left: 4px;
+}
+.farmaco-chip-icona {
+  display: inline-flex;
+  background: none;
+  border: none;
+  padding: 3px;
+  color: var(--text-dim);
+  opacity: 0.55;
+  cursor: pointer;
+}
+.farmaco-chip-icona.piena,
+.farmaco-chip-icona:hover {
+  opacity: 1;
+}
+.farmaci-aggiungi {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.farmaci-aggiungi input {
+  width: 190px;
+  padding: 3px 8px;
+  font-size: 14px;
+}
+.farmaci-nota-riga {
+  margin-top: 6px;
+}
+.farmaci-proposte {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--pannello);
+}
+.farmaci-proposta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+  padding: 2px 0;
+}
+.farmaci-contesto {
+  color: var(--text-dim);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.farmaci-proposte-azioni {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* ---- Configurazione → Farmaci ---- */
+.farmaci-stato {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.farmaci-guida-aifa {
+  margin: 4px 0 12px;
+  font-size: 13px;
+}
+.farmaci-barra {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.farmaci-barra .filtro-esercizi {
+  flex: 1;
+}
+.farmaci-solo-bozze {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--text-dim);
+}
+.farmaci-elenco {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  max-height: 46vh;
+  overflow: auto;
+}
+.farmaci-elenco li {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.farmaci-elenco-riga {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 7px 4px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.farmaci-elenco.semplice .farmaci-elenco-riga {
+  cursor: default;
+}
+.farmaci-elenco-nome {
+  font-weight: 500;
+}
+.farmaci-elenco-classe {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 0 8px;
+}
+.farmaci-vuoto {
+  padding: 10px 4px;
+  display: block;
+}
+.farmaci-sezione {
+  margin: 8px 0;
+}
+.farmaci-sezione > summary {
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-dim);
+  padding: 4px 0;
+}
+.farmaci-collega {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+.farmaci-escluse {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

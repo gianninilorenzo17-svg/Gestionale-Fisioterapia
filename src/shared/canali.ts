@@ -101,6 +101,14 @@ import type {
 } from './temi'
 import type { DoseFase, DoseSettimana, TipoLavoro } from './dose'
 import type { CaricoPaziente } from './carico-settimane'
+import type {
+  EsitoImportFarmaci,
+  FarmacoSchedaInput,
+  IndiceFarmaci,
+  NomeCollegato,
+  PazienteFarmaco,
+  StatoFarmaci
+} from './farmaci'
 
 export interface Canali {
   // apre un URL http/https nel browser predefinito
@@ -538,6 +546,25 @@ export interface Canali {
   'backup:copiaFuori': () => string | null
   // Tabelle CSV leggibili senza l'app (non e' un backup ripristinabile).
   'backup:esportaArchivio': () => string | null
+  // ---- farmaci: solo consultazione ----
+  'farmaci:indice': () => IndiceFarmaci
+  'farmaci:stato': () => StatoFarmaci
+  'farmaci:salvaScheda': (scheda: FarmacoSchedaInput) => number
+  'farmaci:eliminaScheda': (id: number) => void
+  'farmaci:salvaEtichetta': (id: number | null, nome: string) => number
+  'farmaci:eliminaEtichetta': (id: number) => void
+  'farmaci:collega': (nome: string, schedaId: number) => number
+  'farmaci:scollega': (id: number) => void
+  'farmaci:collegamenti': () => NomeCollegato[]
+  'farmaci:aggiungiEsclusa': (parola: string) => void
+  'farmaci:togliEsclusa': (parola: string) => void
+  // Sceglie il CSV delle liste di trasparenza AIFA e lo unisce all'indice.
+  // Torna null se si annulla.
+  'farmaci:importaAifa': () => EsitoImportFarmaci | null
+  'farmaci:paziente': (pazienteId: number) => PazienteFarmaco[]
+  'farmaci:aggiungiAlPaziente': (pazienteId: number, testo: string, nota: string | null) => number
+  'farmaci:aggiornaDelPaziente': (id: number, testo: string, nota: string | null) => void
+  'farmaci:togliDalPaziente': (id: number) => void
   'tecniche:list': (includiArchiviate: boolean) => Tecnica[]
   'tecniche:crea': (nome: string) => number
   'tecniche:setArchiviata': (id: number, archiviata: boolean) => void
@@ -935,6 +962,24 @@ export const MAPPA_API = {
     ripristina: 'backup:ripristina',
     copiaFuori: 'backup:copiaFuori',
     esportaArchivio: 'backup:esportaArchivio'
+  },
+  farmaci: {
+    indice: 'farmaci:indice',
+    stato: 'farmaci:stato',
+    salvaScheda: 'farmaci:salvaScheda',
+    eliminaScheda: 'farmaci:eliminaScheda',
+    salvaEtichetta: 'farmaci:salvaEtichetta',
+    eliminaEtichetta: 'farmaci:eliminaEtichetta',
+    collega: 'farmaci:collega',
+    scollega: 'farmaci:scollega',
+    collegamenti: 'farmaci:collegamenti',
+    aggiungiEsclusa: 'farmaci:aggiungiEsclusa',
+    togliEsclusa: 'farmaci:togliEsclusa',
+    importaAifa: 'farmaci:importaAifa',
+    paziente: 'farmaci:paziente',
+    aggiungiAlPaziente: 'farmaci:aggiungiAlPaziente',
+    aggiornaDelPaziente: 'farmaci:aggiornaDelPaziente',
+    togliDalPaziente: 'farmaci:togliDalPaziente'
   },
   tecniche: {
     list: 'tecniche:list',

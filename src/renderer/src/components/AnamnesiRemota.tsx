@@ -10,6 +10,7 @@ import { errMsg, formatData } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 import { useSalvaUscendo } from '../salvaUscendo'
 import IndicatoreSalvataggio from './IndicatoreSalvataggio'
+import FarmaciPaziente from './farmaci/FarmaciPaziente'
 
 const ATTESA_SALVATAGGIO = 1500
 
@@ -179,6 +180,7 @@ export default function AnamnesiRemota({
             onChange={testo('patologie')}
           />
         </label>
+        <FarmaciPaziente pazienteId={pazienteId} />
         <label>
           Incidenti e traumi precedenti
           <textarea rows={2} value={dati.traumi ?? ''} onChange={testo('traumi')} />

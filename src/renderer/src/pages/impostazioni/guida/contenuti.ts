@@ -7,6 +7,7 @@ import { screening } from './argomenti/screening'
 import { pedana } from './argomenti/pedana'
 import { questionari } from './argomenti/questionari'
 import { dati } from './argomenti/dati'
+import { farmaci } from './argomenti/farmaci'
 
 // Gli argomenti della guida, nell'ordine in cui compaiono a sinistra: prima la
 // libreria e le funzioni che si costruiscono una sopra l'altra (esercizi →
@@ -20,5 +21,6 @@ export const ARGOMENTI: ArgomentoGuida[] = [
   screening,
   pedana,
   questionari,
+  farmaci,
   dati
 ]

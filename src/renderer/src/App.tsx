@@ -26,6 +26,8 @@ import SchermoBloccato from './components/SchermoBloccato'
 import ToastHost, { toast, toastConAzione, toastErrore } from './components/Toast'
 import { avvisoCopiaFuori } from '../../shared/copie'
 import ConfermaHost from './components/Conferma'
+import SchedaFarmacoHost from './components/farmaci/SchedaFarmaco'
+import FarmaciPage from './pages/FarmaciPage'
 import { errMsg, oggiIso } from './lib'
 import { bloccaScorciatoie, useScorciatoie } from './scorciatoie'
 import RicercaGlobale from './components/RicercaGlobale'
@@ -51,6 +53,7 @@ type TabConfig =
   | 'testValutazione'
   | 'screening'
   | 'gruppi'
+  | 'farmaci'
 
 const TAB_CONFIG: { key: TabConfig; label: string }[] = [
   { key: 'patologie', label: 'Patologie e fasi' },
@@ -59,7 +62,8 @@ const TAB_CONFIG: { key: TabConfig; label: string }[] = [
   { key: 'questionari', label: 'Questionari' },
   { key: 'testValutazione', label: 'Test di valutazione' },
   { key: 'screening', label: 'Screening' },
-  { key: 'gruppi', label: 'Gruppi' }
+  { key: 'gruppi', label: 'Gruppi' },
+  { key: 'farmaci', label: 'Farmaci' }
 ]
 
 export default function App(): React.JSX.Element {
@@ -506,6 +510,7 @@ export default function App(): React.JSX.Element {
         />
       )}
       <ConfermaHost />
+      <SchedaFarmacoHost />
       <ToastHost />
       {/* Overlay, non un ramo che sostituisce l'app: sotto restano montati
           l'editor aperto e il suo stato. Sbloccando si ritrova tutto com'era,
@@ -559,6 +564,7 @@ function ConfigurazionePage({
       </div>
       {tab === 'patologie' && <PatologiePage key={giro} />}
       {tab === 'gruppi' && <GruppiPage key={giro} />}
+      {tab === 'farmaci' && <FarmaciPage key={giro} />}
       {tab === 'distretti' && <DistrettiPage key={giro} />}
       {tab === 'esercizi' && <EserciziPage key={giro} />}
       {tab === 'questionari' && <QuestionariPage key={giro} />}

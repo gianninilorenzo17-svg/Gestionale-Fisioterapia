@@ -3,6 +3,7 @@
 // compare in una sezione si lavora qui; l'ordine e la resa in HTML stanno in
 // export-cartella.ts.
 import { getDb } from './db'
+import { farmaciPerDocumento } from './farmaci'
 import { neuroTestuale } from './neuro-testo'
 import { COLORI_SINTOMI } from '../shared/sintomi'
 import { leggiPunti } from '../shared/tratti'
@@ -246,7 +247,9 @@ export function sezRemota(pazienteId: number): Blocco[] {
   const referti = db
     .prepare('SELECT nome, data FROM bioimmagini WHERE paziente_id = ? ORDER BY ordine, id')
     .all(pazienteId) as { nome: string; data: string }[]
-  if (!r && referti.length === 0) return []
+  // I farmaci della lista, come li ha scritti chi compila: niente note, schede ed etichette.
+  const farmaci = farmaciPerDocumento(pazienteId)
+  if (!r && referti.length === 0 && farmaci.length === 0) return []
 
   const siNo = (v: unknown): string | null => (v == null ? null : v ? 'sì' : 'no')
   const complementari = coppie([
@@ -263,6 +266,7 @@ export function sezRemota(pazienteId: number): Blocco[] {
 
   return [
     ...testo('Altre patologie e farmaci', r?.patologie),
+    ...testo('Farmaci', farmaci.join(', ')),
     ...testo('Incidenti e traumi precedenti', r?.traumi),
     ...testo('Interventi chirurgici', r?.interventi),
     ...testo('Precedenti riabilitativi', r?.riabilitazioni),

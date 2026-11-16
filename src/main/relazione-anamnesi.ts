@@ -8,6 +8,7 @@
 // ("riferisce", "nega"), che non ha bisogno di sapere se il paziente e' un
 // uomo o una donna.
 import { getDb } from './db'
+import { farmaciPerDocumento } from './farmaci'
 import { TIPI_NEURO, durataTesto, faseDurata, tipiNeuro, type UnitaDurata } from '../shared/sintomi'
 
 type Riga = Record<string, unknown>
@@ -251,6 +252,9 @@ export function relazioneAnamnesi(pazienteId: number): RelazioneAnamnesi {
     else storia.push(frase(`${titolo}: ${v}`))
   }
   if (negati.length) storia.push(frase(`Nega ${elenco(negati)}`))
+  // La lista dei farmaci, come li ha scritti chi compila: niente note, schede ed etichette.
+  const farmaci = farmaciPerDocumento(pazienteId)
+  if (farmaci.length > 0) storia.push(frase(`Farmaci: ${farmaci.join(', ')}`))
   if (storia.length > 0) remota.push({ testo: storia.join(' ') })
 
   const complementari: [string, unknown][] = [

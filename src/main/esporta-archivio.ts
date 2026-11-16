@@ -116,7 +116,8 @@ export function esportaArchivio(cartella: string): string {
               a.tosse_starnuto, a.neuro_sn, a.neuro_tipi, a.sintomi_neurologici,
               a.relazione_sintomi, a.note,
               att.attivita, att.partecipazione, att.fattori_interni,
-              r.traumi, r.interventi, r.riabilitazioni, r.bioimmagini_note
+              r.traumi, r.interventi, r.riabilitazioni, r.bioimmagini_note,
+              (SELECT group_concat(f.testo, '; ') FROM paziente_farmaci f WHERE f.paziente_id = p.id) AS farmaci
        FROM pazienti p
        LEFT JOIN anamnesi_prossima a ON a.paziente_id = p.id
        LEFT JOIN anamnesi_attivita att ON att.paziente_id = p.id
@@ -143,7 +144,8 @@ export function esportaArchivio(cartella: string): string {
       'traumi',
       'interventi',
       'riabilitazioni',
-      'bioimmagini_note'
+      'bioimmagini_note',
+      'farmaci'
     ]
   )
 

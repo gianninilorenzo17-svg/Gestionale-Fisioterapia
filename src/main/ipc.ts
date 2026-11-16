@@ -80,6 +80,24 @@ import {
 } from './pazienti'
 import { archiviaTecnica, creaTecnica, elencoTecniche } from './tecniche'
 import {
+  aggiornaFarmacoPaziente,
+  aggiungiEsclusaFarmaci,
+  aggiungiFarmacoPaziente,
+  collegaNomeFarmaco,
+  collegamentiFarmaci,
+  eliminaEtichettaFarmaco,
+  eliminaSchedaFarmaco,
+  farmaciPaziente,
+  importaListaAifa,
+  indiceFarmaci,
+  salvaEtichettaFarmaco,
+  salvaSchedaFarmaco,
+  scollegaNomeFarmaco,
+  statoFarmaci,
+  togliEsclusaFarmaci,
+  togliFarmacoPaziente
+} from './farmaci'
+import {
   creaIndicazione,
   elencoIndicazioni,
   eliminaIndicazione,
@@ -1060,6 +1078,42 @@ export function registerIpc(): void {
   handle('archivio:controlla', () => controllaArchivio())
 
   // ---- Tecniche del trattamento ----
+  // ---- farmaci (consultazione) ----
+  handle('farmaci:indice', () => indiceFarmaci())
+  handle('farmaci:stato', () => statoFarmaci())
+  handle('farmaci:salvaScheda', (scheda) => salvaSchedaFarmaco(scheda))
+  handle('farmaci:eliminaScheda', (id: number) => eliminaSchedaFarmaco(id))
+  handle('farmaci:salvaEtichetta', (id: number | null, nome: string) => salvaEtichettaFarmaco(id, nome))
+  handle('farmaci:eliminaEtichetta', (id: number) => eliminaEtichettaFarmaco(id))
+  handle('farmaci:collega', (nome: string, schedaId: number) => collegaNomeFarmaco(nome, schedaId))
+  handle('farmaci:scollega', (id: number) => scollegaNomeFarmaco(id))
+  handle('farmaci:collegamenti', () => collegamentiFarmaci())
+  handle('farmaci:aggiungiEsclusa', (parola: string) => aggiungiEsclusaFarmaci(parola))
+  handle('farmaci:togliEsclusa', (parola: string) => togliEsclusaFarmaci(parola))
+  handle('farmaci:importaAifa', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Scegli il CSV della lista di trasparenza AIFA',
+      properties: ['openFile'],
+      filters: [{ name: 'Elenco AIFA (CSV)', extensions: ['csv'] }]
+    })
+    if (canceled || filePaths.length === 0) return null
+    let dati: Buffer
+    try {
+      dati = readFileSync(filePaths[0])
+    } catch {
+      throw new Error('Non riesco a leggere il file scelto.')
+    }
+    if (dati.length > 30 * 1024 * 1024) throw new Error('Il file è troppo pesante: serve il CSV della lista di trasparenza.')
+    return importaListaAifa(dati)
+  })
+  handle('farmaci:paziente', (pazienteId: number) => farmaciPaziente(pazienteId))
+  handle('farmaci:aggiungiAlPaziente', (pazienteId: number, testo: string, nota: string | null) =>
+    aggiungiFarmacoPaziente(pazienteId, testo, nota)
+  )
+  handle('farmaci:aggiornaDelPaziente', (id: number, testo: string, nota: string | null) =>
+    aggiornaFarmacoPaziente(id, testo, nota)
+  )
+  handle('farmaci:togliDalPaziente', (id: number) => togliFarmacoPaziente(id))
   handle('tecniche:list', (includiArchiviate: boolean) => elencoTecniche(includiArchiviate))
   handle('tecniche:crea', (nome: string) => creaTecnica(nome))
   handle('tecniche:setArchiviata', (id: number, archiviata: boolean) => archiviaTecnica(id, archiviata))

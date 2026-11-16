@@ -1782,6 +1782,62 @@ export const MIGRATIONS: string[] = [
     data TEXT NOT NULL
   );
   CREATE INDEX idx_progressione_manuale_paziente ON progressione_manuale(paziente_id, progressione_id);
+  `,
+
+  // 77 - il database dei farmaci: schede di riferimento per principio attivo (una
+  //      per principio, con classe, usi, informazioni per la fisioterapia,
+  //      avvertenze, livello di attenzione, fonte e stato), le etichette che si
+  //      possono scegliere, l'indice dei nomi (dall'elenco AIFA, dai nomi iniziali
+  //      e dai collegamenti fatti a mano) e le parole da non sottolineare. Il
+  //      paziente ha solo la sua lista in testo libero, con una nota facoltativa.
+  //      Le schede non entrano mai nei documenti.
+  `
+  CREATE TABLE farmaco_etichette (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE TABLE farmaco_schede (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    principio_attivo TEXT NOT NULL,
+    classe TEXT,
+    usi TEXT,
+    info_fisio TEXT,
+    avvertenze TEXT,
+    livello INTEGER NOT NULL DEFAULT 0 CHECK (livello IN (0, 1, 2)),
+    fonte TEXT,
+    data_revisione TEXT,
+    stato TEXT NOT NULL DEFAULT 'bozza' CHECK (stato IN ('bozza', 'validata'))
+  );
+  CREATE TABLE farmaco_scheda_etichette (
+    scheda_id INTEGER NOT NULL REFERENCES farmaco_schede(id) ON DELETE CASCADE,
+    etichetta_id INTEGER NOT NULL REFERENCES farmaco_etichette(id) ON DELETE CASCADE,
+    PRIMARY KEY (scheda_id, etichetta_id)
+  );
+  CREATE INDEX idx_farmaco_scheda_etichette_etichetta ON farmaco_scheda_etichette(etichetta_id);
+  -- nome (normalizzato) -> principio attivo (testo, dall'elenco AIFA o iniziale)
+  -- oppure -> una scheda (collegamento fatto a mano)
+  CREATE TABLE farmaco_nomi (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome_norm TEXT NOT NULL,
+    nome TEXT,
+    principio TEXT,
+    scheda_id INTEGER REFERENCES farmaco_schede(id) ON DELETE CASCADE,
+    origine TEXT NOT NULL CHECK (origine IN ('aifa', 'iniziale', 'manuale'))
+  );
+  CREATE UNIQUE INDEX idx_farmaco_nomi_unico
+    ON farmaco_nomi(nome_norm, COALESCE(principio, ''), COALESCE(scheda_id, 0), origine);
+  CREATE INDEX idx_farmaco_nomi_scheda ON farmaco_nomi(scheda_id);
+  CREATE TABLE farmaco_escluse (parola TEXT PRIMARY KEY);
+  CREATE TABLE farmaco_meta (chiave TEXT PRIMARY KEY, valore TEXT);
+  CREATE TABLE paziente_farmaci (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    testo TEXT NOT NULL,
+    nota TEXT,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX idx_paziente_farmaci_paziente ON paziente_farmaci(paziente_id);
   `
 ]
 
