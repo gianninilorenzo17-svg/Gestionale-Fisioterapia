@@ -50,7 +50,7 @@ export const farmaci: ArgomentoGuida = {
     {
       titolo: 'Le schede',
       elementi: [
-        'Si trovano in [[Configurazione > Farmaci]]. C’è una scheda per principio attivo, con classe, a cosa serve, informazioni per la fisioterapia, avvertenze, **livello di attenzione** (nessuno, da tenere presente, alta), etichette, fonte e data dell’ultima revisione.',
+        'Si trovano in [[Configurazione > Farmaci]], divise per **categoria** (FANS, Oppioidi, Anticoagulanti…): un clic su una categoria apre le sue schede, con **Categorie** si torna indietro. La barra di ricerca c’è sempre e cerca in tutte le categorie, anche per classe. C’è una scheda per principio attivo, con classe, a cosa serve, informazioni per la fisioterapia, avvertenze, **livello di attenzione** (nessuno, da tenere presente, alta), etichette, fonte e data dell’ultima revisione.',
         'Quelle iniziali sono **bozze da verificare** e lo dicono bene in vista, anche nella bolla. Quando le hai controllate, nella scheda scegli **Validata da me**.',
         'Le **etichette** si cambiano in [[Configurazione > Farmaci > Etichette]]. Livello ed etichette sono dati strutturati, pensati per evidenziare in seguito le informazioni importanti.',
         'Un nome commerciale con più principi attivi (associazioni) mostra una scheda per ciascuno.'

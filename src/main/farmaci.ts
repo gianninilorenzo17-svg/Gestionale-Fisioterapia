@@ -35,6 +35,7 @@ import {
   SCHEDE_INIZIALI,
   SCHEDE_V2,
   SCHEDE_V3,
+  SCHEDE_V4,
   SCHEDE_VERSIONE,
   type SchedaIniziale
 } from './farmaci-iniziali'
@@ -62,7 +63,7 @@ export function assicuraIniziali(): void {
         (e) => [e.nome, e.id]
       )
     )
-    aggiungiSchede(db, SCHEDE_INIZIALI.concat(SCHEDE_V2, SCHEDE_V3))
+    aggiungiSchede(db, SCHEDE_INIZIALI.concat(SCHEDE_V2, SCHEDE_V3, SCHEDE_V4))
     const insNome = db.prepare(
       `INSERT OR IGNORE INTO farmaco_nomi (nome_norm, nome, principio, origine)
        VALUES (?, ?, ?, 'iniziale')`
@@ -140,6 +141,7 @@ function completaNomiIniziali(): void {
     if (!schedeOk) {
       if (schedeVersione < 2) aggiungiSchede(db, SCHEDE_V2)
       if (schedeVersione < 3) aggiungiSchede(db, SCHEDE_V3)
+      if (schedeVersione < 4) aggiungiSchede(db, SCHEDE_V4)
       impostaMeta(db, 'schede_versione', String(SCHEDE_VERSIONE))
     }
   })()

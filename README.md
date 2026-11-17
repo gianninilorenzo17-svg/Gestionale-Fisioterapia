@@ -64,6 +64,22 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.20
+
+**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge le tabelle dei farmaci
+(migrazioni 75-77): non tocca i dati dei pazienti, ma non si può annullare, quindi prima fa da solo una
+copia dell'archivio.
+
+- Farmaci: database di consultazione con schede per principio attivo (tutte «bozza da verificare»),
+  nomi commerciali riconosciuti e sottolineati nella «Storia precedente», lista nell'anamnesi remota,
+  importazione dell'elenco AIFA, voce nella Guida
+- Configurazione → Farmaci: le schede sono divise per categoria (FANS, Oppioidi, Anticoagulanti,
+  Parkinson...); un clic apre l'elenco della categoria, la ricerca c'è sempre e cerca in tutte
+- Altre schede e nomi: miorilassanti e antispastici (Expose, Dantrium, tossina botulinica), dopamino-agonisti,
+  Keppra, antidemenza (Aricept, Ebixa), nitrati, Depalgos e altri
+- Percorso: carico settimana per settimana, progressione spostata di uno step a mano
+- Guida a elenco; bottone bipodalico/monopodalico; menu a tendina uniformi; ritocchi vari
+
 ### v0.5.19
 
 **Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge una colonna al database

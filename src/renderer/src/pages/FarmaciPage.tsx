@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Download, Plus, Trash2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Plus, Trash2, X } from 'lucide-react'
 import {
+  categoriaFarmaco,
   normalizza,
+  raggruppaPerCategoria,
   type FarmacoSchedaInput,
-  type NomeCollegato,
-  type StatoFarmaci
+  type NomeCollegato
 } from '../../../shared/farmaci'
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
@@ -13,7 +14,7 @@ import CrudList from '../components/CrudList'
 import Aiuto from '../components/Aiuto'
 import ModificaScheda, { comeInput, schedaVuota } from '../components/farmaci/ModificaScheda'
 import { AvvisoBozza, PuntoLivello } from '../components/farmaci/BollaFarmaco'
-import { errMsg, formatData } from '../lib'
+import { errMsg } from '../lib'
 import { invalidaFarmaci, useFarmaci } from '../farmaci'
 
 // Configurazione → Farmaci. Il database dei farmaci e' solo di consultazione:
@@ -21,18 +22,17 @@ import { invalidaFarmaci, useFarmaci } from '../farmaci'
 // collegati a mano e le parole da non sottolineare. Dati dei pazienti: nessuno.
 export default function FarmaciPage(): React.JSX.Element {
   const dati = useFarmaci()
-  const [stato, setStato] = useState<StatoFarmaci | null>(null)
   const [collegati, setCollegati] = useState<NomeCollegato[]>([])
   const [cerca, setCerca] = useState('')
   const [soloBozze, setSoloBozze] = useState(false)
+  // la categoria aperta (null = l'elenco delle categorie); cercando si guardano tutte
+  const [categoria, setCategoria] = useState<string | null>(null)
   const [inModifica, setInModifica] = useState<FarmacoSchedaInput | null>(null)
   const [importando, setImportando] = useState(false)
 
   const caricaAltro = useCallback(async (): Promise<void> => {
     try {
-      const [s, c] = await Promise.all([window.api.farmaci.stato(), window.api.farmaci.collegamenti()])
-      setStato(s)
-      setCollegati(c)
+      setCollegati(await window.api.farmaci.collegamenti())
     } catch (e) {
       toastErrore(errMsg(e))
     }
@@ -46,14 +46,24 @@ export default function FarmaciPage(): React.JSX.Element {
     await caricaAltro()
   }, [caricaAltro])
 
-  const schede = useMemo(() => {
+  const cercando = cerca.trim() !== ''
+  const { schede, categorie } = useMemo(() => {
     const q = normalizza(cerca.trim())
-    return (dati?.indice.schede ?? []).filter(
-      (s) =>
-        (!soloBozze || s.stato === 'bozza') &&
-        (q === '' || normalizza(`${s.principio_attivo} ${s.classe ?? ''}`).includes(q))
-    )
-  }, [dati, cerca, soloBozze])
+    const tutte = (dati?.indice.schede ?? []).filter((s) => !soloBozze || s.stato === 'bozza')
+    const gruppi = raggruppaPerCategoria(tutte)
+    if (q !== '') {
+      return {
+        categorie: gruppi,
+        schede: tutte.filter((s) =>
+          normalizza(`${s.principio_attivo} ${s.classe ?? ''} ${categoriaFarmaco(s.classe)}`).includes(q)
+        )
+      }
+    }
+    return { categorie: gruppi, schede: gruppi.find((g) => g.categoria === categoria)?.schede ?? [] }
+  }, [dati, cerca, soloBozze, categoria])
+  // una categoria che si svuota (filtro bozze, schede eliminate) torna all'elenco
+  const categoriaAperta = !cercando && categoria !== null && categorie.some((g) => g.categoria === categoria)
+  const mostraCategorie = !cercando && !categoriaAperta
 
   const elimina = async (id: number, nome: string): Promise<void> => {
     if (
@@ -100,31 +110,15 @@ export default function FarmaciPage(): React.JSX.Element {
       </header>
 
       <div className="farmaci-stato">
-        <span>
-          {stato ? (
-            <>
-              {stato.schede} schede · {stato.nomiAifa} nomi dall’elenco AIFA
-              {stato.aifaImportatoIl ? ` (importato il ${formatData(stato.aifaImportatoIl.slice(0, 10))})` : ' (non ancora importato)'}
-            </>
-          ) : (
-            'Caricamento…'
-          )}
-        </span>
         <button className="btn-piccolo" onClick={() => void importa()} disabled={importando}>
           <Download size={14} /> Importa elenco
         </button>
       </div>
-      <p className="hint farmaci-guida-aifa">
-        Per riconoscere i nomi commerciali scarica il CSV dalla pagina «Liste di trasparenza» di AIFA (aifa.gov.it,
-        «Lista farmaci equivalenti») e sceglilo qui. Non scarica niente da solo; un nuovo elenco si unisce al
-        database senza toccare le tue schede e i tuoi collegamenti.
-      </p>
-
       <div className="farmaci-barra">
         <input
           type="search"
           className="filtro-esercizi"
-          placeholder="Cerca per principio attivo o classe"
+          placeholder="Cerca per principio attivo, classe o categoria"
           value={cerca}
           onChange={(e) => setCerca(e.target.value)}
         />
@@ -137,31 +131,62 @@ export default function FarmaciPage(): React.JSX.Element {
         </button>
       </div>
 
-      <ul className="farmaci-elenco">
-        {schede.map((s) => (
-          <li key={s.id}>
-            <button className="farmaci-elenco-riga" onClick={() => setInModifica(comeInput(s))}>
-              <PuntoLivello livello={s.livello} />
-              <span className="farmaci-elenco-nome">{s.principio_attivo}</span>
-              {s.classe && <span className="farmaci-elenco-classe">{s.classe}</span>}
-              {s.stato === 'bozza' && <AvvisoBozza />}
-            </button>
-            <button
-              className="btn-icona"
-              aria-label={`Elimina la scheda di ${s.principio_attivo}`}
-              title="Elimina"
-              onClick={() => void elimina(s.id, s.principio_attivo)}
-            >
-              <Trash2 size={15} />
-            </button>
-          </li>
-        ))}
-        {dati && schede.length === 0 && (
-          <li className="hint farmaci-vuoto">
-            {dati.indice.schede.length === 0 ? 'Nessuna scheda: creane una con «Nuova scheda».' : 'Nessuna scheda trovata.'}
-          </li>
-        )}
-      </ul>
+      {mostraCategorie && (
+        <ul className="farmaci-elenco farmaci-categorie">
+          {categorie.map((g) => (
+            <li key={g.categoria}>
+              <button className="farmaci-elenco-riga" onClick={() => setCategoria(g.categoria)}>
+                <span className="farmaci-elenco-nome">{g.categoria}</span>
+                <span className="farmaci-elenco-classe">{g.schede.length}</span>
+                <ChevronRight size={15} className="farmaci-categoria-freccia" />
+              </button>
+            </li>
+          ))}
+          {dati && categorie.length === 0 && (
+            <li className="hint farmaci-vuoto">
+              {dati.indice.schede.length === 0
+                ? 'Nessuna scheda: creane una con «Nuova scheda».'
+                : 'Nessuna scheda da verificare.'}
+            </li>
+          )}
+        </ul>
+      )}
+
+      {!mostraCategorie && (
+        <>
+          {categoriaAperta && (
+            <div className="farmaci-categoria-testa">
+              <button className="btn-piccolo" onClick={() => setCategoria(null)}>
+                <ChevronLeft size={14} /> Categorie
+              </button>
+              <b>{categoria}</b>
+              <span className="hint">{schede.length} schede</span>
+            </div>
+          )}
+          <ul className="farmaci-elenco">
+            {schede.map((s) => (
+              <li key={s.id}>
+                <button className="farmaci-elenco-riga" onClick={() => setInModifica(comeInput(s))}>
+                  <PuntoLivello livello={s.livello} />
+                  <span className="farmaci-elenco-nome">{s.principio_attivo}</span>
+                  {s.classe && <span className="farmaci-elenco-classe">{s.classe}</span>}
+                  {cercando && <span className="farmaci-elenco-classe">· {categoriaFarmaco(s.classe)}</span>}
+                  {s.stato === 'bozza' && <AvvisoBozza />}
+                </button>
+                <button
+                  className="btn-icona"
+                  aria-label={`Elimina la scheda di ${s.principio_attivo}`}
+                  title="Elimina"
+                  onClick={() => void elimina(s.id, s.principio_attivo)}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </li>
+            ))}
+            {dati && schede.length === 0 && <li className="hint farmaci-vuoto">Nessuna scheda trovata.</li>}
+          </ul>
+        </>
+      )}
 
       <details className="farmaci-sezione">
         <summary>Etichette</summary>

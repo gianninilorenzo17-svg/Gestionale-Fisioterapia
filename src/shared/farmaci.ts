@@ -377,3 +377,74 @@ function parolePulite(nome: string): string[] {
     .split(/[^\p{L}\p{N}]+/u)
     .filter(Boolean)
 }
+
+// ---- categorie -------------------------------------------------------------
+
+// La «classe» di una scheda e' testo libero ("FANS (COX-2)", "Antidepressivo (SSRI)"):
+// per l'elenco per categorie si raggruppa con queste regole, la prima che combacia
+// vince (l'ordine conta: "Corticosteroide inalatorio" prima di "Corticosteroide").
+// Una classe che non combacia con niente fa categoria a se', senza la parentesi.
+const REGOLE_CATEGORIA: [RegExp, string][] = [
+  [/aggregante/, 'Antiaggreganti'],
+  [/anticoagulante/, 'Anticoagulanti'],
+  [/fans|antinfiammatorio/, 'FANS'],
+  [/analgesico|spasmolitico|anestetico locale/, 'Analgesici e spasmolitici'],
+  [/oppioide/, 'Oppioidi'],
+  [/miorilassante|antispastico|botulinica/, 'Miorilassanti e antispastici'],
+  [/inalatorio|broncodilatatore|antiasmatico|antistaminico/, 'Respiro e allergie'],
+  [/corticosteroide/, 'Corticosteroidi'],
+  [/gabapentinoide|antiepilettico/, 'Antiepilettici e dolore neuropatico'],
+  [/antidepressivo/, 'Antidepressivi'],
+  [/benzodiazepina|ipnotico/, 'Ansiolitici e ipnotici'],
+  [/antipsicotico/, 'Antipsicotici'],
+  [/parkinson|dopamino/, 'Parkinson'],
+  [/antidemenza/, 'Demenza'],
+  [/beta-bloccante/, 'Beta-bloccanti'],
+  [/antipertensivo|ace-inibitore|sartano|calcio-antagonista|diuretico/, 'Pressione e diuretici'],
+  [/statina|ipolipemizzante/, 'Colesterolo'],
+  [/glicoside|antiaritmico|nitrato/, 'Cuore'],
+  [/bifosfonato|osteoporosi/, 'Osteoporosi'],
+  [/antidiabetico/, 'Diabete'],
+  [/tiroid/, 'Tiroide'],
+  [/antibiotico|fluorochinolone/, 'Antibiotici'],
+  [/antigottoso/, 'Gotta'],
+  [/biologico|immunosoppressore|antireumatico/, 'Antireumatici'],
+  [/aromatasi|antiestrogeno/, 'Terapie ormonali oncologiche'],
+  [/antiartrosico|infiltrazione/, 'Articolazioni e artrosi'],
+  [/triptano/, 'Emicrania'],
+  [/inibitore di pompa|antiacido|procinetico|antidiarroico/, 'Stomaco e intestino'],
+  [/alfa-bloccante|5-alfa|pde5/, 'Prostata e urologia'],
+  [/contraccettivo/, 'Ormoni'],
+  [/integratore/, 'Integratori']
+]
+
+export const CATEGORIA_SENZA_CLASSE = 'Senza classe'
+
+export function categoriaFarmaco(classe: string | null | undefined): string {
+  const c = (classe ?? '').trim()
+  if (c === '') return CATEGORIA_SENZA_CLASSE
+  const n = normalizza(c)
+  for (const [regola, categoria] of REGOLE_CATEGORIA) if (regola.test(n)) return categoria
+  const senzaTonde = c.replace(/\s*\([^)]*\)/g, '').trim()
+  return senzaTonde === '' ? c : senzaTonde.charAt(0).toUpperCase() + senzaTonde.slice(1)
+}
+
+// Le schede per categoria, in ordine alfabetico; "Senza classe" in fondo.
+export function raggruppaPerCategoria<T extends { classe: string | null }>(
+  schede: T[]
+): { categoria: string; schede: T[] }[] {
+  const mappa = new Map<string, T[]>()
+  for (const s of schede) {
+    const k = categoriaFarmaco(s.classe)
+    const lista = mappa.get(k)
+    if (lista) lista.push(s)
+    else mappa.set(k, [s])
+  }
+  return [...mappa.entries()]
+    .map(([categoria, lista]) => ({ categoria, schede: lista }))
+    .sort((a, b) => {
+      if (a.categoria === CATEGORIA_SENZA_CLASSE) return 1
+      if (b.categoria === CATEGORIA_SENZA_CLASSE) return -1
+      return a.categoria.localeCompare(b.categoria, 'it')
+    })
+}

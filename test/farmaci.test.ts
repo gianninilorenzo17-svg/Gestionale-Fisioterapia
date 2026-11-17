@@ -3,6 +3,7 @@
 // di consultazione: niente di questo deve finire nei documenti.
 import { test } from 'vitest'
 import assert from 'node:assert/strict'
+import { raggruppaPerCategoria } from '../src/shared/farmaci'
 import { archivioDiProva } from './archivio-di-prova'
 import { getDb } from '../src/main/db'
 import {
@@ -34,10 +35,11 @@ import {
   normalizza,
   preparaRicerca,
   trovaFarmaci,
-  type FarmacoSchedaInput
+  type FarmacoSchedaInput,
+  categoriaFarmaco
 } from '../src/shared/farmaci'
 import { eliminaPazienteDefinitivamente } from '../src/main/pazienti'
-import { NOMI_INIZIALI, SCHEDE_INIZIALI, SCHEDE_V2, SCHEDE_V3 } from '../src/main/farmaci-iniziali'
+import { NOMI_INIZIALI, SCHEDE_INIZIALI, SCHEDE_V2, SCHEDE_V3, SCHEDE_V4 } from '../src/main/farmaci-iniziali'
 import { sezRemota } from '../src/main/cartella-sezioni'
 import { relazioneAnamnesi } from '../src/main/relazione-anamnesi'
 
@@ -160,7 +162,7 @@ test('La prima volta ci sono etichette, schede in bozza e nomi comuni', () => {
   assicuraIniziali() // una volta sola
   const indice = indiceFarmaci()
   assert.equal(indice.etichette.length, 6)
-  assert.equal(indice.schede.length, SCHEDE_INIZIALI.length + SCHEDE_V2.length + SCHEDE_V3.length)
+  assert.equal(indice.schede.length, SCHEDE_INIZIALI.length + SCHEDE_V2.length + SCHEDE_V3.length + SCHEDE_V4.length)
   assert.ok(indice.schede.every((s) => s.stato === 'bozza' && s.fonte && s.data_revisione))
   // niente e' inventato: dove non c'e' certezza il campo e' vuoto, non "-"
   assert.ok(indice.schede.every((s) => s.avvertenze === null || s.avvertenze.trim() !== ''))
@@ -347,7 +349,7 @@ test('farmaci: le schede e i nomi della terza tranche arrivano anche a chi ha gi
 })
 
 test('farmaci: ogni principio attivo ha una sola scheda e ogni nome iniziale porta a una scheda', () => {
-  const tutte = [...SCHEDE_INIZIALI, ...SCHEDE_V2, ...SCHEDE_V3]
+  const tutte = [...SCHEDE_INIZIALI, ...SCHEDE_V2, ...SCHEDE_V3, ...SCHEDE_V4]
   const chiavi = tutte.map((x) => chiavePrincipio(x.principio_attivo))
   assert.equal(new Set(chiavi).size, chiavi.length, 'principi attivi doppi nelle schede iniziali')
   const conScheda = new Set(chiavi)
@@ -356,4 +358,38 @@ test('farmaci: ogni principio attivo ha una sola scheda e ogni nome iniziale por
     for (const p of dividiPrincipio(principio))
       if (!conScheda.has(p.chiave)) senza.push(`${nome} → ${p.etichetta}`)
   assert.deepEqual(senza, [], 'nomi che portano a un principio senza scheda')
+})
+
+test('farmaci: la quarta tranche (neurologia, nitrati) arriva anche a chi ha già il database', () => {
+  assicuraIniziali()
+  const db = getDb()
+  db.prepare("DELETE FROM farmaco_nomi WHERE nome_norm IN ('keppra', 'mirapexin', 'depalgos')").run()
+  db.prepare("DELETE FROM farmaco_schede WHERE principio_attivo IN ('Levetiracetam', 'Dantrolene')").run()
+  db.prepare("UPDATE farmaco_meta SET valore = '3' WHERE chiave IN ('nomi_versione', 'schede_versione')").run()
+  assicuraIniziali()
+  const indice = indiceFarmaci()
+  for (const nome of ['Keppra', 'Mirapexin', 'Depalgos', 'Botox', 'Aricept', 'Ebixa', 'Dantrium'])
+    assert.ok(indice.nomi[normalizza(nome)]?.length, `${nome} deve essere riconosciuto`)
+  // un'associazione porta a due schede
+  assert.equal(indice.nomi[normalizza('Depalgos')].length, 2)
+  assert.ok(indice.schede.some((s) => s.principio_attivo === 'Levetiracetam' && s.stato === 'bozza'))
+})
+
+test('farmaci: ogni scheda iniziale cade in una categoria nota e i gruppi non perdono schede', () => {
+  const tutte = [...SCHEDE_INIZIALI, ...SCHEDE_V2, ...SCHEDE_V3, ...SCHEDE_V4]
+  const gruppi = raggruppaPerCategoria(tutte)
+  assert.equal(
+    gruppi.reduce((n, g) => n + g.schede.length, 0),
+    tutte.length
+  )
+  // niente categorie "a se'" per le classi delle schede iniziali: tutte nelle regole
+  assert.ok(gruppi.length < 40, `troppe categorie: ${gruppi.map((g) => g.categoria).join(', ')}`)
+  assert.equal(categoriaFarmaco('FANS (COX-2)'), 'FANS')
+  assert.equal(categoriaFarmaco('Antiaggregante / FANS'), 'Antiaggreganti')
+  assert.equal(categoriaFarmaco('Corticosteroide inalatorio'), 'Respiro e allergie')
+  assert.equal(categoriaFarmaco('Corticosteroide'), 'Corticosteroidi')
+  assert.equal(categoriaFarmaco('Antidepressivo (SNRI)'), 'Antidepressivi')
+  assert.equal(categoriaFarmaco(null), 'Senza classe')
+  // una classe sconosciuta fa categoria a se', senza la parentesi
+  assert.equal(categoriaFarmaco('Vaccino (prova)'), 'Vaccino')
 })

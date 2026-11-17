@@ -623,7 +623,7 @@ export const SCHEDE_V2: SchedaIniziale[] = [
 
 // Terza tranche di schede (sempre «bozza da verificare»): le classi dei nomi commerciali
 // aggiunti dopo. Stesse regole della seconda: chi ha gia' il database le riceve una volta.
-export const SCHEDE_VERSIONE = 3
+export const SCHEDE_VERSIONE = 4
 
 const BENZODIAZEPINE: Classe = {
   classe: 'Benzodiazepina',
@@ -1062,6 +1062,84 @@ export const SCHEDE_V3: SchedaIniziale[] = [
   }
 ]
 
+// Quarta tranche (sempre «bozza da verificare»): neurologia, spasticita' e demenza,
+// miorilassanti centrali e periferici, nitrati. Stesse regole delle precedenti.
+const DOPAMINOAGONISTI: Classe = {
+  classe: 'Dopamino-agonista',
+  usi: 'Malattia di Parkinson, sindrome delle gambe senza riposo.',
+  info_fisio:
+    'Possibili vertigini e calo di pressione alzandosi in piedi, e sonnolenza improvvisa: attenzione ai cambi di posizione e all’equilibrio. Nel Parkinson l’effetto varia nelle ore dopo la dose.',
+  avvertenze: 'Raramente comportamenti compulsivi (gioco, acquisti) e movimenti involontari.',
+  livello: 1,
+  etichette: [EQUILIBRIO, CUORE]
+}
+
+export const SCHEDE_V4: SchedaIniziale[] = [
+  ...dalla(MIORILASSANTI, [
+    ['Eperisone', { classe: 'Miorilassante (azione centrale)', avvertenze: 'Possibili sonnolenza e vertigini; raramente calo di pressione.' }],
+    [
+      'Dantrolene',
+      {
+        classe: 'Antispastico (azione sul muscolo)',
+        usi: 'Spasticità (per esempio da lesioni del sistema nervoso).',
+        info_fisio:
+          'Agisce direttamente sulla fibra muscolare: può dare debolezza muscolare generalizzata, che pesa sulla forza e sulla stabilità.',
+        avvertenze: 'Possibili sonnolenza e stanchezza. Si controlla il fegato con l’uso prolungato.',
+        livello: 2
+      }
+    ]
+  ]),
+  {
+    principio_attivo: 'Tossina botulinica',
+    classe: 'Tossina botulinica (spasticità focale)',
+    usi: 'Spasticità focale, distonie, emicrania cronica.',
+    info_fisio:
+      'Iniettata nel muscolo lo indebolisce per qualche mese (l’effetto compare dopo alcuni giorni). Il momento giusto per rinforzo degli antagonisti e stiramento lo indica il medico specialista.',
+    avvertenze: 'Possibile debolezza nei muscoli vicini alla zona trattata.',
+    livello: 1,
+    etichette: []
+  },
+  ...dalla(DOPAMINOAGONISTI, [
+    ['Pramipexolo'],
+    ['Ropinirolo'],
+    [
+      'Rotigotina',
+      { avvertenze: 'In cerotto: il calore sulla zona del cerotto (termoforo, lampade, diatermia) può aumentarne l’assorbimento.' }
+    ]
+  ]),
+  ...dalla(ANTIEPILETTICO, [['Levetiracetam', { info_fisio: 'Possibili sonnolenza, vertigini, tremore e rallentamento: attenzione a equilibrio e compiti complessi.' }]]),
+  {
+    principio_attivo: 'Donepezil',
+    classe: 'Antidemenza',
+    usi: 'Malattia di Alzheimer.',
+    info_fisio:
+      'Indica un declino cognitivo: adatta comunicazione e carico cognitivo dell’esercizio. Possibili battito rallentato, vertigini e svenimenti.',
+    avvertenze: 'Possibili nausea, diarrea e crampi muscolari.',
+    livello: 1,
+    etichette: [CUORE, EQUILIBRIO]
+  },
+  {
+    principio_attivo: 'Memantina',
+    classe: 'Antidemenza',
+    usi: 'Malattia di Alzheimer moderata o grave.',
+    info_fisio:
+      'Indica un declino cognitivo: adatta comunicazione e carico cognitivo dell’esercizio. Possibili vertigini, sonnolenza e confusione.',
+    avvertenze: '',
+    livello: 1,
+    etichette: [EQUILIBRIO]
+  },
+  {
+    principio_attivo: 'Nitroglicerina',
+    classe: 'Nitrato',
+    usi: 'Angina (prevenzione e attacco).',
+    info_fisio:
+      'Indica una cardiopatia ischemica. Abbassa la pressione: vertigini e calo di pressione con i cambi di posizione. Non si associa a sildenafil o tadalafil.',
+    avvertenze: 'Se in cerotto: il calore sulla zona (termoforo, lampade, diatermia) ne aumenta l’assorbimento. Mal di testa frequente.',
+    livello: 1,
+    etichette: [CUORE, EQUILIBRIO]
+  }
+]
+
 // Nomi commerciali comuni che l'elenco AIFA non contiene. Ogni riga e' un nome
 // e il principio attivo (nelle associazioni, i principi separati da «+»).
 export const NOMI_INIZIALI: [nome: string, principio: string][] = [
@@ -1298,12 +1376,31 @@ export const NOMI_INIZIALI: [nome: string, principio: string][] = [
   ['Depakin', 'Acido valproico'],
   ['Lamictal', 'Lamotrigina'],
   ['Madopar', 'Levodopa + Benserazide'],
-  ['Sinemet', 'Levodopa + Carbidopa']
+  ['Sinemet', 'Levodopa + Carbidopa'],
+
+  // --- aggiunti nella quarta tranche (v4) ---
+  ['Depalgos', 'Ossicodone + Paracetamolo'],
+  ['Expose', 'Eperisone'],
+  ['Dantrium', 'Dantrolene'],
+  ['Botox', 'Tossina botulinica'],
+  ['Dysport', 'Tossina botulinica'],
+  ['Xeomin', 'Tossina botulinica'],
+  ['Mirapexin', 'Pramipexolo'],
+  ['Requip', 'Ropinirolo'],
+  ['Neupro', 'Rotigotina'],
+  ['Keppra', 'Levetiracetam'],
+  ['Aricept', 'Donepezil'],
+  ['Ebixa', 'Memantina'],
+  ['Trinipatch', 'Nitroglicerina'],
+  ['Cardioaspirin', 'Acido acetilsalicilico'],
+  ['Binosto', 'Acido alendronico'],
+  ['Pantorc', 'Pantoprazolo'],
+  ['Omeprazen', 'Omeprazolo']
 ]
 
 // Si alza ogni volta che si aggiungono nomi a NOMI_INIZIALI: chi ha gia' il database
 // li riceve all'avvio successivo (i nomi gia' presenti e quelli aggiunti a mano non cambiano).
-export const NOMI_VERSIONE = 3
+export const NOMI_VERSIONE = 4
 
 // Parole che coincidono con altre di uso comune: non si sottolineano mai (la
 // lista si cambia da Configurazione → Farmaci). Alcune sono nomi di prodotti

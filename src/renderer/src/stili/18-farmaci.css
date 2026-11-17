@@ -300,7 +300,8 @@
 .farmaci-stato {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
+  margin-bottom: 8px;
   gap: 12px;
   font-size: 13px;
   color: var(--text-dim);
@@ -386,4 +387,16 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+.farmaci-categorie .farmaci-elenco-classe {
+  margin-left: auto;
+}
+.farmaci-categoria-freccia {
+  color: var(--text-dim);
+}
+.farmaci-categoria-testa {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
 }
