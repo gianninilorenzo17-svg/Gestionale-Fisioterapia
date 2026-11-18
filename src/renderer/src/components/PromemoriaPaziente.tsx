@@ -9,7 +9,7 @@ import type {
 } from '../../../shared/types'
 import Aiuto from './Aiuto'
 import { toastErrore } from './Toast'
-import { errMsg, etichettaPromemoria, formatData, oggiIso } from '../lib'
+import { errMsg, etichettaPromemoria, formatData, oggiIso, testoPromemoria } from '../lib'
 import { chiaveTestPedana } from '../../../shared/pedana'
 
 // Fra quante settimane da oggi, in formato aaaa-mm-gg.
@@ -198,7 +198,7 @@ export default function PromemoriaPaziente({
               onChange={() => void esegui(() => window.api.promemoria.setFatto(p.id, true))}
             />
             <span className="promemoria-cosa">
-              {etichettaPromemoria(p.tipo)}: {p.riferimento_nome}
+              {testoPromemoria(p)}
               {p.nota && <span className="sotto-riga">{p.nota}</span>}
             </span>
             <span className={p.scadenza <= oggi ? 'data-scaduta promemoria-data' : 'promemoria-data'}>
@@ -231,7 +231,7 @@ export default function PromemoriaPaziente({
                     onChange={() => void esegui(() => window.api.promemoria.setFatto(p.id, false))}
                   />
                   <span className="promemoria-cosa">
-                    {etichettaPromemoria(p.tipo)}: {p.riferimento_nome}
+                    {testoPromemoria(p)}
                   </span>
                   <span className="promemoria-data">fatto il {formatData(p.fatto_il as string)}</span>
                   <button

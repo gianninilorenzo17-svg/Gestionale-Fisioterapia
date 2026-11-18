@@ -5,7 +5,7 @@ import type { PazienteDettaglio, Promemoria } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import Modale from '../components/Modale'
-import { errMsg, etichettaPromemoria, formatData, oggiIso } from '../lib'
+import { errMsg, formatData, testoPromemoria, oggiIso } from '../lib'
 
 // Chi stai seguendo adesso e chi hai finito di seguire.
 //
@@ -70,7 +70,38 @@ export default function FollowUpPage({
 
   // Il paziente di cui si sta chiudendo il ciclo: la finestra chiede se vuole
   // un follow-up e fra quanto. Senza follow-up resta fra i "Conclusi".
-  const [inChiusura, setInChiusura] = useState<PazienteDettaglio | null>(null)
+  // `soloFollowUp`: dalla riga di chi e' in trattamento si puo' anche solo
+  // "metterlo in follow-up", dove la domanda e' soltanto fra quanto.
+  const [inChiusura, setInChiusura] = useState<{
+    paziente: PazienteDettaglio
+    soloFollowUp: boolean
+  } | null>(null)
+
+  // La ricerca vale per tutte le liste della pagina.
+  const [ricerca, setRicerca] = useState('')
+  const norma = (t: string): string =>
+    t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  const cercato = norma(ricerca.trim())
+  const corrisponde = (p: { nome: string; cognome: string }): boolean =>
+    cercato === '' ||
+    norma(`${p.cognome} ${p.nome}`).includes(cercato) ||
+    norma(`${p.nome} ${p.cognome}`).includes(cercato)
+
+  // Chiude il follow-up di chi e' gia' li': passa fra i conclusi, senza data e
+  // senza "contattato" (la data dell'ultimo contatto non resta).
+  const chiudiFollowUp = async (p: PazienteDettaglio): Promise<void> => {
+    if (
+      !(await chiedi(
+        `Concludere ${p.nome} ${p.cognome}?\n\nEsce dal follow-up e finisce fra i conclusi, senza altri contatti in programma.`
+      ))
+    ) {
+      return
+    }
+    void esegui(async () => {
+      await window.api.followUp.setStato(p.id, 'concluso', null)
+      await window.api.followUp.segnaContattato(p.id, false)
+    })
+  }
 
   const concludi = (p: PazienteDettaglio, settimane: number | null): void => {
     setInChiusura(null)
@@ -102,8 +133,14 @@ export default function FollowUpPage({
   // Chi ha concluso senza follow-up (nessuna data e mai contattato) sta nei
   // conclusi, sotto; tutti gli altri restano nel follow-up come sempre, anche
   // quando li hai già sentiti.
-  const conclusi = concluso.filter((p) => p.follow_up_il == null && p.contattato_il == null)
-  const inFollowUp = concluso.filter((p) => !conclusi.includes(p))
+  const tuttiConclusi = concluso.filter((p) => p.follow_up_il == null && p.contattato_il == null)
+  const tuttiInFollowUp = concluso.filter((p) => !tuttiConclusi.includes(p))
+  const conclusi = tuttiConclusi.filter(corrisponde)
+  const inFollowUp = tuttiInFollowUp.filter(corrisponde)
+  const inTrattamento = trattamento.filter(corrisponde)
+  const promemoriaVisibili = promemoria.filter((m) =>
+    corrisponde({ nome: m.paziente_nome, cognome: m.paziente_cognome })
+  )
 
   return (
     <div className="page">
@@ -112,20 +149,29 @@ export default function FollowUpPage({
       </header>
 
       <div className="scheda">
+        <div className="ricerca-sopra">
+          <input
+            type="search"
+            placeholder="Cerca paziente…"
+            value={ricerca}
+            onChange={(e) => setRicerca(e.target.value)}
+          />
+        </div>
+
         {/* I questionari, gli screening e i test da rifare, di tutti i pazienti: in
             cima, perche' hanno una data e sono i primi da guardare. */}
-        {promemoria.length > 0 && (
+        {promemoriaVisibili.length > 0 && (
           <section className="card">
             <div className="card-header-row">
               <h3>Da rifare</h3>
               <span className="hint">
-                {promemoria.filter((m) => m.scadenza <= oggi).length > 0
-                  ? `${promemoria.filter((m) => m.scadenza <= oggi).length} in scadenza`
+                {promemoriaVisibili.filter((m) => m.scadenza <= oggi).length > 0
+                  ? `${promemoriaVisibili.filter((m) => m.scadenza <= oggi).length} in scadenza`
                   : 'Nessuno in scadenza'}
               </span>
             </div>
             <ul className="sedute-list elenco-promemoria">
-              {promemoria.map((m) => (
+              {promemoriaVisibili.map((m) => (
                 <li key={m.id}>
                   <input
                     type="checkbox"
@@ -141,7 +187,7 @@ export default function FollowUpPage({
                     {m.paziente_cognome} {m.paziente_nome}
                   </button>
                   <span className="promemoria-cosa">
-                    {etichettaPromemoria(m.tipo)}: {m.riferimento_nome}
+                    {testoPromemoria(m)}
                     {m.nota && <span className="sotto-riga">{m.nota}</span>}
                   </span>
                   <span className={m.scadenza <= oggi ? 'data-scaduta promemoria-data' : 'promemoria-data'}>
@@ -157,7 +203,7 @@ export default function FollowUpPage({
           <div className="card-header-row">
             <h3>In trattamento</h3>
             <span className="hint">
-              {trattamento.length === 1 ? '1 paziente' : `${trattamento.length} pazienti`}
+              {inTrattamento.length === 1 ? '1 paziente' : `${inTrattamento.length} pazienti`}
             </span>
           </div>
           {trattamento.length === 0 ? (
@@ -166,9 +212,11 @@ export default function FollowUpPage({
               titolo="Nessun paziente in trattamento"
               testo="Qui compaiono i pazienti che stai seguendo, con la data dell'ultima seduta: chi non si fa vivo da settimane si vede subito."
             />
+          ) : inTrattamento.length === 0 ? (
+            <p className="hint">Nessun paziente corrisponde alla ricerca.</p>
           ) : (
             <ul className="sedute-list elenco-followup">
-              {trattamento.map((p) => (
+              {inTrattamento.map((p) => (
                 // Nome a sinistra, patologia a destra e il pulsante in fondo:
                 // tutto su una riga sola. L'ultima seduta resta perché è quella
                 // che dice chi non si fa vivo da settimane.
@@ -186,13 +234,24 @@ export default function FollowUpPage({
                       ? `Ultima seduta ${formatData(p.ultima_seduta)}`
                       : 'Nessuna seduta ancora'}
                   </span>
-                  <button
-                    className="btn-stato"
-                    title="Il ciclo è finito"
-                    onClick={() => setInChiusura(p)}
-                  >
-                    <CheckCircle2 size={18} /> Concludi
-                  </button>
+                  <span className="azioni-conclusi">
+                    <button
+                      className="btn-stato"
+                      title="Mettilo in follow-up: scegli fra quanto risentirlo"
+                      aria-label="Mettilo in follow-up: scegli fra quanto risentirlo"
+                      onClick={() => setInChiusura({ paziente: p, soloFollowUp: true })}
+                    >
+                      <CalendarClock size={18} />
+                    </button>
+                    <button
+                      className="btn-stato"
+                      title="Concludi: il ciclo è finito"
+                      aria-label="Concludi: il ciclo è finito"
+                      onClick={() => setInChiusura({ paziente: p, soloFollowUp: false })}
+                    >
+                      <CheckCircle2 size={18} />
+                    </button>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -211,12 +270,14 @@ export default function FollowUpPage({
                 : 'Nessuno in scadenza'}
             </span>
           </div>
-          {inFollowUp.length === 0 ? (
+          {tuttiInFollowUp.length === 0 ? (
             <StatoVuoto
               icona={CalendarClock}
               titolo="Nessun paziente in follow-up"
               testo="Quando concludi un paziente e scegli un follow-up, finisce qui con la data in cui risentirlo."
             />
+          ) : inFollowUp.length === 0 ? (
+            <p className="hint">Nessun paziente corrisponde alla ricerca.</p>
           ) : (
             <div className="tabella-scorre tabella-followup-scorre">
               <table className="data-table tabella-followup">
@@ -226,7 +287,7 @@ export default function FollowUpPage({
                     <th>Da sentire il</th>
                     <th>Contattato</th>
                     <th>Recensione</th>
-                    <th>Se torna</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -285,13 +346,24 @@ export default function FollowUpPage({
                           />
                         </td>
                         <td>
-                          <button
-                            className="btn-stato"
-                            title="Riportalo fra i pazienti in trattamento"
-                            onClick={() => void riprendi(p)}
-                          >
-                            <RotateCcw size={18} /> Riprendi
-                          </button>
+                          <span className="azioni-conclusi">
+                            <button
+                              className="btn-stato"
+                              title="Riprendi: riportalo fra i pazienti in trattamento"
+                              aria-label="Riprendi: riportalo fra i pazienti in trattamento"
+                              onClick={() => void riprendi(p)}
+                            >
+                              <RotateCcw size={18} />
+                            </button>
+                            <button
+                              className="btn-stato"
+                              title="Concludi: il follow-up è finito, passa fra i conclusi"
+                              aria-label="Concludi: il follow-up è finito, passa fra i conclusi"
+                              onClick={() => void chiudiFollowUp(p)}
+                            >
+                              <CheckCircle2 size={18} />
+                            </button>
+                          </span>
                         </td>
                       </tr>
                     )
@@ -309,7 +381,9 @@ export default function FollowUpPage({
               {conclusi.length === 1 ? '1 paziente' : `${conclusi.length} pazienti`}
             </span>
           </div>
-          {conclusi.length === 0 ? (
+          {tuttiConclusi.length > 0 && conclusi.length === 0 ? (
+            <p className="hint">Nessun paziente corrisponde alla ricerca.</p>
+          ) : conclusi.length === 0 ? (
             <p className="hint">
               Qui finiscono i pazienti conclusi senza follow-up, o già sentiti.
             </p>
@@ -342,10 +416,11 @@ export default function FollowUpPage({
                     />
                     <button
                       className="btn-stato"
-                      title="Riportalo fra i pazienti in trattamento"
+                      title="Riprendi: riportalo fra i pazienti in trattamento"
+                      aria-label="Riprendi: riportalo fra i pazienti in trattamento"
                       onClick={() => void riprendi(p)}
                     >
-                      <RotateCcw size={18} /> Riprendi
+                      <RotateCcw size={18} />
                     </button>
                   </span>
                 </li>
@@ -358,14 +433,17 @@ export default function FollowUpPage({
       {inChiusura && (
         <Modale className="modal-sm" onConferma={() => setInChiusura(null)}>
           <h3>
-            Concludi {inChiusura.nome} {inChiusura.cognome}
+            {inChiusura.soloFollowUp ? 'Follow-up di' : 'Concludi'} {inChiusura.paziente.nome}{' '}
+            {inChiusura.paziente.cognome}
           </h3>
           <p className="modal-testo">
-            Vuoi fare un follow-up? Se sì, fra quanto? Le sedute e la cartella restano dove sono.
+            {inChiusura.soloFollowUp
+              ? 'Fra quanto vuoi risentirlo? Le sedute e la cartella restano dove sono.'
+              : 'Vuoi fare un follow-up? Se sì, fra quanto? Le sedute e la cartella restano dove sono.'}
           </p>
           <div className="scelta-settimane">
             {[1, 2, 3, 4].map((n) => (
-              <button key={n} onClick={() => concludi(inChiusura, n)}>
+              <button key={n} onClick={() => concludi(inChiusura.paziente, n)}>
                 <strong>{n}</strong>
                 {n === 1 ? 'settimana' : 'settimane'}
               </button>
@@ -373,7 +451,9 @@ export default function FollowUpPage({
           </div>
           <div className="modal-actions">
             <button onClick={() => setInChiusura(null)}>Annulla</button>
-            <button onClick={() => concludi(inChiusura, null)}>Nessun follow-up</button>
+            {!inChiusura.soloFollowUp && (
+              <button onClick={() => concludi(inChiusura.paziente, null)}>Nessun follow-up</button>
+            )}
           </div>
         </Modale>
       )}

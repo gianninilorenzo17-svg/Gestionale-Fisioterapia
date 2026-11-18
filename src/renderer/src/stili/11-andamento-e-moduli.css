@@ -953,7 +953,8 @@
 /* Conclusi: la data per fissare un follow-up e "Riprendi" stanno insieme
    nell'ultima colonna, cosi' la riga ha le stesse quattro colonne di quella
    in trattamento e il pulsante non va a capo. */
-.riga-trattamento .azioni-conclusi {
+.riga-trattamento .azioni-conclusi,
+.tabella-followup .azioni-conclusi {
   display: flex;
   align-items: center;
   justify-self: end;

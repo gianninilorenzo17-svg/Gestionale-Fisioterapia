@@ -15,7 +15,8 @@ type Db = ReturnType<typeof getDb>
 const SELEZIONE = `
   SELECT m.id, m.paziente_id, p.nome AS paziente_nome, p.cognome AS paziente_cognome,
          m.tipo, m.questionario_id, m.protocollo_id, m.pedana_chiave,
-         COALESCE(q.nome, sp.nome, m.pedana_nome, 'elemento eliminato') AS riferimento_nome,
+         CASE WHEN m.tipo = 'contatto' THEN 'Scrivere o sentire il paziente'
+              ELSE COALESCE(q.nome, sp.nome, m.pedana_nome, 'elemento eliminato') END AS riferimento_nome,
          m.scadenza, m.nota, m.fatto_il
   FROM promemoria m
   JOIN pazienti p ON p.id = m.paziente_id
@@ -41,10 +42,22 @@ export function elencoPromemoria(pazienteId: number | null): Promemoria[] {
 
 export function creaPromemoria(dati: PromemoriaInput): number {
   validaData(dati.scadenza, 'La data del promemoria', { obbligatoria: true })
-  if (dati.tipo !== 'questionario' && dati.tipo !== 'screening' && dati.tipo !== 'pedana') {
-    throw new Error('Il promemoria deve riguardare un questionario, uno screening o un test con la pedana.')
+  if (
+    dati.tipo !== 'questionario' &&
+    dati.tipo !== 'screening' &&
+    dati.tipo !== 'pedana' &&
+    dati.tipo !== 'contatto'
+  ) {
+    throw new Error('Il promemoria deve riguardare un contatto, un questionario, uno screening o un test con la pedana.')
   }
   const db = getDb()
+  if (dati.tipo === 'contatto') {
+    return Number(
+      db
+        .prepare('INSERT INTO promemoria (paziente_id, tipo, scadenza, nota) VALUES (?, ?, ?, ?)')
+        .run(dati.paziente_id, 'contatto', dati.scadenza, dati.nota?.trim() || null).lastInsertRowid
+    )
+  }
   const pedanaChiave = dati.tipo === 'pedana' ? dati.pedana?.chiave.trim() : undefined
   const pedanaNome = dati.tipo === 'pedana' ? dati.pedana?.nome.trim() : undefined
   if (dati.tipo === 'pedana') {

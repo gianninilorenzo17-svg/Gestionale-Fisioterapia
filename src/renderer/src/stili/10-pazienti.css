@@ -106,7 +106,7 @@
    e "Riprendi" — sono la stessa cosa in due versi: stessa misura, e la scritta
    non va mai a capo lasciando la freccia da sola. */
 .btn-stato {
-  min-width: 136px;
+  padding: 8px 10px;
   justify-content: center;
   white-space: nowrap;
   flex-wrap: nowrap;

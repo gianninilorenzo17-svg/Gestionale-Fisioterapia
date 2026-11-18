@@ -1206,7 +1206,7 @@ export interface Promemoria {
   paziente_id: number
   paziente_nome: string
   paziente_cognome: string
-  tipo: 'questionario' | 'screening' | 'pedana'
+  tipo: 'questionario' | 'screening' | 'pedana' | 'contatto'
   questionario_id: number | null
   protocollo_id: number | null
   // il test con la pedana da rifare (la chiave di chiaveTestPedana)
@@ -1221,7 +1221,7 @@ export interface Promemoria {
 
 export interface PromemoriaInput {
   paziente_id: number
-  tipo: 'questionario' | 'screening' | 'pedana'
+  tipo: 'questionario' | 'screening' | 'pedana' | 'contatto'
   // l'id del questionario o del protocollo di screening (non serve per la pedana)
   riferimento_id: number
   // il test con la pedana da rifare: chiaveTestPedana(codice, nome) e il nome da mostrare

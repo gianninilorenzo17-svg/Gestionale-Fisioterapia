@@ -1838,6 +1838,40 @@ export const MIGRATIONS: string[] = [
     ordine INTEGER NOT NULL DEFAULT 0
   );
   CREATE INDEX idx_paziente_farmaci_paziente ON paziente_farmaci(paziente_id);
+  `,
+
+  // 78 - il promemoria "scrivere / sentire il paziente" (tipo 'contatto'): non
+  //      rimanda a nessun questionario, screening o test, quindi il vincolo di
+  //      prima (esattamente un riferimento) lo ammette senza riferimenti.
+  //      La tabella si ricostruisce per poterlo cambiare.
+  `
+  CREATE TABLE promemoria_nuova (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL,
+    questionario_id INTEGER REFERENCES questionari(id) ON DELETE CASCADE,
+    protocollo_id INTEGER REFERENCES screening_protocolli(id) ON DELETE CASCADE,
+    pedana_chiave TEXT,
+    pedana_nome TEXT,
+    scadenza TEXT NOT NULL,
+    nota TEXT,
+    fatto_il TEXT,
+    CHECK (
+      (tipo = 'contatto' AND questionario_id IS NULL AND protocollo_id IS NULL AND pedana_chiave IS NULL)
+      OR (tipo <> 'contatto'
+          AND (questionario_id IS NOT NULL) + (protocollo_id IS NOT NULL) + (pedana_chiave IS NOT NULL) = 1)
+    )
+  );
+  INSERT INTO promemoria_nuova
+    (id, paziente_id, tipo, questionario_id, protocollo_id, pedana_chiave, pedana_nome, scadenza, nota, fatto_il)
+    SELECT id, paziente_id, tipo, questionario_id, protocollo_id, pedana_chiave, pedana_nome, scadenza, nota, fatto_il
+    FROM promemoria;
+  DROP TABLE promemoria;
+  ALTER TABLE promemoria_nuova RENAME TO promemoria;
+  CREATE INDEX idx_promemoria_paziente ON promemoria(paziente_id);
+  CREATE INDEX idx_promemoria_aperti ON promemoria(scadenza) WHERE fatto_il IS NULL;
+  CREATE INDEX idx_promemoria_questionario ON promemoria(questionario_id);
+  CREATE INDEX idx_promemoria_protocollo ON promemoria(protocollo_id);
   `
 ]
 

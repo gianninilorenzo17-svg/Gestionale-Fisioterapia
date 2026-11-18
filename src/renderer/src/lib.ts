@@ -104,8 +104,25 @@ export const maiuscola = (testo: string): string =>
   testo === '' ? testo : testo.charAt(0).toLocaleUpperCase('it-IT') + testo.slice(1)
 
 // Come si chiama, in un elenco di promemoria, quello che c'e' da rifare.
-export function etichettaPromemoria(tipo: 'questionario' | 'screening' | 'pedana'): string {
-  return tipo === 'questionario' ? 'Questionario' : tipo === 'screening' ? 'Screening' : 'Test pedana'
+export function etichettaPromemoria(
+  tipo: 'questionario' | 'screening' | 'pedana' | 'contatto'
+): string {
+  return tipo === 'questionario'
+    ? 'Questionario'
+    : tipo === 'screening'
+      ? 'Screening'
+      : tipo === 'contatto'
+        ? 'Contatto'
+        : 'Test pedana'
+}
+
+// Cosa dice la riga di un promemoria: "Questionario: KOOS", oppure, per il
+// contatto, solo "Scrivere al paziente" (non c'e' nessun riferimento).
+export function testoPromemoria(m: {
+  tipo: 'questionario' | 'screening' | 'pedana' | 'contatto'
+  riferimento_nome: string
+}): string {
+  return m.tipo === 'contatto' ? 'Scrivere al paziente' : `${etichettaPromemoria(m.tipo)}: ${m.riferimento_nome}`
 }
 
 // Una data aaaa-mm-gg spostata di qualche giorno (anche indietro), senza

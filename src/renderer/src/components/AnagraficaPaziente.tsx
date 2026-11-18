@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BadgeCheck, FileDown, Pencil, Trash2 } from 'lucide-react'
+import { BadgeCheck, BellRing, FileDown, Pencil, Trash2 } from 'lucide-react'
 import type {
   Fase,
   Gruppo,
@@ -12,7 +12,7 @@ import { chiedi, scegli } from './Conferma'
 import { useScorciatoie } from '../scorciatoie'
 import SceltaConRicerca from './SceltaConRicerca'
 import Modale from './Modale'
-import { errMsg, daQuando, eta, formatData } from '../lib'
+import { errMsg, daQuando, eta, formatData, fraSettimane } from '../lib'
 import EsportaCartella from './EsportaCartella'
 import CertificatoPaziente from './CertificatoPaziente'
 
@@ -30,6 +30,7 @@ export default function AnagraficaPaziente({
   const [modifica, setModifica] = useState(false)
   const [esporta, setEsporta] = useState(false)
   const [certificato, setCertificato] = useState(false)
+  const [ricordami, setRicordami] = useState(false)
 
   const elimina = async (): Promise<void> => {
     if (
@@ -103,6 +104,9 @@ export default function AnagraficaPaziente({
           <button title="Modifica i dati" onClick={() => setModifica(true)}>
             <Pencil size={18} />
           </button>
+          <button title="Promemoria: ricordami di scrivergli" onClick={() => setRicordami(true)}>
+            <BellRing size={18} />
+          </button>
           <button className="danger" title="Elimina paziente" onClick={() => void elimina()}>
             <Trash2 size={18} />
           </button>
@@ -121,6 +125,8 @@ export default function AnagraficaPaziente({
           ))}
         </dl>
       )}
+
+      {ricordami && <ModaleRicordami paziente={paziente} onChiudi={() => setRicordami(false)} />}
 
       {esporta && <EsportaCartella paziente={paziente} onChiudi={() => setEsporta(false)} />}
 
@@ -145,6 +151,74 @@ export default function AnagraficaPaziente({
         />
       )}
     </section>
+  )
+}
+
+// "Ricordami di scrivergli": un promemoria di tipo contatto, con la data in cui
+// vuoi farlo. Compare in Follow-up (in "Da rifare") e nel numerino del menu
+// quando la data arriva.
+function ModaleRicordami({
+  paziente,
+  onChiudi
+}: {
+  paziente: PazienteDettaglio
+  onChiudi: () => void
+}): React.JSX.Element {
+  const [scadenza, setScadenza] = useState(fraSettimane(1))
+  const [nota, setNota] = useState('')
+
+  const salva = async (): Promise<void> => {
+    if (!scadenza) {
+      toastErrore('Scegli la data.')
+      return
+    }
+    try {
+      await window.api.promemoria.create({
+        paziente_id: paziente.id,
+        tipo: 'contatto',
+        riferimento_id: 0,
+        scadenza,
+        nota: nota.trim() || null
+      })
+      toast(`Promemoria fissato per il ${formatData(scadenza)}.`)
+      onChiudi()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
+  return (
+    <Modale className="modal-sm" onConferma={salva}>
+      <h3>
+        Scrivere a {paziente.nome} {paziente.cognome}
+      </h3>
+      <p className="modal-testo">Quando vuoi che te lo ricordi? Lo trovi in Follow-up.</p>
+      <label>
+        Il giorno
+        <input type="date" autoFocus value={scadenza} onChange={(e) => setScadenza(e.target.value)} />
+      </label>
+      <span className="scadenze-rapide">
+        {[1, 2, 3, 4].map((n) => (
+          <button key={n} type="button" onClick={() => setScadenza(fraSettimane(n))}>
+            +{n} sett.
+          </button>
+        ))}
+      </span>
+      <label>
+        Nota (facoltativa)
+        <input
+          placeholder="es. chiedere come va il ginocchio"
+          value={nota}
+          onChange={(e) => setNota(e.target.value)}
+        />
+      </label>
+      <div className="modal-actions">
+        <button onClick={onChiudi}>Annulla</button>
+        <button className="primary" onClick={() => void salva()}>
+          Ricordamelo
+        </button>
+      </div>
+    </Modale>
   )
 }
 

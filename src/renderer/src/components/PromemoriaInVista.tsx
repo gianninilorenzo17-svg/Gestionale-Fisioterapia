@@ -4,7 +4,7 @@ import type { Promemoria } from '../../../shared/types'
 import CompilaQuestionario from './CompilaQuestionario'
 import RifarloFra from './RifarloFra'
 import { toastErrore } from './Toast'
-import { aggiungiGiorni, errMsg, etichettaPromemoria, formatData, oggiIso } from '../lib'
+import { aggiungiGiorni, errMsg, formatData, oggiIso, testoPromemoria } from '../lib'
 
 // I promemoria del paziente che sono arrivati a scadenza (o stanno per), davanti
 // a chi sta per vederlo: in cima alla seduta e nel Quadro. Il promemoria serve
@@ -50,7 +50,7 @@ export default function PromemoriaInVista({
             {aperti.map((p) => (
               <li key={p.id}>
                 <span className="promemoria-cosa">
-                  {etichettaPromemoria(p.tipo)}: {p.riferimento_nome}
+                  {testoPromemoria(p)}
                   {p.nota && <span className="sotto-riga">{p.nota}</span>}
                 </span>
                 <span className={p.scadenza <= oggi ? 'data-scaduta promemoria-data' : 'promemoria-data'}>
