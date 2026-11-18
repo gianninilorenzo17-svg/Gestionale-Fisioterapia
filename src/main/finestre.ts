@@ -111,9 +111,9 @@ export function conBarra(
     `<svg width="12" height="12" viewBox="0 0 12 12"><path d="${d}" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`
   const barra = `<div class="barra-finestra"><span class="titolo-barra">${esc}</span>
   <div class="comandi-finestra">
-    <button class="comando-finestra" title="Riduci a icona" onclick="window.finestra && window.finestra.comando('riduci')">${icona('M1.5 6h9')}</button>
-    <button class="comando-finestra comando-ingrandisci" title="Ingrandisci" onclick="window.finestra && window.finestra.comando('ingrandisci')">${ICONA_INGRANDISCI}</button>
-    <button class="comando-finestra chiudi" title="Chiudi" onclick="window.finestra && window.finestra.comando('chiudi')">${icona('M2 2l8 8M10 2l-8 8')}</button>
+    <button class="comando-finestra" aria-label="Riduci a icona" onclick="window.finestra && window.finestra.comando('riduci')">${icona('M1.5 6h9')}</button>
+    <button class="comando-finestra comando-ingrandisci" aria-label="Ingrandisci" onclick="window.finestra && window.finestra.comando('ingrandisci')">${ICONA_INGRANDISCI}</button>
+    <button class="comando-finestra chiudi" aria-label="Chiudi" onclick="window.finestra && window.finestra.comando('chiudi')">${icona('M2 2l8 8M10 2l-8 8')}</button>
   </div></div><div class="spazio-barra"></div>
   <script>
   (function () {
@@ -121,7 +121,7 @@ export function conBarra(
     function aggiorna() {
       if (!window.finestra || !b) return;
       window.finestra.ingrandita().then(function (m) {
-        b.title = m ? 'Ripristina' : 'Ingrandisci';
+        b.setAttribute('aria-label', m ? 'Ripristina' : 'Ingrandisci');
         b.innerHTML = m ? '${ICONA_RIPRISTINA}' : '${ICONA_INGRANDISCI}';
       });
     }

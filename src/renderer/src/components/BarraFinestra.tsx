@@ -50,7 +50,7 @@ export default function BarraFinestra({ titolo }: { titolo?: string }): React.JS
         <button
           type="button"
           className="comando-finestra"
-          title="Riduci a icona"
+          aria-label="Riduci a icona"
           onClick={() => comando('riduci')}
         >
           <Minus size={16} />
@@ -58,7 +58,7 @@ export default function BarraFinestra({ titolo }: { titolo?: string }): React.JS
         <button
           type="button"
           className="comando-finestra"
-          title={ingrandita ? 'Ripristina' : 'Ingrandisci'}
+          aria-label={ingrandita ? 'Ripristina' : 'Ingrandisci'}
           onClick={() => comando('ingrandisci')}
         >
           {ingrandita ? <Copy size={13} /> : <Square size={13} />}
@@ -66,7 +66,7 @@ export default function BarraFinestra({ titolo }: { titolo?: string }): React.JS
         <button
           type="button"
           className="comando-finestra chiudi"
-          title="Chiudi"
+          aria-label="Chiudi"
           onClick={() => comando('chiudi')}
         >
           <X size={18} />
