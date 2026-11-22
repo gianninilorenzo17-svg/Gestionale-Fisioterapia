@@ -27,6 +27,7 @@ import {
   stratiTratto,
   type Punto
 } from '../shared/tratti'
+import { areaSfumata } from '../shared/sfumatura'
 import { data, pieno, testo } from './cartella-comune'
 
 // ---- andamento dei sintomi ----
@@ -82,11 +83,18 @@ export function graficoAndamento(
   const linee = serie
     .map((serieSintomo) => {
       const ordinati = [...serieSintomo.punti].sort((a, b) => a.x - b.x)
+      // l'area sfumata e' piu' leggera che altrove: qui le serie si sovrappongono
+      const area = areaSfumata(
+        ordinati.map((q) => ({ x: px(q.x), y: py(q.dolore) })),
+        py(0),
+        serieSintomo.colore,
+        0.2
+      )
       const linea =
         ordinati.length > 1
-          ? `<polyline points="${ordinati
+          ? `${area}<polyline points="${ordinati
               .map((q) => `${px(q.x)},${py(q.dolore)}`)
-              .join(' ')}" fill="none" stroke="${serieSintomo.colore}" stroke-width="2"/>`
+              .join(' ')}" fill="none" stroke="${serieSintomo.colore}" stroke-width="2" stroke-linejoin="round"/>`
           : ''
       const pallini = ordinati
         .map(

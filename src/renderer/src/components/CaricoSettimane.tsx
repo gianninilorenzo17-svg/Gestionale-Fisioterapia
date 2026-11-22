@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { Check, TriangleAlert } from 'lucide-react'
 import type { PazienteDettaglio } from '../../../shared/types'
 import { TIPI_LAVORO } from '../../../shared/dose'
@@ -301,6 +301,7 @@ function GraficoCarico({
   const GIU = 28
   const alto = A - SU - GIU
   const n = settimane.length
+  const idBarra = `sfum-barra-${useId().replace(/:/g, '')}`
   const valori = settimane.flatMap((s) => {
     const v = s.voci[k]
     return v ? [v.fatto, v.da ?? 0, v.a ?? 0] : [0]
@@ -316,6 +317,12 @@ function GraficoCarico({
 
   return (
     <svg className="grafico grafico-carico" viewBox={`0 0 ${L} ${A}`} role="img" aria-label={`Carico per settimana, in ${unita}`}>
+      <defs>
+        <linearGradient id={idBarra} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" style={{ stopColor: 'var(--accent)', stopOpacity: 1 }} />
+          <stop offset="1" style={{ stopColor: 'var(--accent)', stopOpacity: 0.35 }} />
+        </linearGradient>
+      </defs>
       {righe.map((v) => (
         <g key={v}>
           <line className="grafico-griglia" x1={SX} y1={y(v)} x2={L - DX} y2={y(v)} />
@@ -344,6 +351,7 @@ function GraficoCarico({
               <path
                 className={`carico-barra${s.inCorso ? ' in-corso' : ''}`}
                 d={barra(cx - larga / 2, y(v.fatto), larga, y(0) - y(v.fatto))}
+                style={{ fill: `url(#${idBarra})` }}
               />
             )}
             {i % ogni === (n - 1) % ogni && (

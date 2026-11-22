@@ -1,0 +1,676 @@
+/* ---- Il Quadro del paziente e gli elenchi delle linguette lunghe ----
+   Solo variabili del tema: cambiando tema (verde, blu, terracotta...) cambia
+   tutto da solo. Il contenitore .sezione-scheda non conta nel disegno
+   (display: contents), quindi .quadro e .con-indice sono figli diretti di
+   .scheda e prendono lo stacco fra i blocchi da lei. */
+
+.quadro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spazio);
+}
+
+.q-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 18px;
+  min-width: 0;
+}
+
+/* un riquadro che porta da un'altra parte: tutto intero e' un pulsante */
+.q-vai {
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+
+.q-vai:hover,
+.q-vai:focus-visible {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+  outline: none;
+}
+
+.q-vai:focus-visible {
+  box-shadow:
+    0 0 0 3px var(--accent-soft),
+    var(--shadow-md);
+}
+
+.q-freccia {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 0.12s;
+  pointer-events: none;
+}
+
+.q-vai:hover > .q-freccia,
+.q-vai:focus-visible > .q-freccia {
+  opacity: 1;
+}
+
+.q-titoletto {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.q-conta {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0 7px;
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+/* ---- A che punto e' ---- */
+
+.q-percorso {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 270px);
+  gap: 22px;
+  align-items: center;
+}
+
+.q-fasi {
+  display: flex;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.q-fase {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 0 4px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+/* il tratto fra un punto e l'altro: pieno fin dove si e' arrivati */
+.q-fase::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: -50%;
+  right: 50%;
+  height: 3px;
+  background: var(--border);
+}
+
+.q-fase:first-child::before {
+  display: none;
+}
+
+.q-fase.fatta::before,
+.q-fase.ora::before {
+  background: var(--accent);
+}
+
+.q-fase-punto {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 23px;
+  height: 23px;
+  margin: 0 auto 6px;
+  border-radius: 50%;
+  border: 3px solid var(--border);
+  background: var(--surface);
+  color: #fff;
+}
+
+.q-fase.fatta .q-fase-punto {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.q-fase.ora .q-fase-punto {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 5px var(--accent-soft);
+}
+
+.q-fase.ora {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.q-fase-nome {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.q-fase small {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.q-tempi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+  margin-top: 16px;
+}
+
+.q-tempi div {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.q-tempi b {
+  display: block;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.q-obiettivi {
+  padding-left: 20px;
+  border-left: 1px solid var(--border);
+  cursor: pointer;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.q-obiettivi:hover .q-obiettivi-testa b {
+  color: var(--accent);
+}
+
+.q-obiettivi:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.q-obiettivi-testa {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.q-obiettivi-testa b {
+  font-size: 15px;
+}
+
+.q-anello {
+  flex: none;
+  width: 46px;
+  height: 46px;
+}
+
+.q-obiettivi-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.q-obiettivi-lista li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.q-obiettivi-lista li.fatto {
+  color: var(--text-dim);
+}
+
+.q-obiettivi-lista li.altri {
+  padding-left: 23px;
+  color: var(--text-dim);
+}
+
+.q-spunta {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+  border: 1.5px solid var(--border-forte);
+  border-radius: 4px;
+  color: #fff;
+}
+
+.fatto > .q-spunta {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---- Cosa stiamo facendo ---- */
+
+.q-tre {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.q-nota {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.q-riga-piccola {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.q-riga-piccola span {
+  color: var(--text-dim);
+}
+
+.q-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.q-chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--pannello);
+  font-size: 13px;
+}
+
+.q-progressioni {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.q-prog {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  font-size: 14px;
+}
+
+.q-prog .hint {
+  font-size: 13px;
+}
+
+.q-scala {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 3px;
+}
+
+.q-scala span {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+}
+
+.q-scala span.f {
+  background: var(--accent);
+}
+
+.q-scala span.a {
+  background: var(--accent);
+  opacity: 0.45;
+}
+
+.q-prossime {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.q-prossime li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 14px;
+}
+
+.q-prossime li.altri {
+  padding-left: 48px;
+  color: var(--text-dim);
+}
+
+.q-giorno {
+  flex: none;
+  width: 38px;
+  padding: 3px 0;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  text-align: center;
+  line-height: 1.1;
+}
+
+.q-giorno b {
+  display: block;
+  font-size: 15px;
+}
+
+.q-giorno small {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--accent-hover);
+}
+
+.q-settimana-testo {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.q-settimana {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.q-settimana span {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+}
+
+.q-settimana span.f {
+  background: var(--accent);
+}
+
+/* ---- I numeri ---- */
+
+.q-numeri {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.q-numero-riga {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.q-lineetta {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.q-valore {
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.q-valore small {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.q-promemoria-testo {
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.q-sotto {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.q-test {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.q-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  margin-top: 8px;
+  padding: 2px 9px;
+  white-space: nowrap;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: var(--pannello);
+  color: var(--text-dim);
+}
+
+.q-pill.ok {
+  background: color-mix(in srgb, var(--success) 14%, var(--surface));
+  color: color-mix(in srgb, var(--success) 78%, black);
+}
+
+.q-pill.att {
+  background: color-mix(in srgb, var(--attenzione) 16%, var(--surface));
+  color: color-mix(in srgb, var(--attenzione) 82%, black);
+}
+
+.q-pill.no {
+  background: color-mix(in srgb, var(--danger) 13%, var(--surface));
+  color: color-mix(in srgb, var(--danger) 82%, black);
+}
+
+@media (max-width: 1000px) {
+  .q-percorso {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .q-obiettivi {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+  .q-numeri {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---- I tasti sulle linguette ---- */
+
+.tasto-linguetta {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.55;
+}
+
+/* ---- L'elenco a sinistra di Clinica e Percorso ---- */
+
+.con-indice {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: var(--spazio);
+  align-items: start;
+}
+
+.indice-sezioni {
+  position: sticky;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.voce-indice {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 1px 8px;
+  align-items: center;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  text-align: left;
+}
+
+.voce-indice:hover:not(:disabled) {
+  background: var(--pannello);
+  color: var(--text);
+}
+
+.voce-indice svg {
+  color: var(--text-dim);
+}
+
+.voce-indice-titolo {
+  font-size: 15px;
+}
+
+.voce-indice small {
+  grid-column: 2;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.voce-indice small.avviso {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.voce-indice.attiva,
+.voce-indice.attiva:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.voce-indice.attiva svg,
+.voce-indice.attiva .voce-indice-titolo {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.voce-indice.vuota .voce-indice-titolo,
+.voce-indice.vuota svg {
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+.indice-separatore {
+  height: 1px;
+  margin: 6px 8px;
+  background: var(--border);
+}
+
+/* Le parti hanno lo stesso riquadro delle sezioni di prima. Una per volta, ma
+   tutte montate: ognuna e' dentro a un div che si nasconde. */
+.indice-contenuto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spazio);
+  min-width: 0;
+}
+
+.indice-contenuto > div:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spazio);
+}
+
+.indice-contenuto > div > .card {
+  margin: 0;
+  padding: var(--spazio-interno) calc(var(--spazio-interno) + 4px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.indice-contenuto > div > .card > h3:first-child,
+.indice-contenuto > div > .card > .card-header-row:first-child {
+  margin-top: 0;
+}
+
+.indice-contenuto > div > .blocco-apribile {
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .con-indice {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .indice-sezioni {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .voce-indice {
+    width: auto;
+  }
+  .voce-indice small {
+    display: none;
+  }
+  .indice-separatore {
+    display: none;
+  }
+}
+
+/* ---- Il riassunto in cima alla Pedana ---- */
+
+.riepilogo-pedana {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 28px;
+  margin-bottom: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--pannello);
+}
+
+.riepilogo-pedana > div {
+  min-width: 0;
+}
+
+.riepilogo-pedana .q-titoletto {
+  display: block;
+  margin: 0 0 2px;
+}
+
+.riepilogo-pedana b {
+  font-size: 18px;
+}
+
+.riepilogo-pedana .q-pill {
+  margin-top: 0;
+  white-space: normal;
+}

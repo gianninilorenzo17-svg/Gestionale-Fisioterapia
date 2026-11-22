@@ -135,3 +135,10 @@ export function aggiungiGiorni(data: string, giorni: number): string {
 
 // Fra tante settimane da oggi: le scadenze che si propongono ai promemoria.
 export const fraSettimane = (n: number): string => aggiungiGiorni(oggiIso(), n * 7)
+
+// "gio", "lun": il giorno della settimana, corto, di una data aaaa-mm-gg
+const GIORNI_BREVI = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab']
+export function giornoSettimanaBreve(iso: string): string {
+  const [a, m, g] = iso.split('-').map(Number)
+  return `${GIORNI_BREVI[new Date(a, m - 1, g).getDay()]} ${g}`
+}

@@ -286,30 +286,77 @@
   padding: 2px 10px;
 }
 
-/* Il nome della scala, una volta sola sopra ai suoi esercizi. */
-.suggeriti-scala-nome {
-  margin-top: 8px;
+/* Una pastiglia per progressione: aggiungi lo step attuale + lucchettino per sbloccare il prossimo. */
+.suggeriti-pastiglie {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.pastiglia-prog {
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.pastiglia-prog.successivo {
+  opacity: 0.6;
+}
+
+.pastiglia-prog button {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+
+.pastiglia-prog button:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.pastiglia-prog button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.pastiglia-prog .pastiglia-sblocca {
+  padding: 3px 8px;
+  border-left: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.pp-testo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.pp-nome {
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
 }
 
-.suggeriti-scala-nome span {
-  font-weight: 400;
+.pp-sub {
+  font-size: 11px;
   color: var(--text-dim);
 }
 
-.suggeriti-prog .esercizi-proposti li {
-  border-bottom-color: var(--surface);
-}
-
-.suggeriti-prog .esercizi-proposti li.successivo {
-  opacity: 0.55;
-}
-
-.suggeriti-prog .esercizi-proposti li.sospeso {
-  opacity: 0.8;
-  font-style: italic;
+/* Dove la sezione non e' quella della progressione: solo questo, da aprire a mano. */
+.btn-prog-mostra {
+  font-size: 13px;
+  padding: 2px 10px;
+  margin-bottom: 8px;
 }
 
 .esiti-prog {

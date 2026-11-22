@@ -118,6 +118,7 @@ test('carico: le settimane con la dose, i grafici e l\'avviso', async () => {
     await vaiA(pagina, 'Pazienti')
     await pagina.locator('main').getByText('Carico Luca', { exact: true }).click()
     await pagina.getByRole('button', { name: 'Percorso', exact: true }).click()
+    await pagina.locator('.voce-indice:visible').filter({ hasText: 'Carico settimanale' }).click()
 
     const card = pagina.locator('.carico-settimane')
     await expect(card.getByRole('heading', { name: /Carico settimana per settimana/ })).toBeVisible()

@@ -39,10 +39,11 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   programmando la settimana) in `seduta_progressioni`. Lo step del paziente NON è salvato: si ricalcola
   dagli esiti delle sedute. L'interfaccia: `ProgressioniLibreria` (linguetta della libreria),
   `ProgressioniFase` (tab della fase), `ProgressioniPaziente` e `SpecchiettoProgressioni` (specchietto),
-  `seduta/SuggerimentiProgressioni` e `seduta/EsitiProgressioni`. In seduta una progressione si suggerisce
+  `seduta/SuggerimentiProgressioni` (una pastiglia per progressione + lucchettino per sbloccare lo step dopo) e
+  `seduta/EsitiProgressioni`. In seduta una progressione si suggerisce da sola
   solo nelle sezioni che propongono la categoria del suo esercizio (`sezioneAmmetteStep` in
-  `seduta/modello.ts`): niente squat in «Mobilizzazione». Sezione al volo = le vede tutte; categoria che
-  nessuna sezione propone = suggerita dappertutto.
+  `seduta/modello.ts`, regola stretta): niente squat nel riscaldamento. Sezione al volo, senza categorie o di
+  un'altra categoria = solo il pulsante «Progressioni ▸» in `SezioneSeduta`, che le apre a mano.
 - Le **varianti** di un esercizio (equilibrio monopodalico normale o con uno stimolo cognitivo) si
   scrivono sull'esercizio in libreria (`esercizio_varianti`, migrazione 70, ordinate dalla più facile
   alla più difficile; `EsercizioInput.varianti` le salva insieme all'esercizio, `salvaVarianti` in
@@ -113,6 +114,20 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
 - Promemoria («rifai questo questionario / screening / test pedana», `main/promemoria.ts`, tabella
   ricostruita dalla migrazione 66): quello della pedana si riconosce da `pedana_chiave` (`chiaveTestPedana`)
   e si chiude da solo importando quel test (`chiudiFatti` in `importaPedana`).
+- Il **Quadro** del paziente (prima linguetta della scheda, `components/quadro/`) e' una panoramica di sola
+  lettura: non scrive niente, rilegge cose che l'app ha gia'. Un solo caricamento per tutta la scheda
+  (`useDatiQuadro`, richiamato da `SchedaPaziente` e rifatto a ogni cambio di linguetta o di parte): lo usano il Quadro e
+  le note degli elenchi di Clinica e Percorso. I calcoli puri sono in `shared/quadro.ts` (LSI piu' basso fra i test di
+  pedana con confronto fra i lati, da quando e' nella fase, settimana corrente, sintesi del dolore, ultimo questionario,
+  promemoria), provati in `test/quadro.test.ts`. Le soglie dei colori dell'LSI (90 / 80) sono in `shared/quadro.ts` e
+  servono solo al colore. La variazione di un questionario nell'app e' rispetto alla PRIMA compilazione e solo se il
+  questionario ha il cambiamento minimo (MCID): il Quadro mostra sempre la differenza dalla prima e colora solo con MCID.
+  LSI, questionario e promemoria compaiono solo se il paziente li ha. Ogni riquadro e' un pulsante intero (`Destinazione`
+  in `quadro/sezioni.ts`: linguetta + parte). Clinica e Percorso hanno a sinistra `IndiceSezioni` (una voce per parte, con
+  la nota di cosa c'e' dentro; le parti restano tutte montate e si nasconde quella non scelta; le voci vuote in fondo, in
+  grigio). Le body chart sono una parte della Clinica (`BodyChartPaziente`, non piu' nell'Anamnesi). I tasti 1-5 cambiano
+  linguetta (`useScorciatoie` con `senzaFinestre`). Il Diario e' una riga per seduta divisa per mese, con il cambio di fase
+  e i pulsanti visibili solo al passaggio del mouse (`stili/20-diario.css`). Prove: `quadro` ed `e2e/quadro.spec.ts`.
 - Eliminare con cestino (`eliminaConCestino`) avvisa le finestre (`quandoEliminato` → evento
   `cestino:eliminato` → avviso con «Annulla» in `App.tsx`, che ripristina e ricarica la pagina). I PDF
   passano tutti da `htmlToPdf` in `main/export.ts`, che scrive nel piede nome, data e «Pagina X di Y».

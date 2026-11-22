@@ -48,8 +48,6 @@ interface Props {
   // messi in seduta (in qualunque sezione)
   progressioni: StatoProgressione[]
   inSeduta: Set<number>
-  // le categorie proposte da almeno una sezione della seduta
-  categorieCoperte: Set<number>
   onSpecchietto: () => void
   onSblocca: (progressioneId: number, nome: string) => void
   // la ricerca degli esercizi e' aperta in questa sezione (una per volta)
@@ -76,7 +74,6 @@ export default function SezioneSeduta({
   ricopiate,
   progressioni,
   inSeduta,
-  categorieCoperte,
   onSpecchietto,
   onSblocca,
   aperta,
@@ -91,6 +88,8 @@ export default function SezioneSeduta({
   // window.prompt non è supportato in Electron: la sezione si rinomina sul posto
   const [nomeInModifica, setNomeInModifica] = useState<string | null>(null)
   const [ricerca, setRicerca] = useState('')
+  // le progressioni aperte a mano in una sezione che non e' la loro
+  const [progAperte, setProgAperte] = useState(false)
 
   const rinomina = (): void => {
     if (nomeInModifica?.trim()) invia({ tipo: 'rinomina', sez: idxSez, nome: nomeInModifica })
@@ -110,15 +109,15 @@ export default function SezioneSeduta({
 
   const testoRicerca = ricerca.trim()
   // Solo per la sezione aperta, come le proposte.
-  const suggeriti = aperta
+  const propri = aperta
     ? suggerimentiProgressioni(progressioni, inSeduta, testoRicerca, (id) =>
-        sezioneAmmetteStep(
-          libreria.find((e) => e.id === id)?.categoria_id,
-          categorieDellaSezione(s, templateCats, categorie),
-          categorieCoperte
-        )
+        sezioneAmmetteStep(libreria.find((e) => e.id === id)?.categoria_id, categorieDellaSezione(s, templateCats, categorie))
       )
     : []
+  // Dove la sezione non e' quella della progressione si propone solo il
+  // pulsante: le pastiglie compaiono se lo si preme.
+  const altre = aperta && propri.length === 0 ? suggerimentiProgressioni(progressioni, inSeduta, testoRicerca) : []
+  const suggeriti = propri.length > 0 ? propri : progAperte ? altre : []
   const giaSuggeriti = new Set(suggeriti.flatMap((g) => g.righe.map((r) => r.step.esercizio_id)))
   const nomeCategoria = (cid: number): string => categorie.find((c) => c.id === cid)?.nome ?? '?'
   const dndSez = riordinoSezioni.contenitore(idxSez)
@@ -249,6 +248,11 @@ export default function SezioneSeduta({
           {/* Scrivendo, i suggerimenti restano ma si restringono a quelli che
               corrispondono. Un esercizio gia' suggerito non si ripete anche
               nell'elenco sotto: la scala a cui appartiene si legge sopra. */}
+          {altre.length > 0 && !progAperte && (
+            <button className="btn-prog-mostra" onClick={() => setProgAperte(true)}>
+              Progressioni ▸
+            </button>
+          )}
           <SuggerimentiProgressioni
             gruppi={suggeriti}
             libreria={libreria}

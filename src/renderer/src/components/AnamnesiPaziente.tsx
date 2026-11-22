@@ -1,11 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { ClipboardList, Eye, FileClock, Pencil, Trash2 } from 'lucide-react'
-import type { BodyChartRiepilogo, PazienteDettaglio, SezioneCartella } from '../../../shared/types'
+import { useCallback, useEffect, useState } from 'react'
+import { ClipboardList, Eye, FileClock, Pencil } from 'lucide-react'
+import type { PazienteDettaglio, SezioneCartella } from '../../../shared/types'
 import { toastErrore } from './Toast'
-import { chiedi } from './Conferma'
-import { errMsg, formatData, oggiIso } from '../lib'
-import BodyChartEditor from './BodyChartEditor'
-import { SagomaIcona } from './FiguraUmana'
+import { errMsg } from '../lib'
 import IconaObiettivi from './IconaObiettivi'
 import AnamnesiProssima from './AnamnesiProssima'
 import AnamnesiRemota from './AnamnesiRemota'
@@ -53,24 +50,10 @@ export default function AnamnesiPaziente({
 }: {
   paziente: PazienteDettaglio
 }): React.JSX.Element {
-  const [charts, setCharts] = useState<BodyChartRiepilogo[]>([])
-  const [aperta, setAperta] = useState<{ id: number; soloLettura: boolean } | null>(null)
   const [prossima, setProssima] = useState(false)
   const [remota, setRemota] = useState(false)
   const [obiettivi, setObiettivi] = useState(false)
   const [riassunti, setRiassunti] = useState({ prossima: '', remota: '', obiettivi: '' })
-
-  const load = useCallback(async (): Promise<void> => {
-    try {
-      setCharts(await window.api.bodyChart.list(paziente.id))
-    } catch (e) {
-      toastErrore(errMsg(e))
-    }
-  }, [paziente.id])
-
-  useEffect(() => {
-    void load()
-  }, [load])
 
   // Una riga di sintesi per ciascuna scheda: si legge senza aprirla.
   const caricaRiassunti = useCallback(async (): Promise<void> => {
@@ -104,36 +87,10 @@ export default function AnamnesiPaziente({
     void caricaRiassunti()
   }, [caricaRiassunti])
 
-  // La riga nasce subito perche' l'editor lavora su una body chart esistente,
-  // ma se si chiude senza salvare niente viene tolta: un clic per sbaglio non
-  // deve lasciare schede vuote da ripulire.
-  const appenaCreata = useRef<number | null>(null)
-
-  const nuova = async (): Promise<void> => {
-    try {
-      const id = await window.api.bodyChart.create(paziente.id, oggiIso(), 'corpo')
-      appenaCreata.current = id
-      await load()
-      setAperta({ id, soloLettura: false })
-    } catch (e) {
-      toastErrore(errMsg(e))
-    }
-  }
-
   // L'anteprima di una scheda e' la sua sezione della cartella, da sola.
   const anteprima = async (sezione: SezioneCartella): Promise<void> => {
     try {
       await window.api.esporta.anteprimaCartella(paziente.id, [sezione])
-    } catch (e) {
-      toastErrore(errMsg(e))
-    }
-  }
-
-  const elimina = async (c: BodyChartRiepilogo): Promise<void> => {
-    if (!(await chiedi(`Eliminare la body chart del ${formatData(c.data)}?`))) return
-    try {
-      await window.api.bodyChart.remove(c.id)
-      await load()
     } catch (e) {
       toastErrore(errMsg(e))
     }
@@ -157,9 +114,6 @@ export default function AnamnesiPaziente({
           {/* Una cartella con l'orologio: sono i fatti clinici di prima, non
               una cronologia di modifiche come diceva la freccia all'indietro. */}
           <FileClock size={24} />
-        </button>
-        <button className="btn-sagoma" title="Nuova body chart" onClick={() => void nuova()}>
-          <SagomaIcona size={24} />
         </button>
         <button
           className="btn-sagoma"
@@ -201,38 +155,6 @@ export default function AnamnesiPaziente({
         </ul>
       )}
 
-      {charts.length > 0 && (
-        <ul className="sedute-list">
-          {charts.map((c) => (
-            <li key={c.id}>
-              <div className="seduta-info">
-                <span className="seduta-data">
-                  {c.tipo === 'piede' ? 'Body chart piede' : 'Body chart'} · {formatData(c.data)}
-                </span>
-                {c.note && <span className="seduta-obiettivi">{c.note}</span>}
-              </div>
-              <span className="row-actions">
-                <button
-                  title="Anteprima"
-                  onClick={() => setAperta({ id: c.id, soloLettura: true })}
-                >
-                  <Eye size={18} />
-                </button>
-                <button
-                  title="Modifica"
-                  onClick={() => setAperta({ id: c.id, soloLettura: false })}
-                >
-                  <Pencil size={18} />
-                </button>
-                <button className="danger" title="Elimina" onClick={() => void elimina(c)}>
-                  <Trash2 size={18} />
-                </button>
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
       {prossima && (
         <AnamnesiProssima
           pazienteId={paziente.id}
@@ -263,23 +185,6 @@ export default function AnamnesiPaziente({
         />
       )}
 
-      {aperta && (
-        <BodyChartEditor
-          key={aperta.id}
-          chartId={aperta.id}
-          soloLettura={aperta.soloLettura}
-          onChiudi={(salvata) => {
-            const daTogliere = !salvata ? appenaCreata.current : null
-            appenaCreata.current = null
-            setAperta(null)
-            if (daTogliere != null) {
-              void window.api.bodyChart.remove(daTogliere).then(load)
-            } else if (salvata) {
-              void load()
-            }
-          }}
-        />
-      )}
     </section>
   )
 }

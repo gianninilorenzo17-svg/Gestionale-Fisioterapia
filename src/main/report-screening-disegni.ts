@@ -1,6 +1,7 @@
 // I disegni del report dello screening: la ciambella dx/sx e il grafico
 // dell'andamento fra gli screening (report-screening.ts).
 import { esc } from './html'
+import { areaSfumata } from '../shared/sfumatura'
 import { data, numero } from './report-screening-comune'
 
 // ---- disegni ----
@@ -73,7 +74,12 @@ export function andamento(punti: PuntoStorico[], soglia: number | null, unita: s
     const pallini = presi
       .map((p) => `<circle cx="${x(p.i)}" cy="${y(p.v)}" r="3.5" fill="${colore}"/>`)
       .join('')
-    return `<path d="${d}" fill="none" stroke="${colore}" stroke-width="2"/>${pallini}`
+    const area = areaSfumata(
+      presi.map((p) => ({ x: x(p.i), y: y(p.v) })),
+      A - bordo.giu,
+      colore
+    )
+    return `${area}<path d="${d}" fill="none" stroke="${colore}" stroke-width="2" stroke-linejoin="round"/>${pallini}`
   }
 
   const rigaSoglia =

@@ -1,4 +1,6 @@
+import { useId } from 'react'
 import type { PuntoAndamentoDolore } from '../../../shared/types'
+import { SFUMATURA_SOPRA, SFUMATURA_SOTTO } from '../../../shared/sfumatura'
 import { formatData } from '../lib'
 
 // Andamento del dolore nel tempo, per la linguetta "Quadro": a differenza del
@@ -38,6 +40,7 @@ export default function GraficoDolore({
     punti.length === 1 ? M.sx + LARGO / 2 : M.sx + (i / (punti.length - 1)) * LARGO
   const py = (dolore: number): number => M.su + (1 - dolore / 10) * ALTO
   const labels = etichette(punti)
+  const idSfumatura = `sfum-dolore-${useId().replace(/:/g, '')}`
 
   return (
     <svg className="grafico" viewBox={`0 0 ${L} ${A}`} style={{ cursor: 'default' }}>
@@ -49,6 +52,21 @@ export default function GraficoDolore({
           </text>
         </g>
       ))}
+
+      {punti.length > 1 && (
+        <>
+          <defs>
+            <linearGradient id={idSfumatura} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" style={{ stopColor: 'var(--accent)', stopOpacity: SFUMATURA_SOPRA }} />
+              <stop offset="1" style={{ stopColor: 'var(--accent)', stopOpacity: SFUMATURA_SOTTO }} />
+            </linearGradient>
+          </defs>
+          <path
+            d={`M${punti.map((p, i) => `${px(i)},${py(p.dolore)}`).join(' L')} L${px(punti.length - 1)},${py(0)} L${px(0)},${py(0)} Z`}
+            fill={`url(#${idSfumatura})`}
+          />
+        </>
+      )}
 
       {punti.length > 1 && (
         <polyline

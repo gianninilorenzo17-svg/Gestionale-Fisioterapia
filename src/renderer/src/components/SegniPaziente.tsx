@@ -15,9 +15,15 @@ import { errMsg, formatData } from '../lib'
 // si legge da dove sono partiti e dove sono arrivati. I numeri si scrivono
 // mentre si compone la seduta, in fondo, accanto a dolore e sforzo.
 export default function SegniPaziente({
-  paziente
+  paziente,
+  aperto = false,
+  onCambiato
 }: {
   paziente: PazienteDettaglio
+  // aperto dall'inizio: nell'elenco della Clinica il blocco e' gia' una parte a se'
+  aperto?: boolean
+  // avvisa la scheda quando se ne aggiunge o toglie uno (per la nota nell'elenco)
+  onCambiato?: () => void
 }): React.JSX.Element {
   const [segni, setSegni] = useState<AndamentoSegno[]>([])
   const [nuovo, setNuovo] = useState(false)
@@ -41,6 +47,7 @@ export default function SegniPaziente({
       setNome('')
       setUnita('')
       carica()
+      onCambiato?.()
     } catch (e) {
       toastErrore(errMsg(e))
     }
@@ -55,6 +62,7 @@ export default function SegniPaziente({
     try {
       await window.api.segni.remove(s.id)
       carica()
+      onCambiato?.()
     } catch (e) {
       toastErrore(errMsg(e))
     }
@@ -68,7 +76,7 @@ export default function SegniPaziente({
   // numero nel tempo, non un passaggio della giornata. Chi non la usa non la
   // vede nemmeno.
   return (
-    <details className="blocco-apribile blocco-segni" ref={dettagli}>
+    <details className="blocco-apribile blocco-segni" ref={dettagli} open={aperto}>
       <summary>
         Segni di riferimento{segni.length > 0 ? ` (${segni.length})` : ''}
         <Aiuto testo="Serve solo se vuoi seguire un numero nel tempo: il dolore in un movimento, un grado di mobilità, un test veloce. Lo scegli qui e lo ritrovi in fondo a ogni seduta, accanto a dolore e sforzo, e qui vedi da dove sei partito e dove sei arrivato. Per tutto il resto vanno benissimo le note della seduta." />

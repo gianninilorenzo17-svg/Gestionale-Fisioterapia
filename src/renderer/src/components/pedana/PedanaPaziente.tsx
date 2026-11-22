@@ -9,6 +9,7 @@ import {
   type GruppoPedana,
   type LatoPedana
 } from '../../../../shared/pedana'
+import { classeLsi, lsiPiuBasso } from '../../../../shared/quadro'
 import Aiuto from '../Aiuto'
 import { toastErrore } from '../Toast'
 import { chiedi } from '../Conferma'
@@ -97,6 +98,8 @@ export default function PedanaPaziente({
         b.giorno.data.localeCompare(a.giorno.data) || a.gruppo.nome.localeCompare(b.gruppo.nome)
     )
   const voceAperta = voci.find((v) => v.chiave === aperta) ?? null
+  // il riassunto in cima: lo stesso numero che si legge nel Quadro
+  const lsi = lsiPiuBasso(gruppi)
 
   return (
     <section className="card">
@@ -123,6 +126,36 @@ export default function PedanaPaziente({
           </button>
         </span>
       </div>
+
+      {voci.length > 0 && (
+        <div className="riepilogo-pedana">
+          <div>
+            <span className="q-titoletto">Ultimo test</span>
+            <b>{dataDellaRiga(voci[0].giorno)}</b>
+          </div>
+          {lsi && (
+            <>
+              <div>
+                <span className="q-titoletto">LSI più basso</span>
+                <b>{lsi.valore}%</b>{' '}
+                <span className={`q-pill ${classeLsi(lsi.valore)}`}>{lsi.test}</span>
+              </div>
+              {lsi.altri > 0 && (
+                <div>
+                  <span className="q-titoletto">Gli altri</span>
+                  <span className="hint">
+                    {lsi.altri} test
+                    {lsi.minimoAltri != null &&
+                      (lsi.minimoAltri === lsi.massimoAltri
+                        ? ` a ${lsi.minimoAltri}%`
+                        : ` fra ${lsi.minimoAltri}% e ${lsi.massimoAltri}%`)}
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {voci.length > 0 && (
         <ul className="sedute-list elenco-pedana">

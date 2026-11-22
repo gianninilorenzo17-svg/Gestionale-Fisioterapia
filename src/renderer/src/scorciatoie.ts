@@ -24,6 +24,9 @@ export interface Scorciatoia {
   // vale anche con il cursore dentro una casella (per Esc, che chiude la finestra
   // ovunque sia il cursore)
   inCasella?: boolean
+  // non scatta con una finestra (Modale) aperta sopra: i tasti dei numeri che
+  // cambiano linguetta non devono lavorare dietro a una finestra
+  senzaFinestre?: boolean
 }
 
 // Con lo schermo bloccato l'app resta montata sotto alla richiesta della
@@ -55,6 +58,7 @@ export function useScorciatoie(scorciatoie: Scorciatoia[]): void {
         if (Boolean(s.ctrl) !== (e.ctrlKey || e.metaKey)) continue
         // senza Ctrl la scorciatoia non deve rubare le lettere a chi scrive
         if (!s.ctrl && !s.inCasella && dentroACasella(e)) continue
+        if (s.senzaFinestre && document.querySelector('.modal-overlay')) continue
         // un menu a tendina aperto usa Esc per chiudersi: la finestra resta
         // (e una scheda di farmaco aperta sopra la finestra chiude se stessa)
         if (

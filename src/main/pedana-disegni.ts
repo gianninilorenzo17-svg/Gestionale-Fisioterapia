@@ -8,6 +8,7 @@
 import { esc } from './html'
 import { formattaValore, type LatoPedana, type SeriePedana } from '../shared/pedana'
 import { tracciatoSvg } from '../shared/pedana-curve'
+import { areaSfumata } from '../shared/sfumatura'
 
 export const BLU = '#2563eb'
 export const ROSSO = '#d64545'
@@ -70,7 +71,12 @@ export function andamentoPedanaSvg(
     const pallini = presi
       .map((p) => `<circle cx="${x(p.i)}" cy="${y(p.v)}" r="3.5" fill="${colore}"/>`)
       .join('')
-    return `<path d="${d}" fill="none" stroke="${colore}" stroke-width="2"/>${pallini}`
+    const area = areaSfumata(
+      presi.map((p) => ({ x: x(p.i), y: y(p.v) })),
+      A - bordo.giu,
+      colore
+    )
+    return `${area}<path d="${d}" fill="none" stroke="${colore}" stroke-width="2" stroke-linejoin="round"/>${pallini}`
   }
 
   const testo = (xx: number, yy: number, t: string, ancora: string): string =>

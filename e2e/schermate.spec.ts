@@ -123,6 +123,7 @@ test('clinica: anamnesi prossima e valutazione obiettiva si aprono e si salvano'
     await expect(pagina.getByRole('heading', { name: 'Anamnesi prossima' })).toBeHidden()
 
     // valutazione obiettiva: si sceglie un distretto e si apre la scheda con le tabelle
+    await pagina.locator('.voce-indice:visible').filter({ hasText: 'Valutazione obiettiva' }).click()
     await pagina.getByTitle('Nuova valutazione').click()
     const distretto = pagina.locator('.scelte-questionari button').first()
     await expect(distretto).toBeVisible()

@@ -15,21 +15,19 @@ interface Props {
   onSblocca: (progressioneId: number, nome: string) => void
 }
 
-// In cima alla ricerca di "+ Esercizio": per ogni progressione della fase lo
-// step a cui e' il paziente, da aggiungere con un clic, e subito dopo solo lo
-// step successivo, col lucchetto e quello che serve per arrivarci (si puo'
-// scegliere lo stesso: e' un suggerimento, non un vincolo). Gli step prima di
-// quello attuale non si propongono mai, e nemmeno quelli piu' avanti del
-// successivo: la scala intera si vede in "Vedi dove siamo".
+// In cima alla ricerca di "+ Esercizio": una pastiglia per progressione, con lo
+// step a cui e' il paziente, da aggiungere con un clic. Le pastiglie vanno a
+// capo da sole, quindi anche con tante scale (l'affondo orizzontale e quello
+// verticale) il riquadro resta di una o due righe.
 //
-// Il nome della progressione sta una volta sola, sopra ai suoi esercizi, invece
-// di essere ripetuto su ogni riga: cosi' lo stesso esercizio (lo squat) in due
-// scale diverse si distingue a colpo d'occhio e lo schermo resta pulito. Il
-// calcolo di cosa mostrare sta in modello.ts (suggerimentiProgressioni).
+// Sulla pastiglia: il nome dello step e, in piccolo, la progressione e a che
+// step siamo ("Affondo orizzontale · 2/5"). Lo step successivo non si legge: sta
+// nel tooltip del lucchettino accanto, che lo sblocca (il paziente ci e'
+// arrivato) e dice cosa serve per arrivarci. La scala intera si vede in "Vedi
+// dove siamo". Dove lo step ha una sua dose (il ritorno alla corsa) la dose e'
+// nel tooltip e, aggiungendo, e' quella a finire nella riga.
 //
-// Dove lo step ha una sua dose (il ritorno alla corsa: lo stesso esercizio, una
-// dose per livello) si vede accanto al nome e, aggiungendo, e' quella a finire
-// nella riga.
+// Il calcolo di cosa mostrare sta in modello.ts (suggerimentiProgressioni).
 export default function SuggerimentiProgressioni({
   gruppi,
   libreria,
@@ -43,70 +41,59 @@ export default function SuggerimentiProgressioni({
   return (
     <div className="suggeriti-prog">
       <div className="suggeriti-testata">
-        Suggeriti dalle progressioni
+        Progressioni
         <button onClick={onSpecchietto}>Vedi dove siamo</button>
       </div>
-      {gruppi.map(({ progressione: p, base, righe }) => (
-        <div className="suggeriti-scala" key={p.id}>
-          <div className="suggeriti-scala-nome">
-            {p.nome}
-            <span>
-              {' '}
-              · step {base + 1} di {p.step.length}
-            </span>
-          </div>
-          <ul className="esercizi-proposti">
-            {righe.map(({ step: s, indice }) => {
-              const e = libreria.find((x) => x.id === s.esercizio_id)
-              const giaQui = inSeduta.has(s.esercizio_id)
-              return (
-                <li key={s.id} className={indice === 0 ? undefined : 'successivo'}>
-                  {indice === 0 ? (
-                    <button
-                      className="btn-aggiungi-riga"
-                      title={
-                        e
-                          ? `Aggiungi ${nomeStep(s.esercizio_nome, s.variante, s.monopodalico)} (${p.nome})`
-                          : 'Esercizio archiviato: non si può aggiungere'
-                      }
-                      disabled={!e || giaQui}
-                      onClick={() => e && onAggiungi(e, s)}
-                    >
-                      <Plus size={16} />
-                    </button>
-                  ) : (
-                    // il lucchetto sblocca lo step: il paziente ci e' arrivato
-                    <button
-                      className="btn-aggiungi-riga"
-                      title={`Sblocca questo step: il paziente passa a «${nomeStep(s.esercizio_nome, s.variante, s.monopodalico)}» in ${p.nome}`}
-                      onClick={() => onSblocca(p.id, nomeStep(s.esercizio_nome, s.variante, s.monopodalico))}
-                    >
-                      <Lock size={14} />
-                    </button>
-                  )}
-                  <span className="item-nome">{nomeStep(s.esercizio_nome, s.variante, s.monopodalico)}</span>
-                  <span className="default-hint">
-                    {[doseTesto(s), indice === 0 ? (giaQui ? 'già in seduta' : '') : s.requisito]
-                      .filter(Boolean)
-                      .join(' · ')}
+      <div className="suggeriti-pastiglie">
+        {gruppi.map(({ progressione: p, base, righe }) => {
+          const primo = righe[0]
+          // se lo step attuale non c'e' (la ricerca lo esclude) resta quello dopo,
+          // ancora da sbloccare
+          const bloccato = primo.indice !== 0
+          const succ = bloccato ? primo : righe.find((r) => r.indice === 1)
+          const s = primo.step
+          const e = libreria.find((x) => x.id === s.esercizio_id)
+          const giaQui = inSeduta.has(s.esercizio_id)
+          const nome = nomeStep(s.esercizio_nome, s.variante, s.monopodalico)
+          const dose = doseTesto(s)
+          const titolo = [
+            e ? `Aggiungi ${nome}` : 'Esercizio archiviato: non si può aggiungere',
+            dose,
+            bloccato && s.requisito ? `Requisito: ${s.requisito}` : '',
+            giaQui ? 'già in seduta' : ''
+          ]
+            .filter(Boolean)
+            .join(' · ')
+          return (
+            <span key={p.id} className={bloccato ? 'pastiglia-prog successivo' : 'pastiglia-prog'}>
+              <button className="pastiglia-aggiungi" title={titolo} disabled={!e || giaQui} onClick={() => e && onAggiungi(e, s)}>
+                <Plus size={14} />
+                <span className="pp-testo">
+                  <span className="pp-nome">{nome}</span>
+                  <span className="pp-sub">
+                    {p.nome} · {base + primo.indice + 1}/{p.step.length}
                   </span>
-                  {/* lo step ancora bloccato si puo' mettere in scheda lo stesso, senza sbloccarlo */}
-                  {indice !== 0 && (
-                    <button
-                      className="btn-aggiungi-riga"
-                      title="Aggiungilo in seduta senza sbloccarlo"
-                      disabled={!e || giaQui}
-                      onClick={() => e && onAggiungi(e, s)}
-                    >
-                      <Plus size={14} />
-                    </button>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      ))}
+                </span>
+              </button>
+              {succ && (
+                <button
+                  className="pastiglia-sblocca"
+                  title={
+                    bloccato
+                      ? `Il paziente è arrivato a «${nome}»? Sbloccalo${s.requisito ? ` (serve: ${s.requisito})` : ''}`
+                      : `Il paziente è arrivato a «${nomeStep(succ.step.esercizio_nome, succ.step.variante, succ.step.monopodalico)}»? Sbloccalo${succ.step.requisito ? ` (serve: ${succ.step.requisito})` : ''}`
+                  }
+                  onClick={() =>
+                    onSblocca(p.id, nomeStep(succ.step.esercizio_nome, succ.step.variante, succ.step.monopodalico))
+                  }
+                >
+                  <Lock size={12} />
+                </button>
+              )}
+            </span>
+          )
+        })}
+      </div>
     </div>
   )
 }

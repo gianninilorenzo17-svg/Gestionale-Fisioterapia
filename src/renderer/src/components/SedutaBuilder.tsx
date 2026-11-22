@@ -27,7 +27,6 @@ import { useRiordino } from '../riordino'
 import {
   campiDaBozza,
   massimaliPerEsercizio,
-  categorieDellaSezione,
   contaSeduta,
   esitiDaSalvare,
   haQualcosa,
@@ -419,15 +418,6 @@ export default function SedutaBuilder({
     () => new Set(sezioni.flatMap((s) => s.righe.map((r) => r.esercizio_id).filter((x): x is number => x != null))),
     [sezioni]
   )
-  // Le categorie che almeno una sezione propone: le progressioni si suggeriscono
-  // solo nelle sezioni della loro categoria (vedi sezioneAmmetteStep).
-  const categorieCoperte = useMemo(
-    () =>
-      new Set(
-        sezioni.flatMap((s) => categorieDellaSezione(s, contesto.templateCats, contesto.categorie) ?? [])
-      ),
-    [sezioni, contesto.templateCats, contesto.categorie]
-  )
   // Solo quelle collegate alla fase: un esercizio che per caso sta anche in una
   // progressione che la fase non usa (es. fase iniziale) non chiede nessun esito.
   const progressioniInSeduta = useMemo(
@@ -698,7 +688,6 @@ export default function SedutaBuilder({
           ricopiate={ricopiate}
           progressioni={contesto.progressioni}
           inSeduta={inSeduta}
-          categorieCoperte={categorieCoperte}
           onSpecchietto={() => setSpecchietto(true)}
           onSblocca={(id, nome) => void sbloccaStep(id, nome)}
           aperta={sezioneAperta === idxSez}

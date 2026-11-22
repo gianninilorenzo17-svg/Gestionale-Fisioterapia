@@ -1,5 +1,6 @@
-import { useRef } from 'react'
+import { useId, useRef } from 'react'
 import type { PuntoAndamento, SintomoAnamnesi, TipoGrafico } from '../../../shared/types'
+import { SFUMATURA_SOTTO } from '../../../shared/sfumatura'
 import { COLORI_SINTOMI } from '../../../shared/sintomi'
 
 // Andamento del dolore nel tempo. Una linea per sintomo, come la legenda della
@@ -61,6 +62,7 @@ export default function GraficoAndamento({
 }): React.JSX.Element {
   const date = tipo === 'esordio' ? scalettaDate(sintomi) : []
   const trascina = useRef<Selezione | null>(null)
+  const idBase = `sfum-andamento-${useId().replace(/:/g, '')}`
 
   const px = (p: PuntoAndamento): number => {
     if (tipo === 'giorno') return M.sx + ((p.minuti ?? 0) / GIORNO_MINUTI) * LARGO
@@ -168,6 +170,21 @@ export default function GraficoAndamento({
         const colore = COLORI_SINTOMI[i % COLORI_SINTOMI.length]
         return (
           <g key={s.id ?? i}>
+            {indicizzati.length > 1 && (
+              <>
+                <defs>
+                  <linearGradient id={`${idBase}-${i}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor={colore} stopOpacity={0.22} />
+                    <stop offset="1" stopColor={colore} stopOpacity={SFUMATURA_SOTTO} />
+                  </linearGradient>
+                </defs>
+                <path
+                  d={`M${indicizzati.map((q) => `${q.x},${q.y}`).join(' L')} L${indicizzati[indicizzati.length - 1].x},${py(0)} L${indicizzati[0].x},${py(0)} Z`}
+                  fill={`url(#${idBase}-${i})`}
+                  style={{ pointerEvents: 'none' }}
+                />
+              </>
+            )}
             {indicizzati.length > 1 && (
               <polyline
                 className="grafico-linea"

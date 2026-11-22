@@ -1,13 +1,23 @@
 import { useEffect, useState } from 'react'
 import { ClipboardList, Plus } from 'lucide-react'
-import type { Fase, PazienteDettaglio, SedutaRiepilogo } from '../../../../shared/types'
+import type { PazienteDettaglio, SedutaRiepilogo } from '../../../../shared/types'
 import { toast, toastErrore } from '../../components/Toast'
 import { chiedi } from '../../components/Conferma'
 import Modale from '../../components/Modale'
-import { errMsg, formatData, oggiIso } from '../../lib'
+import { errMsg, formatData, giornoSettimanaBreve, maiuscola, oggiIso } from '../../lib'
 import StatoVuoto from '../../components/StatoVuoto'
 import { SchedaIllustrata } from './SchedaIllustrata'
 import SedutaAzioni from '../../components/SedutaAzioni'
+
+// Il colore del pallino accanto al dolore: lo si legge senza leggere il numero
+const coloreDolore = (d: number): string =>
+  d <= 2 ? 'var(--success)' : d <= 4 ? 'var(--attenzione)' : 'var(--danger)'
+
+// "Novembre 2026"
+const nomeMese = (iso: string): string => {
+  const [a, m] = iso.split('-').map(Number)
+  return maiuscola(new Date(a, m - 1, 1).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' }))
+}
 
 export function DiarioCard({
   paziente,
@@ -97,36 +107,88 @@ export function DiarioCard({
   }
 
   // La riga di una seduta si disegna una volta sola: la usano l'elenco delle
-  // svolte e quello delle programmate.
-  const riga = (s: SedutaRiepilogo): React.JSX.Element => (
-          <li key={s.id} className="riga-seduta" title="Modifica la seduta" onClick={() => onApri(s.id)}>
-            <div className="seduta-info">
-              <span className="seduta-data">{formatData(s.data)}</span>
-              {/* Fase e focus sulla stessa riga: il focus in evidenza, perche'
-                  e' quello che distingue due sedute della stessa fase. */}
-              <span className="seduta-meta">
-                {s.fase_nome ?? 'Senza fase'}
-                {s.focus && <span className="seduta-focus">{s.focus}</span>}
-                {s.dolore != null && ` · dolore ${s.dolore}/10`}
-              </span>
-              {/* Sotto alla data, il trattamento fatto. */}
-              {(s.tecniche_nomi || s.trattamento) && (
-                <span className="riga-diario-elenco">
-                  <span className="etichetta-diario">Trattamento</span>
-                  {[s.tecniche_nomi, s.trattamento].filter(Boolean).join(' — ')}
-                </span>
-              )}
-            </div>
-            <SedutaAzioni
-              sedutaId={s.id}
-              titoloCopia="Nuova seduta partendo da questa"
-              onCopia={() => onDuplica(s.id)}
-              onElimina={() => void elimina(s)}
-              onIllustrata={() => setAnteprima(s.id)}
-              onScarica={(formato) => void esportaSingola(s.id, formato)}
-            />
+  // svolte e quello delle programmate. Una riga sola: data, fase e argomento,
+  // la nota (o il trattamento), il dolore. I pulsanti compaiono passandoci sopra
+  // (o con la tastiera): sempre in vista appesantivano l'elenco.
+  const riga = (s: SedutaRiepilogo, programmata: boolean): React.JSX.Element => {
+    const trattamento = [s.tecniche_nomi, s.trattamento].filter(Boolean).join(' — ')
+    const nota = s.note?.trim().replace(/\s+/g, ' ') ?? ''
+    return (
+      <li
+        key={s.id}
+        className={`d-riga${programmata ? ' programmata' : ''}`}
+        title="Modifica la seduta"
+        tabIndex={0}
+        onClick={() => onApri(s.id)}
+        onKeyDown={(e) => {
+          if (e.target === e.currentTarget && e.key === 'Enter') onApri(s.id)
+        }}
+      >
+        <div className="d-data">
+          <b>{giornoSettimanaBreve(s.data)}</b>
+          <span>{formatData(s.data)}</span>
+        </div>
+        <div className="d-testo">
+          <span className="d-pastiglie">
+            <span className="d-pill fase">{s.fase_nome ?? 'Senza fase'}</span>
+            {s.focus && <span className="d-pill focus">{s.focus}</span>}
+          </span>
+          {nota && <span className="d-nota">{nota}</span>}
+          {trattamento && (
+            <span className="d-trattamento">
+              {nota ? '· ' : ''}
+              {trattamento}
+            </span>
+          )}
+        </div>
+        <div className="d-dolore" title={s.dolore != null ? 'Dolore a fine seduta' : undefined}>
+          {s.dolore != null && (
+            <>
+              <i style={{ background: coloreDolore(s.dolore) }} aria-hidden="true" />
+              {s.dolore}/10
+            </>
+          )}
+        </div>
+        <SedutaAzioni
+          sedutaId={s.id}
+          titoloCopia="Nuova seduta partendo da questa"
+          onCopia={() => onDuplica(s.id)}
+          onElimina={() => void elimina(s)}
+          onIllustrata={() => setAnteprima(s.id)}
+          onScarica={(formato) => void esportaSingola(s.id, formato)}
+        />
+      </li>
+    )
+  }
+
+  // Le svolte, dalla piu' recente: divise per mese, e una riga dice quando la
+  // fase e' cambiata (sta fra l'ultima seduta della fase di prima e la prima
+  // di quella nuova). Senza fase non si dice niente: sarebbe solo rumore.
+  const elencoSvolte = (righe: SedutaRiepilogo[]): React.JSX.Element => {
+    const voci: React.JSX.Element[] = []
+    let mese = ''
+    righe.forEach((s, i) => {
+      const m = s.data.slice(0, 7)
+      if (m !== mese) {
+        mese = m
+        voci.push(
+          <li key={`m${m}`} className="d-mese" role="presentation">
+            {nomeMese(s.data)}
           </li>
-  )
+        )
+      }
+      voci.push(riga(s, false))
+      const piuVecchia = righe[i + 1]
+      if (piuVecchia && s.fase_nome && piuVecchia.fase_nome && s.fase_nome !== piuVecchia.fase_nome) {
+        voci.push(
+          <li key={`c${s.id}`} className="d-cambio" role="presentation">
+            Passaggio a {s.fase_nome} · {formatData(s.data)}
+          </li>
+        )
+      }
+    })
+    return <ul className="diario-righe">{voci}</ul>
+  }
 
   return (
     <section className="card">
@@ -152,7 +214,7 @@ export function DiarioCard({
       {programmate.length > 0 && (
         <div className="blocco-programmate">
           <div className="sotto-titolo">Programmate</div>
-          <ul className="sedute-list">{programmate.map(riga)}</ul>
+          <ul className="diario-righe">{programmate.map((s) => riga(s, true))}</ul>
         </div>
       )}
       {!caricate ? null : fatte.length === 0 ? (
@@ -167,7 +229,7 @@ export function DiarioCard({
           />
         )
       ) : (
-        <ul className="sedute-list">{fatte.map(riga)}</ul>
+        elencoSvolte(fatte)
       )}
 
       {/* Il campo: un riquadro a parte, che c'e' solo per chi ha quel percorso
@@ -176,9 +238,9 @@ export function DiarioCard({
         <div className="blocco-campo">
           <div className="sotto-titolo">Al campo</div>
           {campoProgrammate.length > 0 && (
-            <ul className="sedute-list">{campoProgrammate.map(riga)}</ul>
+            <ul className="diario-righe">{campoProgrammate.map((s) => riga(s, true))}</ul>
           )}
-          {campoFatte.length > 0 && <ul className="sedute-list">{campoFatte.map(riga)}</ul>}
+          {campoFatte.length > 0 && elencoSvolte(campoFatte)}
         </div>
       )}
 

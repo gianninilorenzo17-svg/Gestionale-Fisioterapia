@@ -117,14 +117,20 @@ test('varianti: dalla libreria alla progressione e alla seduta', async () => {
     await pagina.getByRole('button', { name: 'Nuova seduta', exact: true }).click()
     await pagina.getByTitle('Aggiungi un esercizio a questa sezione').nth(0).click()
     const suggeriti = pagina.locator('.suggeriti-prog')
-    await expect(suggeriti).toContainText(`Equilibrio monopodalico — ${CONTEGGIO}`)
+    // lo step con la variante e' il successivo: lo dice il lucchettino accanto alla pastiglia
+    await expect(suggeriti.locator('.pastiglia-sblocca')).toHaveAttribute(
+      'title',
+      new RegExp(`Equilibrio monopodalico — ${CONTEGGIO}`)
+    )
     // nella sezione di mobilizzazione la progressione dell'equilibrio non si suggerisce
     await pagina.getByTitle('Aggiungi un esercizio a questa sezione').nth(1).click()
     await expect(pagina.locator('.aggiungi-area')).toBeVisible()
     await expect(suggeriti).toHaveCount(0)
     await pagina.getByTitle('Aggiungi un esercizio a questa sezione').nth(0).click()
+    // sbloccato, lo step con la variante diventa quello da lavorare e entra con la variante
+    await suggeriti.locator('.pastiglia-sblocca').click()
     await expect(suggeriti).toContainText(`Equilibrio monopodalico — ${CONTEGGIO}`)
-    await suggeriti.locator('li.successivo').getByTitle('Aggiungilo in seduta senza sbloccarlo').click()
+    await suggeriti.getByTitle(new RegExp(`^Aggiungi Equilibrio monopodalico — ${CONTEGGIO}`)).click()
     await pagina.getByTitle('Aggiungi Plank').click()
 
     // il menu c'e' solo sull'esercizio che ha delle varianti

@@ -7,6 +7,7 @@ import { screening } from './argomenti/screening'
 import { pedana } from './argomenti/pedana'
 import { questionari } from './argomenti/questionari'
 import { dati } from './argomenti/dati'
+import { schedaPaziente } from './argomenti/scheda-paziente'
 import { farmaci } from './argomenti/farmaci'
 
 // Gli argomenti della guida, nell'ordine in cui compaiono a sinistra: prima la
@@ -22,5 +23,6 @@ export const ARGOMENTI: ArgomentoGuida[] = [
   pedana,
   questionari,
   farmaci,
+  schedaPaziente,
   dati
 ]

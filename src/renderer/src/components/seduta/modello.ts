@@ -342,18 +342,14 @@ export function categorieDellaSezione(
   return conDentro
 }
 
-// Le progressioni si suggeriscono solo nelle sezioni che propongono la categoria
-// del loro esercizio: lo squat della progressione in "Forza", non in "Mobilizzazione".
-// Una sezione aggiunta al volo non ha categorie e le vede tutte; e un esercizio la
-// cui categoria nessuna sezione della seduta propone si suggerisce dappertutto,
-// invece di non comparire da nessuna parte.
-export function sezioneAmmetteStep(
-  categoriaEsercizio: number | undefined,
-  dellaSezione: number[] | null,
-  coperte: Set<number>
-): boolean {
-  if (categoriaEsercizio === undefined || dellaSezione === null) return true
-  return dellaSezione.includes(categoriaEsercizio) || !coperte.has(categoriaEsercizio)
+// Le progressioni si suggeriscono da sole solo nelle sezioni che propongono la
+// categoria del loro esercizio: lo squat della progressione in "Forza", non in
+// "Mobilizzazione" ne' nel riscaldamento. Una sezione aggiunta al volo, o senza
+// categorie, non ne ammette nessuna: li' le progressioni restano dietro al
+// pulsante "Progressioni", da aprire a mano.
+export function sezioneAmmetteStep(categoriaEsercizio: number | undefined, dellaSezione: number[] | null): boolean {
+  if (categoriaEsercizio === undefined || dellaSezione === null) return false
+  return dellaSezione.includes(categoriaEsercizio)
 }
 
 // Cosa elencare sotto alla casella di ricerca di una sezione. Cercando si trova

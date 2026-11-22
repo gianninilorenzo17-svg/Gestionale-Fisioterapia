@@ -58,13 +58,14 @@ export const progressioni: ArgomentoGuida = {
       elementi: [
         {
           passi: [
-            'In una sezione della seduta premi **Esercizio**: in cima all’elenco c’è **Suggeriti dalle progressioni**.',
-            'Per ogni progressione vedi lo **step attuale** (premi **+** per aggiungerlo, con la sua dose) e solo lo **step successivo**, con il lucchetto e il suo requisito. Quello successivo si può scegliere lo stesso: è un suggerimento.',
+            'In una sezione della seduta premi **Esercizio**: in cima all’elenco c’è il riquadro **Progressioni**.',
+            'Ogni progressione è una **pastiglia** con il nome dello step attuale e, in piccolo, la progressione e a che step siamo (es. «Affondo orizzontale · 2/5»). Premi la pastiglia per aggiungere lo step, con la sua dose.',
+            'Il **lucchettino** accanto alla pastiglia sblocca lo step successivo (il paziente ci è arrivato): fermandoti sopra leggi il suo nome e cosa serve per arrivarci.',
             'Alla fine della seduta, in **Progressioni: come è andata?**, scegli per ognuna **Avanza**, **Rimani** o **Regredisci**. **Rimani** è la scelta di partenza e non segna niente.',
             'Salva la seduta.'
           ]
         },
-        'Il suggerimento compare solo nelle **sezioni che propongono la categoria di quell’esercizio**: lo squat non si propone in «Mobilizzazione». Una sezione aggiunta al volo li vede tutti, e una categoria che nessuna sezione propone viene suggerita dappertutto.'
+        'Il suggerimento compare solo nelle **sezioni che propongono la categoria di quell’esercizio**: lo squat non si propone nel riscaldamento. Nelle altre sezioni (e in quelle aggiunte al volo) compare solo il pulsante **Progressioni ▸**: premilo se le vuoi vedere lo stesso.'
       ]
     },
     {
@@ -72,7 +73,7 @@ export const progressioni: ArgomentoGuida = {
       elementi: [
         {
           passi: [
-            'In seduta, premi **Vedi dove siamo** in cima ai suggerimenti.',
+            'In seduta, premi **Vedi dove siamo** nel riquadro **Progressioni**.',
             'Oppure, dalla scheda del paziente: [[Percorso > Progressioni]].'
           ]
         },

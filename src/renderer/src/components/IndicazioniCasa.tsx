@@ -15,10 +15,13 @@ import IndicatoreSalvataggio from './IndicatoreSalvataggio'
 // in un elenco comune; per ogni paziente si spunta quali valgono per lui.
 export default function IndicazioniCasa({
   paziente,
-  onChanged
+  onChanged,
+  aperto = false
 }: {
   paziente: PazienteDettaglio
   onChanged: () => void
+  // aperto dall'inizio: nell'elenco del Percorso il blocco e' gia' una parte a se'
+  aperto?: boolean
 }): React.JSX.Element {
   const [tutte, setTutte] = useState<Indicazione[]>([])
   const [scelte, setScelte] = useState<number[]>([])
@@ -102,7 +105,7 @@ export default function IndicazioniCasa({
   // percorso stavano aperte tutti i giorni a occupare mezza pagina. Il numero
   // di quelle scelte si legge senza aprire.
   return (
-    <details className="blocco-apribile blocco-indicazioni">
+    <details className="blocco-apribile blocco-indicazioni" open={aperto}>
       <summary>
         Indicazioni per casa{scelte.length > 0 ? ` (${scelte.length})` : ''}
         <Aiuto testo="Quello che spunti qui esce sul foglio che dai al paziente, sotto al programma: ogni quanto farlo e come regolarsi con il dolore. Le frasi sono in comune, si scrivono una volta e si riusano su chi ti serve." />

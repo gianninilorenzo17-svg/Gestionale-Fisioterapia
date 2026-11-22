@@ -128,6 +128,7 @@ test('progressioni: dalla libreria alla seduta e allo specchietto', async () => 
     // ---- lo specchietto nella scheda del paziente: primo step da fare
     await apriPaziente(pagina)
     await pagina.getByRole('button', { name: 'Percorso', exact: true }).click()
+    await pagina.locator('.voce-indice:visible').filter({ hasText: 'Progressioni' }).click()
     // una casella per progressione, col nome e lo step (1/3); premendola si apre la scala
     const casella = pagina.locator('.scelta-tile', { hasText: 'Vertical braking' })
     await expect(casella.locator('.badge')).toHaveText('1/3')
@@ -142,6 +143,9 @@ test('progressioni: dalla libreria alla seduta e allo specchietto', async () => 
     // ---- in seduta: suggerimenti, specchietto, esito
     await pagina.getByRole('button', { name: 'Nuova seduta', exact: true }).click()
     await pagina.getByTitle('Aggiungi un esercizio a questa sezione').click()
+    // se la sezione non e' quella della categoria, le progressioni stanno dietro al pulsante
+    const apri = pagina.getByRole('button', { name: 'Progressioni ▸' })
+    if (await apri.isVisible()) await apri.click()
     const suggeriti = pagina.locator('.suggeriti-prog')
     await expect(suggeriti).toContainText('Wall sit')
     await suggeriti.screenshot({ path: join(FOTO, '23-progressioni-suggeriti.png') })
@@ -162,6 +166,7 @@ test('progressioni: dalla libreria alla seduta e allo specchietto', async () => 
     // ---- lo specchietto si aggiorna: wall sit fatto, front squat da lavorare
     await apriPaziente(pagina)
     await pagina.getByRole('button', { name: 'Percorso', exact: true }).click()
+    await pagina.locator('.voce-indice:visible').filter({ hasText: 'Progressioni' }).click()
     await expect(pagina.locator('.scelta-tile', { hasText: 'Vertical braking' }).locator('.badge')).toHaveText('2/3')
     await pagina.locator('.scelta-tile', { hasText: 'Vertical braking' }).click()
     await expect(scala.locator('.step-prog.fatto')).toContainText('Wall sit')
@@ -205,6 +210,7 @@ test('paziente: la finestra a due colonne e peso e altezza salvati', async () =>
     await expect(pagina.getByText('62.5 kg')).toBeVisible()
     await expect(pagina.getByText('171 cm')).toBeVisible()
     await pagina.getByRole('button', { name: 'Percorso', exact: true }).click()
+    await pagina.locator('.voce-indice:visible').filter({ hasText: 'Massimali' }).click()
     await expect(pagina.getByRole('heading', { name: 'Massimali' })).toBeVisible()
     await pagina.getByRole('button', { name: 'Clinica', exact: true }).click()
     await expect(pagina.getByText('Segni di riferimento').first()).toBeVisible()

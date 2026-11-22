@@ -97,7 +97,7 @@ export const percorso: ArgomentoGuida = {
       elementi: [
         {
           punti: [
-            'L’avanzamento del paziente si fa dalla sua scheda: [[Percorso > Fase corrente]] e il pulsante per avanzare.',
+            'L’avanzamento del paziente si fa dalla sua scheda: [[Percorso > Patologia e fase > Fase corrente]] e il pulsante per avanzare.',
             'Gli obiettivi della fase si spuntano come raggiunti nella scheda del paziente, non a ogni seduta.',
             'Eliminare una patologia elimina anche le sue fasi; eliminare un distretto elimina anche movimenti e test. Va tutto nel cestino per un mese.',
             'La fase è fotografata sulla seduta: cambiare la fase dopo non cambia le sedute già fatte.'

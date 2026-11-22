@@ -1,0 +1,165 @@
+/* ---- Le righe del Diario sedute ----
+   Una riga sola per seduta: data, fase e argomento, nota, dolore. I pulsanti
+   compaiono passandoci sopra o arrivandoci con la tastiera. Solo variabili del
+   tema. */
+
+.diario-righe {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.d-riga {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 76px auto;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* la linea fra due righe e' un fondo e non un bordo: cosi' gli angoli arrotondati
+   dell'evidenziazione non la piegano */
+.d-riga + .d-riga {
+  background-image: linear-gradient(var(--border), var(--border));
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: calc(100% - 24px) 1px;
+}
+
+.d-riga:hover,
+.d-riga:focus-visible {
+  background: var(--accent-soft);
+  outline: none;
+}
+
+.d-data b {
+  display: block;
+  font-size: 15px;
+}
+
+.d-data span {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.d-riga.programmata .d-data b {
+  color: var(--accent);
+}
+
+/* fase, argomento e nota stanno sulla stessa riga; se non c'e' posto la nota si
+   accorcia con i puntini, non va a capo */
+.d-testo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.d-pastiglie {
+  display: flex;
+  flex: none;
+  gap: 5px;
+}
+
+.d-pill {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.d-pill.fase {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+.d-pill.focus {
+  background: var(--intestazione);
+  color: var(--intestazione-testo-forte);
+}
+
+.d-riga:hover .d-pill.fase {
+  background: var(--surface);
+}
+
+.d-nota,
+.d-trattamento {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.d-trattamento {
+  flex: 0 100 auto;
+  color: var(--text-dim);
+}
+
+.d-dolore {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.d-dolore i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* i pulsanti: ci sono sempre (non si sposta niente), ma si vedono solo quando
+   servono; con il menu aperto restano */
+.d-riga .row-actions {
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.d-riga:hover .row-actions,
+.d-riga:focus-within .row-actions,
+.d-riga:has(.menu-tendina) .row-actions {
+  opacity: 1;
+}
+
+.d-mese {
+  padding: 14px 12px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.d-mese:first-child {
+  padding-top: 4px;
+}
+
+/* quando e' cambiata la fase: una linea con la scritta in mezzo */
+.d-cambio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  color: var(--accent-hover);
+}
+
+.d-cambio::before,
+.d-cambio::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-forte);
+}
+
+@media (max-width: 820px) {
+  .d-riga {
+    grid-template-columns: 80px minmax(0, 1fr) auto;
+  }
+  .d-dolore {
+    display: none;
+  }
+}
