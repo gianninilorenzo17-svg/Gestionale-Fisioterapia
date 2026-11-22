@@ -1,4 +1,3 @@
-import Tendina from '../components/Tendina'
 import { useEffect, useRef, useState } from 'react'
 import { ChevronRight, Filter, Plus, Upload, Users } from 'lucide-react'
 import StatoVuoto from '../components/StatoVuoto'
@@ -27,6 +26,27 @@ function quantoFa(data: string | null): string {
   if (giorni < 60) return `${Math.floor(giorni / 7)} settimane fa`
   const mesi = Math.floor(giorni / 30)
   return mesi < 12 ? `${mesi} mesi fa` : mesi < 24 ? 'più di un anno fa' : `${Math.floor(mesi / 12)} anni fa`
+}
+
+// La fase sul percorso: una barretta con un segmento per fase, pieni quelli
+// passati e piu' chiaro quello di adesso. Niente se il paziente non ha un percorso.
+function FaseMini({ p }: { p: PazienteDettaglio }): React.JSX.Element {
+  const n = Math.min(p.fasi_totali ?? 0, 12)
+  const posto = p.fase_posto ?? 0
+  return (
+    <span className="fase-colonna">
+      <span className="fase-nome" title={p.patologia_nome ?? undefined}>
+        {p.fase_nome ?? '—'}
+      </span>
+      {n > 0 && posto > 0 && (
+        <span className="fase-mini" aria-hidden>
+          {Array.from({ length: n }, (_, i) => (
+            <i key={i} className={i + 1 < posto ? 'f' : i + 1 === posto ? 'o' : ''} />
+          ))}
+        </span>
+      )}
+    </span>
+  )
 }
 
 type RichiestaApertura = {
@@ -148,7 +168,6 @@ export default function PazientiPage({
   }, [apriPaziente])
 
   const q = ricerca.trim().toLowerCase()
-  const filtriAttivi = filtroPatologia !== '' || filtroStato !== ''
   const trovati = pazienti.filter(
     (p) =>
       (q === '' || `${p.cognome} ${p.nome} ${p.nome} ${p.cognome}`.toLowerCase().includes(q)) &&
@@ -176,9 +195,8 @@ export default function PazientiPage({
   const intestazioneColonne = (
     <div className="riga-paziente intestazione-pazienti">
       <span>Paziente</span>
-      <span>Patologia e fase</span>
-      <span>Ultima seduta</span>
-      <span>Stato</span>
+      <span>Fase</span>
+      <span>Ultima visita</span>
       <span />
     </div>
   )
@@ -193,25 +211,33 @@ export default function PazientiPage({
         setScheda('quadro')
       }}
     >
-      <span className="nome-paziente-riga">
-        {p.cognome} {p.nome}
-      </span>
-      <span className="dettaglio-riga">
-        {[p.patologia_nome, p.fase_nome, p.sport].filter(Boolean).join(' · ') || '—'}
-      </span>
-      <span
-        className="dettaglio-riga"
-        title={p.ultima_seduta ? formatData(p.ultima_seduta) : undefined}
-      >
-        {maiuscola(quantoFa(p.ultima_seduta))}
-      </span>
-      <span>
-        <span className={p.stato === 'concluso' ? 'badge-stato follow' : 'badge-stato'}>
-          {p.stato === 'concluso' ? 'Follow-up' : 'In trattamento'}
+      <span className="chi-paziente">
+        <span className="chi-testo">
+          <span className="nome-con-avviso">
+            <span className="nome-paziente-riga">
+              {p.cognome} {p.nome}
+            </span>
+            {p.dolore_in_salita ? (
+              <span className="pillola no" title="Nelle ultime tre settimane il dolore è salito mentre il carico cresceva">
+                dolore in salita
+              </span>
+            ) : (p.promemoria_scaduti ?? 0) > 0 ? (
+              <span className="pillola att">
+                {p.promemoria_scaduti === 1 ? 'promemoria scaduto' : `${p.promemoria_scaduti} promemoria scaduti`}
+              </span>
+            ) : p.stato === 'concluso' ? (
+              <span className="badge-stato follow">Follow-up</span>
+            ) : null}
+          </span>
+          <span className="dettaglio-riga">
+            {[p.diagnosi || p.patologia_nome, p.sport].filter(Boolean).join(' · ') || '—'}
+          </span>
         </span>
       </span>
+      <FaseMini p={p} />
+      <span className="ultima-visita">{p.ultima_seduta ? formatData(p.ultima_seduta) : '—'}</span>
       <button
-        className="primary btn-icona"
+        className="primary btn-icona azione-riga"
         title="Nuova seduta per questo paziente"
         onClick={(e) => {
           e.stopPropagation()
@@ -350,9 +376,28 @@ export default function PazientiPage({
               value={ricerca}
               onChange={(e) => setRicerca(e.target.value)}
             />
+            {/* In cura / Follow-up / Tutti: un clic, senza aprire nessun pannello */}
+            <div className="filtri-pillola" role="group" aria-label="Quali pazienti">
+              {(
+                [
+                  ['trattamento', 'In cura', pazienti.filter((x) => x.stato === 'trattamento').length],
+                  ['concluso', 'Follow-up', pazienti.filter((x) => x.stato === 'concluso').length],
+                  ['', 'Tutti', pazienti.length]
+                ] as const
+              ).map(([valore, etichetta, quanti]) => (
+                <button
+                  key={valore}
+                  className={filtroStato === valore ? 'attiva' : ''}
+                  aria-pressed={filtroStato === valore}
+                  onClick={() => setFiltroStato(valore)}
+                >
+                  {etichetta} · {quanti}
+                </button>
+              ))}
+            </div>
             <button
-              className={`btn-icona${filtriAttivi ? ' scelta-attiva' : ''}`}
-              title="Filtra per patologia o stato"
+              className={`btn-icona${filtroPatologia !== '' ? ' scelta-attiva' : ''}`}
+              title="Filtra per patologia"
               onClick={() => setFiltriAperti(!filtriAperti)}
             >
               <Filter size={18} />
@@ -373,7 +418,7 @@ export default function PazientiPage({
             </button>
           </div>
 
-          {(filtriAperti || filtriAttivi) && (
+          {(filtriAperti || filtroPatologia !== '') && (
             <div className="pannello-filtri">
               <label className="compila-data">
                 Patologia
@@ -385,25 +430,11 @@ export default function PazientiPage({
                   onCambia={setFiltroPatologia}
                 />
               </label>
-              <label className="compila-data">
-                Stato
-                <Tendina
-                  value={filtroStato}
-                  onChange={(e) =>
-                    setFiltroStato(e.target.value as '' | 'trattamento' | 'concluso')
-                  }
-                >
-                  <option value="">Tutti</option>
-                  <option value="trattamento">In trattamento</option>
-                  <option value="concluso">Concluso</option>
-                </Tendina>
-              </label>
-              {filtriAttivi && (
+              {filtroPatologia !== '' && (
                 <button
                   className="btn-piccolo"
                   onClick={() => {
                     setFiltroPatologia('')
-                    setFiltroStato('')
                   }}
                 >
                   Togli i filtri

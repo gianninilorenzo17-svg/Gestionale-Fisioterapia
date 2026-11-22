@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Check, ChevronDown, ChevronRight, TriangleAlert } from 'lucide-react'
+import { useState } from 'react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import type { Categoria } from '../../../../shared/types'
 import {
   controllaDose,
@@ -9,8 +9,6 @@ import {
   type DoseFase,
   type DoseSettimana
 } from '../../../../shared/dose'
-import { toastErrore } from '../Toast'
-import { errMsg } from '../../lib'
 
 // Quanta dose c'e' nella seduta, confrontata con quella della fase: una riga
 // sola sopra agli esercizi ("Pliometria est. 90 ✓ · Quadricipite 3 serie ✓").
@@ -36,54 +34,58 @@ export default function RigaDose({
   conto,
   settimana,
   categorie,
-  pazienteId,
-  onFrequenza
 }: {
   dosi: DoseFase[]
   conto: Record<string, number>
   settimana: DoseSettimana
   categorie: Categoria[]
-  pazienteId: number
-  onFrequenza: (quante: number | null) => void
 }): React.JSX.Element | null {
   const [aperta, setAperta] = useState(false)
-  const [frequenza, setFrequenza] = useState(settimana.frequenza?.toString() ?? '')
-  // la settimana arriva dall'archivio dopo che la riga e' gia' disegnata
-  useEffect(() => setFrequenza(settimana.frequenza?.toString() ?? ''), [settimana.frequenza])
   // nell'ordine della seduta: prima la pliometria, poi potenza e forza
   const ordine = (k: string): number => TIPI_LAVORO.findIndex((t) => k.startsWith(t.tipo))
-  const controlli = controllaDose(dosi, conto, settimana).sort(
+  const controlliTutti = controllaDose(dosi, conto, settimana).sort(
     (a, b) => ordine(a.chiave) - ordine(b.chiave) || nomeVoce(a.chiave, categorie).localeCompare(nomeVoce(b.chiave, categorie), 'it')
   )
-  if (controlli.length === 0) return null
 
-  const salvaFrequenza = async (): Promise<void> => {
-    const testo = frequenza.trim()
-    const quante = testo === '' ? null : Number(testo)
-    if (quante === settimana.frequenza) return
-    try {
-      await window.api.pazienti.setSeduteSettimana(pazienteId, quante)
-      onFrequenza(quante)
-    } catch (e) {
-      toastErrore(errMsg(e))
-      setFrequenza(settimana.frequenza?.toString() ?? '')
-    }
-  }
-
-  const icona = (c: ControlloDose): React.JSX.Element =>
-    c.esito === 'ok' ? <Check size={14} /> : <TriangleAlert size={14} />
+  const controlli = controlliTutti
+  // Quello che c'e' nella seduta ma la fase non misura (nessun minimo/massimo, o
+  // nessuna dose): si mostra comunque il conto, senza barra.
+  const senzaObiettivo = Object.entries(conto)
+    .filter(([k, v]) => v > 0 && !controlli.some((c) => c.chiave === k))
+    .sort(([a], [b]) => ordine(a) - ordine(b) || nomeVoce(a, categorie).localeCompare(nomeVoce(b, categorie), 'it'))
 
   return (
-    <section className="riga-dose">
-      <button className="riga-dose-sintesi" aria-expanded={aperta} onClick={() => setAperta(!aperta)}>
+    <section className="card striscia-card riga-dose">
+      <button className="striscia-titolo riga-dose-sintesi" aria-expanded={aperta} onClick={() => setAperta(!aperta)}>
+        <span>Dose seduta</span>
         {aperta ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        {controlli.map((c) => (
-          <span key={c.chiave} className={`voce-dose ${c.esito}`} title={ESITO[c.esito]}>
-            {nomeVoce(c.chiave, categorie)} {c.questa}
-            {c.chiave.startsWith('plio') ? '' : ` ${unita(c.chiave)}`} {icona(c)}
-          </span>
-        ))}
       </button>
+      {controlli.map((c) => {
+        const meta = c.a ?? c.da
+        const perc = meta ? Math.min(100, Math.round((c.questa / meta) * 100)) : 100
+        return (
+          <div className="voce-striscia" key={c.chiave}>
+            <div className="voce-striscia-riga">
+              <span>{nomeVoce(c.chiave, categorie)}</span>
+              <b title={ESITO[c.esito]}>{meta != null ? `${c.questa}/${meta}` : c.questa}</b>
+            </div>
+            <div className="barra-striscia">
+              <i className={c.esito === 'troppo' ? 'oltre' : ''} style={{ width: `${perc}%` }} />
+            </div>
+          </div>
+        )
+      })}
+      {senzaObiettivo.map(([k, v]) => (
+        <div className="voce-striscia" key={k}>
+          <div className="voce-striscia-riga">
+            <span>{nomeVoce(k, categorie)}</span>
+            <b title="Nessuna dose impostata per la fase">{v}</b>
+          </div>
+        </div>
+      ))}
+      {controlli.length === 0 && senzaObiettivo.length === 0 && (
+        <p className="hint">Nessun esercizio da contare per ora</p>
+      )}
 
       {aperta && (
         <div className="riga-dose-dettaglio">
@@ -107,24 +109,11 @@ export default function RigaDose({
               </li>
             ))}
           </ul>
-          <label className="riga-dose-frequenza">
-            Sedute a settimana
-            <input
-              type="number"
-              min={1}
-              max={14}
-              value={frequenza}
-              onChange={(e) => setFrequenza(e.target.value)}
-              onBlur={() => void salvaFrequenza()}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-              }}
-            />
-          </label>
+          <p className="riga-dose-frequenza">
+            Sedute a settimana: <b>{settimana.frequenza ?? '—'}</b>
+          </p>
           {settimana.frequenza == null && (
-            <p className="hint">
-              Scrivi le sedute a settimana: serve a contare la forza.
-            </p>
+            <p className="hint">Impostale nella scheda del paziente: servono a contare la forza.</p>
           )}
         </div>
       )}

@@ -140,5 +140,6 @@ export const fraSettimane = (n: number): string => aggiungiGiorni(oggiIso(), n *
 const GIORNI_BREVI = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab']
 export function giornoSettimanaBreve(iso: string): string {
   const [a, m, g] = iso.split('-').map(Number)
-  return `${GIORNI_BREVI[new Date(a, m - 1, g).getDay()]} ${g}`
+  const giorno = GIORNI_BREVI[new Date(a, m - 1, g).getDay()]
+  return `${giorno.charAt(0).toUpperCase()}${giorno.slice(1)} ${g}`
 }

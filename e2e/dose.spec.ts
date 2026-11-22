@@ -136,14 +136,14 @@ test('dose: la categoria si conta, la fase prende i numeri, la seduta dice se ci
     await dose.locator('.riga-dose-sintesi').click()
     await expect(dose).toContainText('in settimana 0 su almeno 9')
     await pagina.screenshot({ path: join(FOTO, '42-dose-seduta.png'), fullPage: true })
-    await pagina.getByRole('button', { name: /Salva seduta \(3 esercizi\)/ }).click()
+    await pagina.getByRole('button', { name: /Salva seduta/ }).click()
 
     // riaperta, il segno c'e'
     await apriPaziente(pagina)
     await pagina.getByRole('button', { name: 'Diario sedute' }).click()
     await pagina.getByTitle('Modifica la seduta').first().click()
     await expect(riga(pagina, 'Broad jump').getByRole('button', { name: 'Monopodalico' })).toBeVisible()
-    await pagina.getByRole('button', { name: 'Annulla' }).first().click()
+    await pagina.locator('.nome-nel-titolo').click()
 
     expect(prova.errori, 'errori nella console').toEqual([])
   } finally {

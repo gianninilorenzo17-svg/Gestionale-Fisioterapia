@@ -223,3 +223,27 @@ test("Tecniche: una gia' scritta si rimette in elenco invece di duplicarsi", () 
   assert.ok(nomi(false).includes('Tecar nuova'))
   assert.equal(nomi(true).filter((n) => n.toLowerCase() === 'tecar nuova').length, 1)
 })
+
+test('l\'elenco dice a che punto e\' ognuno: fase, prossima seduta, promemoria scaduti', () => {
+  const pat = ins('INSERT INTO patologie (nome) VALUES (?)', 'Percorso a tre fasi')
+  const f1 = ins('INSERT INTO fasi (patologia_id, nome, ordine) VALUES (?, ?, 1)', pat, 'Prima')
+  const f2 = ins('INSERT INTO fasi (patologia_id, nome, ordine) VALUES (?, ?, 2)', pat, 'Seconda')
+  ins('INSERT INTO fasi (patologia_id, nome, ordine) VALUES (?, ?, 3)', pat, 'Terza')
+  // una fase del campo e' un percorso a parte e non conta fra le fasi
+  ins('INSERT INTO fasi (patologia_id, nome, ordine, campo) VALUES (?, ?, 4, 1)', pat, 'Campo')
+  void f1
+  const id = creaPaziente(nuovo({ nome: 'Elenco', cognome: 'Fasi', patologia_id: pat, fase_corrente_id: f2 }))
+  ins("INSERT INTO sedute (paziente_id, data) VALUES (?, date('now', 'localtime', '+3 day'))", id)
+  ins("INSERT INTO sedute (paziente_id, data) VALUES (?, date('now', 'localtime', '+9 day'))", id)
+
+  const p = elencoPazienti().find((x) => x.id === id)!
+  assert.equal(p.fasi_totali, 3)
+  assert.equal(p.fase_posto, 2)
+  // la prima seduta dopo oggi; quella di ieri non c'e', quindi nessuna "ultima"
+  assert.equal(p.ultima_seduta, null)
+  assert.equal(
+    p.prossima_seduta,
+    (getDb().prepare("SELECT date('now', 'localtime', '+3 day') AS d").get() as { d: string }).d
+  )
+  assert.equal(p.promemoria_scaduti, 0)
+})

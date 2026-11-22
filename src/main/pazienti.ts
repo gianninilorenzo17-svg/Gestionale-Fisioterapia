@@ -5,6 +5,7 @@ import { getDb } from './db'
 import { eliminaConCestino, eliminaPazientePerSempre } from './cestino'
 import { richiedeNomeOCognome, validaData } from './validazione'
 import { andamentoDolorePerPaziente } from './andamento-dolore'
+import { caricoPaziente } from './dose'
 import type {
   PazienteCreateInput,
   PazienteDettaglio,
@@ -35,11 +36,22 @@ export function checkFaseCoerente(patologiaId: number | null, faseId: number | n
 // gia' fissata per la settimana prossima portava il paziente in cima
 // all'elenco prima ancora di vederlo.
 export function elencoPazienti(): PazienteDettaglio[] {
-  return getDb()
+  const righe = getDb()
     .prepare(
       `SELECT p.*, pat.nome AS patologia_nome, f.nome AS fase_nome, g.nome AS gruppo_nome,
               (SELECT MAX(s.data) FROM sedute s
-               WHERE s.paziente_id = p.id AND s.data <= date('now', 'localtime')) AS ultima_seduta
+               WHERE s.paziente_id = p.id AND s.data <= date('now', 'localtime')) AS ultima_seduta,
+              (SELECT MIN(s.data) FROM sedute s
+               WHERE s.paziente_id = p.id AND s.data > date('now', 'localtime')) AS prossima_seduta,
+              -- la fase fra quelle di palestra della patologia (il campo e' un
+              -- percorso a parte): quante ce ne sono e a che posto e' quella di adesso
+              (SELECT COUNT(*) FROM fasi x WHERE x.patologia_id = p.patologia_id AND x.campo = 0) AS fasi_totali,
+              (SELECT COUNT(*) FROM fasi x
+               WHERE x.patologia_id = p.patologia_id AND x.campo = 0
+                 AND (x.ordine < f.ordine OR (x.ordine = f.ordine AND x.id <= f.id))) AS fase_posto,
+              (SELECT COUNT(*) FROM promemoria m
+               WHERE m.paziente_id = p.id AND m.fatto_il IS NULL
+                 AND m.scadenza <= date('now', 'localtime')) AS promemoria_scaduti
        FROM pazienti p
        LEFT JOIN patologie pat ON pat.id = p.patologia_id
        LEFT JOIN fasi f ON f.id = p.fase_corrente_id
@@ -49,6 +61,17 @@ export function elencoPazienti(): PazienteDettaglio[] {
        ORDER BY ultima_seduta IS NULL, ultima_seduta DESC, p.cognome, p.nome`
     )
     .all() as PazienteDettaglio[]
+  // L'avviso del carico (dolore in salita) vale solo per chi e' in trattamento
+  // e ha gia' delle sedute; un errore in un paziente non toglie l'elenco.
+  for (const r of righe) {
+    if (r.stato !== 'trattamento' || r.ultima_seduta == null) continue
+    try {
+      r.dolore_in_salita = caricoPaziente(r.id).avviso != null
+    } catch {
+      r.dolore_in_salita = false
+    }
+  }
+  return righe
 }
 
 export function creaPaziente(data: PazienteCreateInput): number {

@@ -59,7 +59,8 @@ function RigaSeduta({
     invia({ tipo: 'valore', sez, riga: indice, campo, valore: e.target.value })
 
   return (
-    <li {...dnd} {...presa} className={dnd.className}>
+    <li {...dnd} {...presa} className={['riga-esercizio', dnd.className].filter(Boolean).join(' ')}>
+      <div className="riga-principale">
       <div className="riga-testata">
         <span className="item-nome">
           {r.nome}
@@ -121,58 +122,53 @@ function RigaSeduta({
           </Tendina>
         )}
       </div>
-      {/* Parametri e nota sulla stessa riga del nome: le etichette sono nei
-          segnaposto, cosi' un esercizio occupa una riga invece di tre. */}
+      {/* La dose accanto al nome, ogni casella con la sua etichetta sopra: si
+          legge cosa e' cosa anche a riga piena. La nota sta su una riga sua,
+          larga quanto tutta la riga (in fondo). */}
       <div className="riga-params">
-        <input title="Serie" placeholder="serie" value={r.serie ?? ''} onChange={cambia('serie')} />
+        <label className="campo-dose" title="Serie">
+          <span>Serie</span>
+          <input value={r.serie ?? ''} onChange={cambia('serie')} />
+        </label>
         {cluster && (
-          <input
-            className="campo-cluster"
-            title="Cluster per serie"
-            placeholder="cluster"
-            value={r.cluster ?? ''}
-            onChange={cambia('cluster')}
-          />
+          <label className="campo-dose" title="Cluster per serie">
+            <span>Cluster</span>
+            <input value={r.cluster ?? ''} onChange={cambia('cluster')} />
+          </label>
         )}
-        <input
-          title={cluster ? 'Ripetizioni per cluster' : 'Ripetizioni'}
-          placeholder="rip."
-          value={r.ripetizioni ?? ''}
-          onChange={cambia('ripetizioni')}
-        />
+        <label className="campo-dose campo-medio" title={cluster ? 'Ripetizioni per cluster' : 'Ripetizioni'}>
+          <span>Rip.</span>
+          <input value={r.ripetizioni ?? ''} onChange={cambia('ripetizioni')} />
+        </label>
         {rir && (
-          <input
-            className="campo-cluster"
-            title="Ripetizioni di riserva"
-            placeholder="RIR"
-            value={r.rir ?? ''}
-            onChange={cambia('rir')}
-          />
+          <label className="campo-dose" title="Ripetizioni di riserva">
+            <span>RIR</span>
+            <input value={r.rir ?? ''} onChange={cambia('rir')} />
+          </label>
         )}
-        <input title="Carico" placeholder="carico" value={r.carico ?? ''} onChange={cambia('carico')} />
+        <label className="campo-dose campo-largo" title="Carico">
+          <span>Carico</span>
+          <input value={r.carico ?? ''} onChange={cambia('carico')} />
+        </label>
         {cluster && (
-          <input
-            className="campo-cluster"
-            title="Recupero tra i cluster"
-            placeholder="rec. cl."
-            value={r.recupero_cluster ?? ''}
-            onChange={cambia('recupero_cluster')}
-          />
+          <label className="campo-dose campo-medio" title="Recupero tra i cluster">
+            <span>Rec. cl.</span>
+            <input value={r.recupero_cluster ?? ''} onChange={cambia('recupero_cluster')} />
+          </label>
         )}
-        <input
-          title={cluster ? 'Recupero tra le serie' : 'Recupero'}
-          placeholder="rec."
-          value={r.recupero ?? ''}
-          onChange={cambia('recupero')}
-        />
-        <input
-          className="riga-nota"
-          title="Nota"
-          placeholder="nota…"
-          value={r.nota ?? ''}
-          onChange={cambia('nota')}
-        />
+        <label className="campo-dose campo-medio" title={cluster ? 'Recupero tra le serie' : 'Recupero'}>
+          <span>Rec.</span>
+          <input value={r.recupero ?? ''} onChange={cambia('recupero')} />
+        </label>
       </div>
+      <input
+        className="riga-nota"
+        title="Nota"
+        aria-label={`Nota su ${r.nome}`}
+        placeholder="Nota…"
+        value={r.nota ?? ''}
+        onChange={cambia('nota')}
+      />
       {/* Il pulsante che toglie la riga sta in fondo alla riga del nome, sempre
           nello stesso posto: messo dopo la riga dell'ultima volta finiva a
           capo, in basso a sinistra. */}
@@ -186,30 +182,26 @@ function RigaSeduta({
       >
         <X size={16} />
       </button>
+      </div>
       {/* Cosa aveva fatto l'ultima volta con questo esercizio. Sta sotto ai
           numeri di oggi, dove serve: la progressione si decide guardando il
           dato, non a memoria. Il pulsante li rimette in riga tutti insieme,
           poi si ritocca — e da quel momento la riga sparisce, perche' quei
           numeri sono gia' li' sopra. Un esercizio "al volo" non ha uno storico. */}
-      {ultima && (
+      {ultima && !stessaDoseDellUltima(r, ultima) && (
         <div className="ultima-volta">
-          <span className="ultima-quando">L&apos;ultima volta,{formatData(ultima.data)}:</span>
-          {!stessaDoseDellUltima(r, ultima) && (
-            <span className="ultima-dose">{testoUltima(r, ultima)}</span>
-          )}
-          {ultima.nota?.trim() && <span className="ultima-nota">«{ultima.nota.trim()}»</span>}
-          {!stessaDoseDellUltima(r, ultima) && (
-            <button
-              className="btn-piccolo"
-              title="Rimetti questi numeri nella riga"
-              onClick={() => {
-                invia({ tipo: 'ricopia', sez, riga: indice, ultima })
-                onRicopiata(`${sez}:${r.esercizio_id}`)
-              }}
-            >
-              <CornerDownLeft size={14} /> Ricopia
-            </button>
-          )}
+          <span className="ultima-quando">L&apos;ultima volta, {formatData(ultima.data)}:</span>
+          <span className="ultima-dose">{testoUltima(r, ultima)}</span>
+          <button
+            className="btn-piccolo"
+            title="Rimetti questi numeri nella riga"
+            onClick={() => {
+              invia({ tipo: 'ricopia', sez, riga: indice, ultima })
+              onRicopiata(`${sez}:${r.esercizio_id}`)
+            }}
+          >
+            <CornerDownLeft size={14} /> Ricopia
+          </button>
         </div>
       )}
       {/* Il massimale, solo se e' segnato: "80%" si legge come peso senza

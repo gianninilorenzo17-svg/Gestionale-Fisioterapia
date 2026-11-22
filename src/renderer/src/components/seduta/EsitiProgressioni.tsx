@@ -13,10 +13,11 @@ interface Props {
 
 type Scelta = 'avanza' | 'rimani' | 'indietro'
 
+// Nell'ordine della scala: giu', fermo, su.
 const SCELTE: { chiave: Scelta; etichetta: string; Icona: typeof ArrowUp | null }[] = [
-  { chiave: 'avanza', etichetta: 'Avanza', Icona: ArrowUp },
-  { chiave: 'rimani', etichetta: 'Rimani', Icona: null },
-  { chiave: 'indietro', etichetta: 'Regredisci', Icona: ArrowDown }
+  { chiave: 'indietro', etichetta: 'Indietro', Icona: ArrowDown },
+  { chiave: 'rimani', etichetta: 'Resta', Icona: null },
+  { chiave: 'avanza', etichetta: 'Avanza', Icona: ArrowUp }
 ]
 
 // Dove porta una scelta, detto in parole: "Step 3 di 4 · Nome dell'esercizio".
@@ -58,13 +59,26 @@ export default function EsitiProgressioni({
 
   return (
     <div className="esiti-prog">
-      <div className="nome-percepito">Progressioni: come è andata?</div>
+      <div className="nome-percepito">
+        Com&apos;è andata ogni progressione
+        {stati.length > 1 && !rimandato && <span className="pill-conta">{stati.length} da valutare</span>}
+      </div>
       {rimandato && <EsitoRimandato />}
       {!rimandato &&
         stati.map((p) => {
           const scelta: Scelta = esiti[p.id] ?? 'rimani'
           return (
             <div className="esito-card" key={p.id}>
+              {/* quale progressione e': l'esercizio dello step in corso e a che
+                  punto della scala siamo (senza il nome della scala) */}
+              <span className="esito-nome">
+                {nomeStep(
+                  p.step[Math.min(p.posizione, p.step.length - 1)].esercizio_nome,
+                  p.step[Math.min(p.posizione, p.step.length - 1)].variante,
+                  p.step[Math.min(p.posizione, p.step.length - 1)].monopodalico
+                )}
+                <span className="hint"> · {p.completata ? 'completata' : `${p.posizione + 1}/${p.step.length}`}</span>
+              </span>
               <span className="esito-scelte" role="group" aria-label={`Esito di ${p.nome}`}>
                 {SCELTE.map(({ chiave, etichetta, Icona }) => (
                   <button
@@ -72,15 +86,13 @@ export default function EsitiProgressioni({
                     type="button"
                     className={`esito-${chiave}${scelta === chiave ? ' attivo' : ''}`}
                     aria-pressed={scelta === chiave}
+                    title={destinazione(p, chiave)}
                     onClick={() => scegli(p.id, chiave)}
                   >
                     {Icona && <Icona size={14} />}
                     {etichetta}
                   </button>
                 ))}
-              </span>
-              <span className={`esito-effetto esito-effetto-${scelta}`}>
-                {destinazione(p, scelta)}
               </span>
             </div>
           )

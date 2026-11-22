@@ -420,7 +420,7 @@ export function ModaleDatiPaziente({
             verticale la finestra obbligava a scorrere per arrivare a
             patologia e fase. */}
         <div className="colonne-paziente">
-          <div className="colonna-paziente">
+          <div className="colonna-paziente blocco-paziente">
             <div className="sotto-titolo">Dati anagrafici</div>
 
             <div className="form-row-2">
@@ -501,7 +501,7 @@ export function ModaleDatiPaziente({
             </div>
           </div>
 
-          <div className="colonna-paziente">
+          <div className="colonna-paziente blocco-paziente">
             <div className="sotto-titolo">Quadro clinico</div>
 
             <label>
@@ -575,46 +575,48 @@ export function ModaleDatiPaziente({
         {/* La fascia larga in fondo: dove sta il paziente e, se e' nuovo, da
             dove parte il percorso. Il gruppo c'e' sempre; patologia e fase
             solo in creazione, in modifica vivono nella scheda Percorso. */}
-        <div className="sotto-titolo">{nuovo ? 'Gruppo e percorso riabilitativo' : 'Gruppo'}</div>
-        <div className={nuovo ? 'fascia-percorso' : 'form-row-2'}>
-          <label>
-            Gruppo
-            <SceltaConRicerca
-              voci={gruppi}
-              valore={gruppoId}
-              segnaposto="— nessun gruppo —"
-              vuoto="— nessun gruppo —"
-              onCambia={setGruppoId}
-            />
-          </label>
-          {nuovo && (
-            <>
-              <label>
-                Patologia
-                <SceltaConRicerca
-                  voci={patologie}
-                  valore={patologiaId}
-                  segnaposto="— nessuna —"
-                  vuoto="— nessuna —"
-                  onCambia={(id) => {
-                    setPatologiaId(id)
-                    setFaseId('')
-                  }}
-                />
-              </label>
-              <label>
-                Fase iniziale
-                <SceltaConRicerca
-                  voci={fasi.filter((f) => f.campo !== 1)}
-                  valore={faseId}
-                  disabled={patologiaId === ''}
-                  segnaposto="— non impostata —"
-                  vuoto="— non impostata —"
-                  onCambia={setFaseId}
-                />
-              </label>
-            </>
-          )}
+        <div className="blocco-paziente blocco-percorso">
+          <div className="sotto-titolo">{nuovo ? 'Gruppo e percorso riabilitativo' : 'Gruppo'}</div>
+          <div className={nuovo ? 'fascia-percorso' : 'form-row-2'}>
+            <label>
+              Gruppo
+              <SceltaConRicerca
+                voci={gruppi}
+                valore={gruppoId}
+                segnaposto="— nessun gruppo —"
+                vuoto="— nessun gruppo —"
+                onCambia={setGruppoId}
+              />
+            </label>
+            {nuovo && (
+              <>
+                <label>
+                  Patologia
+                  <SceltaConRicerca
+                    voci={patologie}
+                    valore={patologiaId}
+                    segnaposto="— nessuna —"
+                    vuoto="— nessuna —"
+                    onCambia={(id) => {
+                      setPatologiaId(id)
+                      setFaseId('')
+                    }}
+                  />
+                </label>
+                <label>
+                  Fase iniziale
+                  <SceltaConRicerca
+                    voci={fasi.filter((f) => f.campo !== 1)}
+                    valore={faseId}
+                    disabled={patologiaId === ''}
+                    segnaposto="— non impostata —"
+                    vuoto="— non impostata —"
+                    onCambia={setFaseId}
+                  />
+                </label>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="modal-actions">

@@ -234,3 +234,44 @@ test('Dose della fase, sedute a settimana e conto delle altre sedute della setti
   c.prepare('DELETE FROM fasi WHERE id = ?').run(fase)
   assert.equal(leggiDoseFase(fase).length, 0)
 })
+
+test('quoteLavoro: poche famiglie, pesate sulle serie, somma 100', async () => {
+  const { quoteLavoro } = await import('../src/shared/dose')
+  const categorie = [
+    { id: 1, padre_id: null, conta_come: 'plio_est' as const },
+    { id: 2, padre_id: null, conta_come: 'forza' as const },
+    { id: 3, padre_id: null, conta_come: null }
+  ]
+  const q = quoteLavoro(
+    [
+      { categoria_id: 1, serie: '3', cluster: '2' }, // 6
+      { categoria_id: 2, serie: '3', cluster: null }, // 3
+      { categoria_id: 3, serie: '1', cluster: null }, // 1
+      { categoria_id: null, serie: null, cluster: null } // al volo: 1 accessorio
+    ],
+    categorie
+  )
+  assert.deepEqual(q.map((x) => x.famiglia), ['plio', 'forza', 'accessori'])
+  assert.deepEqual(q.map((x) => x.percento), [55, 27, 18])
+  assert.equal(q.reduce((t, x) => t + x.percento, 0), 100)
+  assert.deepEqual(quoteLavoro([], categorie), [])
+})
+
+test('quoteLavoro: senza "conta come" si prova dal nome della categoria', async () => {
+  const { quoteLavoro } = await import('../src/shared/dose')
+  const categorie = [
+    { id: 1, padre_id: null, conta_come: null, nome: 'Pliometria estensiva' },
+    { id: 2, padre_id: null, conta_come: null, nome: 'Rinforzo' },
+    { id: 3, padre_id: 2, conta_come: null, nome: 'Hamstring' },
+    { id: 4, padre_id: null, conta_come: null, nome: 'Mobilità' }
+  ]
+  const q = quoteLavoro(
+    [
+      { categoria_id: 1, serie: '2', cluster: null },
+      { categoria_id: 3, serie: '2', cluster: null },
+      { categoria_id: 4, serie: '1', cluster: null }
+    ],
+    categorie
+  )
+  assert.deepEqual(q.map((x) => x.famiglia).sort(), ['accessori', 'forza', 'plio'])
+})

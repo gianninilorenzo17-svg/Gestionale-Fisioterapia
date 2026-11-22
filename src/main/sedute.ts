@@ -11,6 +11,8 @@
 import { getDb } from './db'
 import { dataIt, eliminaConCestino } from './cestino'
 import { validaData, validaOra, validaScala010 } from './validazione'
+import { categoriePerConto } from './dose'
+import { contaRighe, type RigaConto } from '../shared/dose'
 import type { SedutaDettaglio, SedutaInput, SedutaRiepilogo } from '../shared/types'
 
 // Le parti della seduta che stanno in tabelle loro: misure dei segni,
@@ -84,7 +86,65 @@ export function validaSeduta(input: SedutaInput): void {
 
 // Il diario del paziente, dalla piu' recente.
 export function elencoSedute(pazienteId: number): SedutaRiepilogo[] {
-  return getDb()
+  const db = getDb()
+
+  // Il carico di ogni seduta, con lo stesso conto della dose: contatti di
+  // pliometria, serie di potenza e di forza. Solo a video.
+  const categorie = categoriePerConto()
+  const righe = db
+    .prepare(
+      `SELECT se.seduta_id, e.categoria_id, e.gambe, se.monopodalico, se.serie, se.cluster, se.ripetizioni
+       FROM seduta_esercizi se
+       JOIN esercizi e ON e.id = se.esercizio_id
+       JOIN sedute s ON s.id = se.seduta_id
+       WHERE s.paziente_id = ?`
+    )
+    .all(pazienteId) as (RigaConto & { seduta_id: number })[]
+  const righePerSeduta = new Map<number, RigaConto[]>()
+  for (const { seduta_id, ...r } of righe) {
+    righePerSeduta.set(seduta_id, [...(righePerSeduta.get(seduta_id) ?? []), r])
+  }
+  const caricoDi = (id: number): string | null => {
+    const conto = contaRighe(righePerSeduta.get(id) ?? [], categorie)
+    let contatti = 0
+    let forza = 0
+    for (const [k, v] of Object.entries(conto)) {
+      if (k === 'plio_est' || k === 'plio_int') contatti += v
+      else if (k.startsWith('forza:')) forza += v
+    }
+    const potenza = conto.potenza ?? 0
+    return (
+      [
+        contatti > 0 ? `${contatti} contatti` : '',
+        potenza > 0 ? `${potenza} serie di potenza` : '',
+        forza > 0 ? `${forza} serie di forza` : ''
+      ]
+        .filter(Boolean)
+        .join(' · ') || null
+    )
+  }
+
+  // Le progressioni usate: una seduta che ha come esercizio uno step di una
+  // progressione la usa. Si scrive solo il nome: il numero dello step non va mostrato.
+  const step = db
+    .prepare(
+      `SELECT se.seduta_id, p.id AS progressione_id, p.nome
+       FROM seduta_esercizi se
+       JOIN sedute s ON s.id = se.seduta_id
+       JOIN progressione_step ps ON ps.esercizio_id = se.esercizio_id
+       JOIN progressioni p ON p.id = ps.progressione_id
+       WHERE s.paziente_id = ?
+       ORDER BY se.seduta_id, p.ordine, p.id`
+    )
+    .all(pazienteId) as { seduta_id: number; progressione_id: number; nome: string }[]
+  const progressioniPerSeduta = new Map<number, string[]>()
+  for (const r of step) {
+    const voce = r.nome
+    const gia = progressioniPerSeduta.get(r.seduta_id) ?? []
+    if (!gia.includes(voce)) progressioniPerSeduta.set(r.seduta_id, [...gia, voce])
+  }
+
+  const elenco = db
     .prepare(
       `SELECT s.id, s.paziente_id, s.data, s.ora, s.focus, s.dolore, s.sforzo, f.nome AS fase_nome,
          COALESCE(f.campo, 0) AS fase_campo, s.note,
@@ -99,6 +159,11 @@ export function elencoSedute(pazienteId: number): SedutaRiepilogo[] {
        ORDER BY s.data DESC, s.id DESC`
     )
     .all(pazienteId) as SedutaRiepilogo[]
+  return elenco.map((s) => ({
+    ...s,
+    carico: caricoDi(s.id),
+    progressioni_usate: progressioniPerSeduta.get(s.id)?.join(', ') ?? null
+  }))
 }
 
 // I focus gia' scritti, dal piu' usato di recente: si ripropongono mentre si
@@ -129,7 +194,7 @@ export function leggiSeduta(id: number): SedutaDettaglio {
   const esercizi = db
     .prepare(
       `SELECT se.esercizio_id, se.nome_libero,
-              COALESCE(e.nome, se.nome_libero) AS nome, c.nome AS categoria_nome, e.link,
+              COALESCE(e.nome, se.nome_libero) AS nome, c.nome AS categoria_nome, e.categoria_id, e.link,
               e.unita_carico,
               (e.immagine IS NOT NULL) AS ha_immagine,
               se.serie, se.cluster, se.ripetizioni, se.rir, se.carico, se.recupero_cluster,

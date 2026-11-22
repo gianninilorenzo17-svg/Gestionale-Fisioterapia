@@ -201,6 +201,16 @@ export type PazienteDettaglio = Paziente & {
   gruppo_nome: string | null
   // data dell'ultima seduta, per tenere in cima chi e' in trattamento adesso
   ultima_seduta: string | null
+  // Solo nell'elenco dei pazienti (non nel follow-up): per dire a che punto e'
+  // senza aprirlo. La prossima e' la prima seduta fissata dopo oggi; la fase e'
+  // la posizione (da 1) fra le fasi di palestra della patologia.
+  prossima_seduta?: string | null
+  fase_posto?: number | null
+  fasi_totali?: number | null
+  // promemoria aperti con la data gia' passata o di oggi
+  promemoria_scaduti?: number
+  // il dolore e' salito da tre settimane mentre il carico cresceva
+  dolore_in_salita?: boolean
 }
 
 export interface PazienteInput {
@@ -473,6 +483,10 @@ export interface SedutaRiepilogo {
   // le tecniche fatte, gia' in fila: "Tecar · Terapia manuale"
   tecniche_nomi: string | null
   num_esercizi: number
+  // "80 contatti · 6 serie di forza": il carico della seduta, solo a video
+  carico: string | null
+  // "Vertical braking": le progressioni usate, solo a video
+  progressioni_usate: string | null
 }
 
 export type SedutaEsercizioDettaglio = Omit<SedutaEsercizioInput, 'sezioneIndex'> & {
@@ -480,6 +494,7 @@ export type SedutaEsercizioDettaglio = Omit<SedutaEsercizioInput, 'sezioneIndex'
   nome: string
   // null per un esercizio al volo: non ha una categoria.
   categoria_nome: string | null
+  categoria_id?: number | null
   unita_carico: string | null
   link: string | null
   ha_immagine: 0 | 1

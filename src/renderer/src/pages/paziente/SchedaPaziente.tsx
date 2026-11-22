@@ -380,9 +380,6 @@ export function SchedaPaziente({
               onClick={() => onSchedaChange(t.key)}
             >
               {t.label}
-              <span className="tasto-linguetta" aria-hidden="true">
-                {SCHEDE_PAZIENTE.indexOf(t) + 1}
-              </span>
               {t.key === 'diario' && daFare > 0 && <span className="pallino-conta">{daFare}</span>}
             </button>
           ))}

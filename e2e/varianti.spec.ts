@@ -149,7 +149,7 @@ test('varianti: dalla libreria alla progressione e alla seduta', async () => {
     await scegli('normale')
     await expect(menu).toHaveText(/^normale$/i)
     await scegli('con luci reattive')
-    await pagina.getByRole('button', { name: /Salva seduta \(2 esercizi\)/ }).click()
+    await pagina.getByRole('button', { name: /Salva seduta/ }).click()
 
     // riaperta, la variante c'e'
     await apriPaziente(pagina)
@@ -158,7 +158,7 @@ test('varianti: dalla libreria alla progressione e alla seduta', async () => {
     await expect(
       riga(pagina, 'Equilibrio monopodalico').locator('.select-variante .menu-scelta-bottone')
     ).toHaveText(/^con luci reattive$/i)
-    await pagina.getByRole('button', { name: 'Annulla' }).first().click()
+    await pagina.locator('.nome-nel-titolo').click()
 
     expect(prova.errori, 'errori nella console').toEqual([])
   } finally {

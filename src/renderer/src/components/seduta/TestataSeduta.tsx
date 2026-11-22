@@ -2,7 +2,6 @@ import Tendina from '../Tendina'
 import CampoSuggerimenti from '../CampoSuggerimenti'
 import type { Fase, PazienteDettaglio } from '../../../../shared/types'
 import type { StatoSalvataggio } from '../../salvataggio'
-import IndicatoreSalvataggio from '../IndicatoreSalvataggio'
 import type { CampiSeduta } from './modello'
 
 interface Props {
@@ -37,39 +36,58 @@ export default function TestataSeduta({
   onAnnulla,
   onSalva
 }: Props): React.JSX.Element {
+  const st = salvataggio.stato
+  const pallino = st === 'errore' ? 'errore' : st === 'modificato' || st === 'salvo' ? 'giallo' : 'verde'
+  const testoPallino =
+    st === 'errore'
+      ? `Non salvato${salvataggio.errore ? `: ${salvataggio.errore}` : ''}`
+      : st === 'modificato'
+        ? 'Modifiche non salvate'
+        : st === 'salvo'
+          ? 'Salvataggio…'
+          : 'Tutto salvato'
   return (
-    <header className="page-header builder-header">
-      <div>
+    <header className="page-header builder-header testata-fissa">
+      <div className="testata-chi">
         {/* Il nome del paziente riporta alla sua scheda: da qui ci si torna di
             continuo, e prima l'unica strada era "Annulla", che sembra buttare
             via il lavoro. Se c'e' qualcosa di non salvato chiede, come
             "Annulla". */}
         <h2>
-          {nuova ? 'Nuova seduta' : 'Modifica seduta'} —{' '}
           <button className="briciola nome-nel-titolo" title="Torna alla scheda del paziente" onClick={onAnnulla}>
             {paziente.nome} {paziente.cognome}
           </button>
+          <span className="testata-sep">–</span>
         </h2>
-        <p>
-          {campi.faseNome ? (
-            <>
-              Fase: <strong>{campi.faseNome}</strong>
-            </>
-          ) : (
-            'Nessuna fase impostata sul paziente'
-          )}
+        <p className="testata-fase">
+          {[paziente.patologia_nome, campi.faseNome ? `(${/^fase/i.test(campi.faseNome) ? campi.faseNome : `fase ${campi.faseNome}`})` : '(nessuna fase impostata)']
+            .filter(Boolean)
+            .join(' ')}
           {copiata && ' · contenuti copiati da una seduta precedente'}
         </p>
-        {/* I due binari: in palestra si parte dalla fase corrente del paziente,
-            al campo da una delle fasi del percorso parallelo. La fase corrente
-            del paziente non si tocca mai. Compare solo per le patologie che il
-            campo ce l'hanno. */}
+        {/* Il pallino in alto a destra: giallo = c'e' qualcosa da salvare,
+            verde = tutto salvato, rosso = il salvataggio non e' riuscito. */}
+        <span
+          className={`pallino-salvataggio ${pallino}`}
+          role="status"
+          aria-live="polite"
+          title={testoPallino}
+        />
+      </div>
+      <div className="builder-header-actions">
+        <label className="field data-field">
+          Data
+          <input type="date" value={campi.data} onChange={(e) => onCambia({ data: e.target.value })} />
+        </label>
+        {/* Facoltativo: serve a sapere a che ora viene, e a ordinare la
+            settimana per appuntamento invece che per cognome. */}
+        <label className="field ora-field">
+          Ora
+          <input type="time" value={campi.ora} onChange={(e) => onCambia({ ora: e.target.value })} />
+        </label>
         {fasiCampo.length > 0 && (
           <div className="scelta-binario">
-            <button
-              className={alCampo ? '' : 'scelta-attiva'}
-              onClick={() => onCambiaFase(paziente.fase_corrente_id)}
-            >
+            <button className={alCampo ? '' : 'scelta-attiva'} onClick={() => onCambiaFase(paziente.fase_corrente_id)}>
               In palestra
             </button>
             <button className={alCampo ? 'scelta-attiva' : ''} onClick={() => onCambiaFase(fasiCampo[0].id)}>
@@ -90,34 +108,20 @@ export default function TestataSeduta({
             )}
           </div>
         )}
-      </div>
-      <div className="builder-header-actions">
-        <label className="field data-field">
-          Data
-          <input type="date" value={campi.data} onChange={(e) => onCambia({ data: e.target.value })} />
-        </label>
-        {/* Facoltativo: serve a sapere a che ora viene, e a ordinare la
-            settimana per appuntamento invece che per cognome. */}
-        <label className="field ora-field">
-          Ora
-          <input type="time" value={campi.ora} onChange={(e) => onCambia({ ora: e.target.value })} />
-        </label>
         {/* Il focus della giornata: due sedute della stessa fase possono essere
             due cose diverse, e nell'elenco si distinguono da qui. Si scrive a
             mano, ma quelli gia' usati si ripropongono. */}
         <label className="field focus-field">
           Focus
           <CampoSuggerimenti
-            placeholder="es. preparazione corsa"
+            placeholder="es. corsa"
             value={campi.focus}
             onChange={(v) => onCambia({ focus: v })}
             suggerimenti={focusUsati}
           />
         </label>
-        <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />
-        <button onClick={onAnnulla}>Annulla</button>
         <button className="primary" disabled={salvataggio.stato === 'salvo'} onClick={onSalva}>
-          Salva seduta
+          Salva
         </button>
       </div>
     </header>

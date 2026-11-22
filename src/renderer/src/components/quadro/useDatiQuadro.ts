@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { PazienteDettaglio, SedutaRiepilogo, StatoProgressione } from '../../../../shared/types'
+import { quoteLavoro, type FamigliaLavoro } from '../../../../shared/dose'
 import { riepilogoPedana } from '../../../../shared/pedana'
 import {
   inFaseDal,
@@ -27,6 +28,8 @@ export interface DatiQuadro {
   // sedute
   ultima: SedutaRiepilogo | null
   eserciziUltima: string[]
+  // su cosa si e' lavorato: quota di serie per famiglia, dalla piu' grande
+  lavoroUltima: { famiglia: FamigliaLavoro; nome: string; percento: number }[]
   programmate: SedutaRiepilogo[]
   fatte: number
   settimana: Settimana
@@ -52,6 +55,7 @@ const VUOTO: DatiQuadro = {
   pronto: false,
   ultima: null,
   eserciziUltima: [],
+  lavoroUltima: [],
   programmate: [],
   fatte: 0,
   settimana: { fatte: 0, previste: null },
@@ -111,9 +115,10 @@ export function useDatiQuadro(
       prendi(api.valutazioni.list(paziente.id), []),
       prendi(api.segni.andamento(paziente.id), []),
       prendi(api.massimali.list(paziente.id), []),
-      prendi(api.dose.caricoPaziente(paziente.id), null)
+      prendi(api.dose.caricoPaziente(paziente.id), null),
+      prendi(api.categorie.list(), [])
     ]).then(
-      ([punti, dettaglio, obiettivi, raggiunti, progressioni, pedana, compilazioni, promemoria, charts, valutazioni, segni, massimali, carico]) => {
+      ([punti, dettaglio, obiettivi, raggiunti, progressioni, pedana, compilazioni, promemoria, charts, valutazioni, segni, massimali, carico, categorie]) => {
         if (!attuale) return
         if (primoErrore) toastErrore(primoErrore)
         const fatte = sedute.filter((s) => s.data <= oggi)
@@ -121,6 +126,10 @@ export function useDatiQuadro(
           pronto: true,
           ultima,
           eserciziUltima: (dettaglio?.sezioni ?? []).flatMap((s) => s.esercizi.map((e) => e.nome)),
+          lavoroUltima: quoteLavoro(
+            (dettaglio?.sezioni ?? []).flatMap((s) => s.esercizi),
+            categorie
+          ),
           programmate: sedute
             .filter((s) => s.data > oggi)
             .sort((a, b) => a.data.localeCompare(b.data) || (a.ora ?? '').localeCompare(b.ora ?? '')),

@@ -1,8 +1,5 @@
-import Tendina from '../Tendina'
 import type { Segno, StatoProgressione } from '../../../../shared/types'
 import type { StatoSalvataggio } from '../../salvataggio'
-import IndicatoreSalvataggio from '../IndicatoreSalvataggio'
-import Aiuto from '../Aiuto'
 import type { CampiSeduta } from './modello'
 import EsitiProgressioni from './EsitiProgressioni'
 
@@ -20,7 +17,6 @@ interface Props {
   esitoRimandato: boolean
   totaleEsercizi: number
   salvataggio: { stato: StatoSalvataggio; errore: string | null }
-  onAnnulla: () => void
   onSalva: () => void
 }
 
@@ -32,85 +28,88 @@ export default function ChiusuraSeduta({
   segni,
   progressioni,
   esitoRimandato,
-  totaleEsercizi,
   salvataggio,
-  onAnnulla,
   onSalva
 }: Props): React.JSX.Element {
+  const voti = (valore: string, campo: 'dolore' | 'sforzo'): React.JSX.Element => (
+    <div className="voti" role="group">
+      {VOTI.map((n) => (
+        <button
+          key={n}
+          type="button"
+          className={valore === String(n) ? 'voto attivo' : 'voto'}
+          aria-pressed={valore === String(n)}
+          // un secondo clic sul voto scelto lo toglie: restano vuoti se non li si chiede
+          onClick={() => onCambia({ [campo]: valore === String(n) ? '' : String(n) })}
+        >
+          {n}
+        </button>
+      ))}
+    </div>
+  )
   return (
-    <section className="card">
-      <EsitiProgressioni
-        stati={progressioni}
-        rimandato={esitoRimandato}
-        esiti={campi.esiti}
-        onCambia={(esiti) => onCambia({ esiti })}
-      />
-      {/* Come e' andata, prima delle note: due numeri da 0 a 10 che si possono
-          confrontare seduta dopo seduta. Restano vuoti se non li si chiede:
-          non tutte le sedute vanno misurate. */}
-      <div className="riga-percepito">
-        <label className="field campo-percepito">
-          <span className="nome-percepito">
-            Dolore
-            <Aiuto testo="Quanto ha fatto male oggi, da 0 (niente) a 10 (il massimo). È quello che dice il paziente, non quello che vedi tu: serve a confrontare le sedute fra loro." />
-          </span>
-          <Tendina value={campi.dolore} onChange={(e) => onCambia({ dolore: e.target.value })}>
-            <option value="">—</option>
-            {VOTI.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </Tendina>
-        </label>
-        <label className="field campo-percepito">
-          <span className="nome-percepito">
-            Sforzo
-            <Aiuto testo="Quanto è stata dura la seduta per lui, da 0 (niente) a 10 (massimo sforzo). Due sedute con gli stessi carichi possono costare molto diverso, e questo numero te lo dice." />
-          </span>
-          <Tendina value={campi.sforzo} onChange={(e) => onCambia({ sforzo: e.target.value })}>
-            <option value="">—</option>
-            {VOTI.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </Tendina>
-        </label>
-        {/* I segni di riferimento di questo paziente, nella stessa riga: si
-            ricontrollano qui, seduta dopo seduta, ed e' da questi numeri che si
-            vede se la strada e' giusta. Compaiono solo se ne hai scelti, dalla
-            scheda Clinica. */}
-        {segni.map((g) => (
-          <label key={g.id} className="field campo-percepito">
-            <span className="nome-percepito">
-              {g.nome}
-              {g.unita && <span className="unita-segno">{g.unita}</span>}
-            </span>
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="—"
-              value={campi.misure[g.id] ?? ''}
-              onChange={(e) => onCambia({ misure: { ...campi.misure, [g.id]: e.target.value } })}
-            />
-          </label>
-        ))}
+    <section className="card fine-seduta">
+      <div className="striscia-titolo">
+        <span>Fine seduta</span>
       </div>
-      <label className="field note-seduta">
-        Note della seduta
+      <div className="fine-colonne">
+        <div className="fine-sx fine-bianca">
+          <div className="fine-voto">
+            <span className="nome-percepito">
+              Dolore
+            </span>
+            {voti(campi.dolore, 'dolore')}
+          </div>
+          <div className="fine-voto">
+            <span className="nome-percepito">
+              Sforzo percepito
+            </span>
+            {voti(campi.sforzo, 'sforzo')}
+          </div>
+          {/* I segni di riferimento di questo paziente: compaiono solo se ne hai
+              scelti, dalla scheda Clinica. */}
+          {segni.length > 0 && (
+            <div className="riga-percepito">
+              {segni.map((g) => (
+                <label key={g.id} className="field campo-percepito">
+                  <span className="nome-percepito">
+                    {g.nome}
+                    {g.unita && <span className="unita-segno">{g.unita}</span>}
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="—"
+                    value={campi.misure[g.id] ?? ''}
+                    onChange={(e) => onCambia({ misure: { ...campi.misure, [g.id]: e.target.value } })}
+                  />
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="fine-dx fine-bianca">
+          <EsitiProgressioni
+            stati={progressioni}
+            rimandato={esitoRimandato}
+            esiti={campi.esiti}
+            onCambia={(esiti) => onCambia({ esiti })}
+          />
+        </div>
+      </div>
+      <label className="field note-seduta fine-note">
+        Note
         <textarea
-          rows={3}
+          rows={2}
+          className="cresce"
           value={campi.note}
           placeholder="Osservazioni generali, cose da riprendere la prossima volta…"
           onChange={(e) => onCambia({ note: e.target.value })}
         />
       </label>
       <div className="modal-actions">
-        <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />
-        <button onClick={onAnnulla}>Annulla</button>
         <button className="primary" disabled={salvataggio.stato === 'salvo'} onClick={onSalva}>
-          Salva seduta ({totaleEsercizi} esercizi)
+          Salva seduta
         </button>
       </div>
     </section>

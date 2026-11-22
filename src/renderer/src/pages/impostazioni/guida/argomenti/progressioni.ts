@@ -61,7 +61,7 @@ export const progressioni: ArgomentoGuida = {
             'In una sezione della seduta premi **Esercizio**: in cima all’elenco c’è il riquadro **Progressioni**.',
             'Ogni progressione è una **pastiglia** con il nome dello step attuale e, in piccolo, la progressione e a che step siamo (es. «Affondo orizzontale · 2/5»). Premi la pastiglia per aggiungere lo step, con la sua dose.',
             'Il **lucchettino** accanto alla pastiglia sblocca lo step successivo (il paziente ci è arrivato): fermandoti sopra leggi il suo nome e cosa serve per arrivarci.',
-            'Alla fine della seduta, in **Progressioni: come è andata?**, scegli per ognuna **Avanza**, **Rimani** o **Regredisci**. **Rimani** è la scelta di partenza e non segna niente.',
+            'Alla fine della seduta, in **Com’è andata ogni progressione**, scegli per ognuna **Indietro**, **Resta** o **Avanza**. **Resta** è la scelta di partenza e non segna niente.',
             'Salva la seduta.'
           ]
         },
@@ -86,7 +86,7 @@ export const progressioni: ArgomentoGuida = {
       elementi: [
         {
           punti: [
-            'Lo step del paziente **non è salvato**: si ricalcola rileggendo gli esiti delle sedute in ordine di data (Avanza +1, Regredisci −1). Correggere o eliminare una seduta aggiorna tutto da solo.',
+            'Lo step del paziente **non è salvato**: si ricalcola rileggendo gli esiti delle sedute in ordine di data (Avanza +1, Indietro −1). Correggere o eliminare una seduta aggiorna tutto da solo.',
             'L’esito vale per la seduta in cui lo segni: programmando la settimana non viene copiato.',
             'L’icona **Cambia l’esercizio di questo step** lascia com’erano le sedute già fatte.',
             'Un esercizio archiviato non si può aggiungere da un suggerimento.'

@@ -113,11 +113,18 @@ export function DiarioCard({
   const riga = (s: SedutaRiepilogo, programmata: boolean): React.JSX.Element => {
     const trattamento = [s.tecniche_nomi, s.trattamento].filter(Boolean).join(' — ')
     const nota = s.note?.trim().replace(/\s+/g, ' ') ?? ''
+    const riassunto = [
+      s.progressioni_usate ?? '',
+      s.carico ?? '',
+      s.sforzo != null ? `sforzo ${s.sforzo}/10` : '',
+      s.riferito_andamento ? `riferito: ${s.riferito_andamento}` : ''
+    ]
+      .filter(Boolean)
+      .join(' · ')
     return (
       <li
         key={s.id}
-        className={`d-riga${programmata ? ' programmata' : ''}`}
-        title="Modifica la seduta"
+        className={`d-riga${programmata ? ' programmata' : ''}`}        title="Modifica la seduta"
         tabIndex={0}
         onClick={() => onApri(s.id)}
         onKeyDown={(e) => {
@@ -125,8 +132,10 @@ export function DiarioCard({
         }}
       >
         <div className="d-data">
+          {/* Mese e anno stanno gia' nell'intestazione: qui basta "Mar 10",
+              e a destra l'ora, se c'e' (se manca, lo spazio resta vuoto). */}
           <b>{giornoSettimanaBreve(s.data)}</b>
-          <span>{formatData(s.data)}</span>
+          {s.ora && <span>{s.ora}</span>}
         </div>
         <div className="d-testo">
           <span className="d-pastiglie">
@@ -140,6 +149,9 @@ export function DiarioCard({
               {trattamento}
             </span>
           )}
+          {/* Quello che c'e' sempre, anche senza nota: quanto si e' lavorato,
+              com'e' andata e come lo ha sentito il paziente. */}
+          {riassunto && <span className="d-riassunto">{riassunto}</span>}
         </div>
         <div className="d-dolore" title={s.dolore != null ? 'Dolore a fine seduta' : undefined}>
           {s.dolore != null && (
@@ -171,9 +183,13 @@ export function DiarioCard({
       const m = s.data.slice(0, 7)
       if (m !== mese) {
         mese = m
+        const nSedute = righe.filter((x) => x.data.startsWith(m)).length
         voci.push(
           <li key={`m${m}`} className="d-mese" role="presentation">
-            {nomeMese(s.data)}
+            <span>{nomeMese(s.data)}</span>
+            <span className="d-mese-conto">
+              {nSedute} {nSedute === 1 ? 'seduta' : 'sedute'}
+            </span>
           </li>
         )
       }

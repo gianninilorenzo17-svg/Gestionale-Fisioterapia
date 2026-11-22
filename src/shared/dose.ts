@@ -52,6 +52,8 @@ export interface CategoriaConto {
   id: number
   padre_id: number | null
   conta_come: TipoLavoro | null
+  // solo per "su cosa si e' lavorato": serve a indovinare la famiglia dal nome
+  nome?: string
 }
 
 // Una riga di seduta come serve al conto.
@@ -119,6 +121,75 @@ export function contaRighe(righe: RigaConto[], categorie: CategoriaConto[]): Rec
     conto[k] = (conto[k] ?? 0) + quanto(r, tipo)
   }
   return conto
+}
+
+// ---- Su cosa si e' lavorato (Quadro del paziente) ----
+// Poche famiglie, scelte dalla categoria dell'esercizio: pliometria (estensiva e
+// intensiva insieme), potenza, forza, e "accessori" per tutto il resto
+// (mobilita', riscaldamento, core, esercizi al volo...). Si pesa in serie
+// (serie × cluster): i contatti della pliometria e le serie della forza non si
+// possono sommare, le serie si'.
+export type FamigliaLavoro = 'plio' | 'potenza' | 'forza' | 'accessori'
+
+export const FAMIGLIE_LAVORO: { famiglia: FamigliaLavoro; nome: string }[] = [
+  { famiglia: 'plio', nome: 'Pliometria' },
+  { famiglia: 'potenza', nome: 'Potenza' },
+  { famiglia: 'forza', nome: 'Forza' },
+  { famiglia: 'accessori', nome: 'Accessori' }
+]
+
+// Dove "conta come" non e' stato scelto si prova dal nome della categoria (o
+// di quella che la contiene): "Pliometria", "Forza", "Quadricipite"...
+const NOMI_PLIO = /plio|balz|salt|jump/i
+const NOMI_POTENZA = /potenz|power|esplosiv/i
+const NOMI_FORZA = /forza|rinforz|strength|quadricip|hamstring|ischio|glute|polpacc|soleo|gastrocn|adduttor|abduttor|squat|stacco|deadlift/i
+
+export function famigliaDaNome(nome: string | undefined): FamigliaLavoro {
+  if (!nome) return 'accessori'
+  if (NOMI_PLIO.test(nome)) return 'plio'
+  if (NOMI_POTENZA.test(nome)) return 'potenza'
+  if (NOMI_FORZA.test(nome)) return 'forza'
+  return 'accessori'
+}
+
+export function famigliaDiLavoro(tipo: TipoLavoro | null): FamigliaLavoro {
+  if (tipo === 'plio_est' || tipo === 'plio_int') return 'plio'
+  if (tipo === 'potenza') return 'potenza'
+  if (tipo === 'forza') return 'forza'
+  return 'accessori'
+}
+
+// Le serie di una riga: serie × cluster, uno se non e' scritto.
+export const serieDellaRiga = (r: Pick<RigaConto, 'serie' | 'cluster'>): number =>
+  (primoNumero(r.serie) ?? 1) * (primoNumero(r.cluster) ?? 1)
+
+// Quota di ogni famiglia sul totale, in percentuale intera (somma 100), dalla
+// piu' grande; le famiglie senza niente non compaiono.
+export function quoteLavoro(
+  righe: (Pick<RigaConto, 'serie' | 'cluster'> & { categoria_id?: number | null })[],
+  categorie: CategoriaConto[]
+): { famiglia: FamigliaLavoro; nome: string; serie: number; percento: number }[] {
+  const serie: Record<FamigliaLavoro, number> = { plio: 0, potenza: 0, forza: 0, accessori: 0 }
+  for (const r of righe) {
+    const id = r.categoria_id ?? null
+    const tipo = tipoDiCategoria(id, categorie)
+    let f = famigliaDiLavoro(tipo)
+    if (tipo == null && id != null) {
+      const c = categorie.find((x) => x.id === id)
+      const padre = c?.padre_id == null ? undefined : categorie.find((x) => x.id === c.padre_id)
+      f = famigliaDaNome(c?.nome)
+      if (f === 'accessori') f = famigliaDaNome(padre?.nome)
+    }
+    serie[f] += serieDellaRiga(r)
+  }
+  const totale = Object.values(serie).reduce((t, n) => t + n, 0)
+  if (totale <= 0) return []
+  const quote = FAMIGLIE_LAVORO.filter((f) => serie[f.famiglia] > 0)
+    .map((f) => ({ ...f, serie: serie[f.famiglia], percento: Math.round((serie[f.famiglia] / totale) * 100) }))
+    .sort((a, b) => b.serie - a.serie)
+  // l'arrotondamento puo' dare 99 o 101: si aggiusta sulla voce piu' grande
+  quote[0].percento += 100 - quote.reduce((t, q) => t + q.percento, 0)
+  return quote
 }
 
 export interface ControlloDose {

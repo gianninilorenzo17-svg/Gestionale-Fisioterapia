@@ -151,6 +151,8 @@
    zona da cui si aggiungono — e' grigio chiaro. */
 .sezione-card,
 .obiettivi-info,
+.riepilogo-prog,
+.riga-dose,
 .settimana-card {
   min-width: 0;
   background: var(--surface);

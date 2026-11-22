@@ -161,7 +161,7 @@ test('progressioni: dalla libreria alla seduta e allo specchietto', async () => 
     await expect(pagina.locator('.esiti-prog')).not.toContainText('Vertical braking')
     await pagina.getByRole('button', { name: 'Avanza', exact: true }).click()
     await pagina.locator('.esiti-prog').screenshot({ path: join(FOTO, '24-progressioni-esito.png') })
-    await pagina.getByRole('button', { name: /Salva seduta \(1 esercizi\)/ }).click()
+    await pagina.getByRole('button', { name: /Salva seduta/ }).click()
 
     // ---- lo specchietto si aggiorna: wall sit fatto, front squat da lavorare
     await apriPaziente(pagina)
@@ -178,7 +178,7 @@ test('progressioni: dalla libreria alla seduta e allo specchietto', async () => 
     await pagina.getByRole('button', { name: 'Diario sedute' }).click()
     await pagina.getByTitle('Modifica la seduta').first().click()
     await expect(pagina.getByRole('button', { name: 'Avanza', exact: true })).toHaveClass(/attivo/)
-    await pagina.getByRole('button', { name: 'Annulla' }).first().click()
+    await pagina.locator('.nome-nel-titolo').click()
 
     expect(prova.errori, 'errori nella console').toEqual([])
   } finally {

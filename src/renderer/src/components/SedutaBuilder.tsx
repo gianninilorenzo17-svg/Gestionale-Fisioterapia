@@ -17,9 +17,10 @@ import { toastConAzione, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import ImmagineEsercizio from './ImmagineEsercizio'
 import Modale from './Modale'
+import RiepilogoProgressioni from './seduta/RiepilogoProgressioni'
 import SpecchiettoProgressioni from './SpecchiettoProgressioni'
 import PromemoriaInVista from './PromemoriaInVista'
-import DiarioSeduta, { UltimaVoltaSeduta } from './DiarioSeduta'
+import DiarioSeduta from './DiarioSeduta'
 import { errMsg, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 import { useSalvataggio } from '../salvataggio'
@@ -612,15 +613,57 @@ export default function SedutaBuilder({
         </p>
       )}
 
+      {/* La striscia degli specchietti, nell'ordine in cui si guardano: la dose
+          della seduta, a che punto sono le progressioni, gli obiettivi della
+          fase. Sta sopra a tutto e non ruba larghezza agli esercizi. */}
+      {((campi.faseId != null && !alCampo) || contesto.progressioni.length > 0 || (campi.faseId != null && obiettivi.length > 0)) && (
+        <div className="striscia-seduta">
+          {campi.faseId != null && !alCampo && (
+            <RigaDose
+              dosi={dosi}
+              conto={contoDose}
+              settimana={settimana}
+              categorie={contesto.categorie}
+            />
+          )}
+          <RiepilogoProgressioni stati={contesto.progressioni} onApri={() => setSpecchietto(true)} />
+          {campi.faseId != null && obiettivi.length > 0 && (
+            <section className="card striscia-card obiettivi-info">
+              <div className="striscia-titolo">
+                <span>Obiettivi fase</span>
+                <span className="pill-conta">
+                  {raggiunti.filter((id) => obiettivi.some((o) => o.id === id)).length}/{obiettivi.length}
+                </span>
+              </div>
+              {obiettivi.filter((o) => !raggiunti.includes(o.id)).length === 0 ? (
+                <p className="hint">Tutti raggiunti</p>
+              ) : (
+                <ul className="obiettivi-aperti">
+                  {obiettivi
+                    .filter((o) => !raggiunti.includes(o.id))
+                    .map((o) => (
+                      <li key={o.id}>
+                        <span className="casella-vuota" aria-hidden="true" />
+                        {o.nome}
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </section>
+          )}
+        </div>
+      )}
+
       {/* Prima la volta scorsa, poi com'e' oggi e cosa gli si fa: e' l'ordine
           della seduta vera. Gli esercizi vengono dopo. */}
-      {precedente && <UltimaVoltaSeduta precedente={precedente} />}
       <PromemoriaInVista pazienteId={paziente.id} giorno={campi.data} />
       <DiarioSeduta
         andamento={campi.riferitoAndamento}
         riferito={campi.riferito}
         tecnicaIds={campi.tecnicaIds}
         trattamento={campi.trattamento}
+        precedente={precedente}
+        nuova={sedutaId == null && duplicaDa == null}
         onCambia={(p) => {
           const patch: Partial<CampiSeduta> = {}
           if (p.andamento !== undefined) patch.riferitoAndamento = p.andamento
@@ -636,34 +679,6 @@ export default function SedutaBuilder({
         <Dumbbell size={18} />
         Esercizi
       </div>
-
-      {dosi.length > 0 && (
-        <RigaDose
-          dosi={dosi}
-          conto={contoDose}
-          settimana={settimana}
-          categorie={contesto.categorie}
-          pazienteId={paziente.id}
-          onFrequenza={(frequenza) => setSettimana((s) => ({ ...s, frequenza }))}
-        />
-      )}
-
-      {campi.faseId != null && obiettivi.length > 0 && (
-        <section className="card obiettivi-info">
-          <h3>Obiettivi da lavorare</h3>
-          <div className="chips">
-            {obiettivi.map((o) => (
-              <span
-                key={o.id}
-                className={raggiunti.includes(o.id) ? 'chip raggiunto' : 'chip'}
-                title={raggiunti.includes(o.id) ? 'Obiettivo raggiunto' : 'Da lavorare'}
-              >
-                {o.nome}
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
 
       {sezioni.length === 0 && (
         <section className="card">
@@ -723,7 +738,6 @@ export default function SedutaBuilder({
         esitoRimandato={esitoRimandato}
         totaleEsercizi={totaleEsercizi}
         salvataggio={salvataggio}
-        onAnnulla={() => void annulla()}
         onSalva={() => void salva()}
       />
 

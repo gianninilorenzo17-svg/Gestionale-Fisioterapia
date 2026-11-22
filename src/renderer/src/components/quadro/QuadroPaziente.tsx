@@ -1,7 +1,7 @@
 import { ArrowRight, Bell, Check, Minus, TrendingDown, TrendingUp, TriangleAlert } from 'lucide-react'
 import type { Fase, PazienteDettaglio, SedutaRiepilogo } from '../../../../shared/types'
 import { classeLsi, type ClasseLsi } from '../../../../shared/quadro'
-import { daQuando, durataTra, formatData, testoPromemoria } from '../../lib'
+import { durataTra, formatData, testoPromemoria } from '../../lib'
 import type { Destinazione } from './sezioni'
 import type { DatiQuadro } from './useDatiQuadro'
 import Aiuto from '../Aiuto'
@@ -118,16 +118,13 @@ export default function QuadroPaziente({
   const strada = fasi.filter((f) => f.campo !== 1)
   const idx = strada.findIndex((f) => f.id === paziente.fase_corrente_id)
   const dalleFase = dati.inFaseDal ? durataTra(dati.inFaseDal) : null
-  const dallIntervento = daQuando(paziente.data_intervento)
   const raggiunti = dati.obiettivi.filter((o) => o.raggiunto).length
   const frazione = dati.obiettivi.length > 0 ? raggiunti / dati.obiettivi.length : 0
   const CIRC = 2 * Math.PI * 19
   const mostraObiettivi = dati.obiettivi.slice(0, 6)
 
   const tempi: { valore: string; etichetta: string }[] = []
-  if (dallIntervento) tempi.push({ valore: dallIntervento, etichetta: 'dall\'intervento' })
-  if (dalleFase) tempi.push({ valore: dalleFase, etichetta: 'in questa fase' })
-  tempi.push({ valore: String(dati.fatte), etichetta: dati.fatte === 1 ? 'seduta fatta' : 'sedute fatte' })
+  if (dalleFase) tempi.push({ valore: dalleFase, etichetta: 'In questa fase' })
 
   const u = dati.ultima
   const notaUltima = u?.note?.trim() || u?.riferito?.trim() || null
@@ -151,7 +148,7 @@ export default function QuadroPaziente({
       >
         <div className="q-percorso-strada">
           <div className="q-titoletto">
-            A che punto è{paziente.patologia_nome ? ` · ${paziente.patologia_nome}` : ''}
+            A che punto è
           </div>
           {paziente.patologia_id == null ? (
             <p className="hint">Nessun percorso impostato: scegli la patologia e la fase.</p>
@@ -165,7 +162,6 @@ export default function QuadroPaziente({
                   <li key={f.id} className={`q-fase ${stato}`} aria-current={stato === 'ora' ? 'step' : undefined}>
                     <span className="q-fase-punto">{stato === 'fatta' && <Check size={13} aria-hidden="true" />}</span>
                     <span className="q-fase-nome">{f.nome}</span>
-                    {stato === 'ora' && dalleFase && <small>da {dalleFase}</small>}
                   </li>
                 )
               })}
@@ -181,8 +177,8 @@ export default function QuadroPaziente({
           <div className="q-tempi">
             {tempi.map((t) => (
               <div key={t.etichetta}>
+                <span>{t.etichetta}</span>
                 <b>{t.valore}</b>
-                {t.etichetta}
               </div>
             ))}
           </div>
@@ -267,40 +263,71 @@ export default function QuadroPaziente({
             <p className="hint">Ancora nessuna seduta.</p>
           ) : (
             <>
-              {notaUltima ? (
-                <p className="q-nota">{notaUltima}</p>
-              ) : (
-                <p className="hint">Nessuna nota scritta.</p>
-              )}
+              {notaUltima &&
+                (notaUltima.length <= 110 ? (
+                  <p className="q-nota">{notaUltima}</p>
+                ) : (
+                  <div className="q-nota-lunga" tabIndex={0}>
+                    <span className="q-nota-etichetta">Note</span>
+                    <div className="q-nota-bolla" role="tooltip">{notaUltima}</div>
+                  </div>
+                ))}
               {u.trattamento || u.tecniche_nomi ? (
                 <div className="q-riga-piccola">
                   <span>Trattamento</span> {[u.tecniche_nomi, u.trattamento].filter(Boolean).join(' — ')}
                 </div>
               ) : null}
-              {dati.eserciziUltima.length > 0 && (
-                <div className="q-chips">
-                  {dati.eserciziUltima.slice(0, 5).map((nome, i) => (
-                    <span key={nome + i} className="q-chip">
-                      {nome}
-                    </span>
-                  ))}
-                  {dati.eserciziUltima.length > 5 && (
-                    <span className="q-chip">+{dati.eserciziUltima.length - 5}</span>
-                  )}
+              {dati.lavoroUltima.length > 0 && (
+                <div className="q-lavoro" title={`${dati.eserciziUltima.length} esercizi, pesati sulle serie`}>
+                  <svg className="q-lavoro-ciambella" viewBox="0 0 42 42" aria-hidden="true">
+                    {(() => {
+                      const tot = dati.lavoroUltima.reduce((s, l) => s + l.percento, 0) || 1
+                      const C = 2 * Math.PI * 15.9155
+                      let cumulato = 0
+                      return dati.lavoroUltima.map((l) => {
+                        const parte = (l.percento / tot) * C
+                        const el = (
+                          <circle
+                            key={l.famiglia}
+                            className={`q-lavoro-${l.famiglia}`}
+                            cx="21"
+                            cy="21"
+                            r="15.9155"
+                            fill="none"
+                            strokeWidth="6"
+                            strokeDasharray={`${Math.max(parte - 0.8, 0.1)} ${C - Math.max(parte - 0.8, 0.1)}`}
+                            strokeDashoffset={-cumulato}
+                            transform="rotate(-90 21 21)"
+                          />
+                        )
+                        cumulato += parte
+                        return el
+                      })
+                    })()}
+                  </svg>
+                  <ul>
+                    {dati.lavoroUltima.map((l) => (
+                      <li key={l.famiglia}>
+                        <span className={`q-lavoro-punto q-lavoro-${l.famiglia}`} aria-hidden="true" />
+                        {l.nome} <b>{l.percento}%</b>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
               {(u.dolore != null || u.sforzo != null) && (
-                <div className="q-riga-piccola">
+                <div className="q-mini">
                   {u.dolore != null && (
-                    <>
-                      <span>Dolore</span> <b>{u.dolore}/10</b>
-                    </>
+                    <div>
+                      <b>{u.dolore}<small>/10</small></b>
+                      <span>Dolore</span>
+                    </div>
                   )}
                   {u.sforzo != null && (
-                    <>
-                      {' '}
-                      <span>Sforzo</span> <b>{u.sforzo}/10</b>
-                    </>
+                    <div>
+                      <b>{u.sforzo}<small>/10</small></b>
+                      <span>Sforzo</span>
+                    </div>
                   )}
                 </div>
               )}

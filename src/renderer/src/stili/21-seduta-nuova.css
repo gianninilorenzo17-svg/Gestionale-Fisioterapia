@@ -1,0 +1,666 @@
+/* La seduta rifatta (22 nov 2026): barra in cima che resta ferma, striscia di
+   specchietti sopra agli esercizi, e ogni esercizio con il nome a sinistra e la
+   dose a destra, le etichette sopra le caselle e la nota su una riga sua. */
+
+/* ---- Barra in cima: chi, che fase, giorno, ora, focus, Salva (non resta ferma) ---- */
+
+.builder-col > .builder-header.testata-fissa {
+  align-items: center;
+  padding: 10px 16px;
+  box-shadow: var(--shadow-md);
+}
+
+.testata-fissa .builder-header-actions {
+  gap: 10px;
+}
+
+.testata-fissa .field {
+  gap: 2px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.testata-fissa input {
+  height: 34px;
+  padding: 4px 10px;
+  font-size: 14px;
+}
+
+.testata-fissa .builder-header-actions > button {
+  height: 34px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.testata-fissa .testata-chi {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.builder-col > .builder-header.testata-fissa h2 {
+  font-size: 18px;
+  margin: 0;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+/* ---- La striscia degli specchietti ---- */
+
+.striscia-seduta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.striscia-seduta > * {
+  min-width: 0;
+}
+
+.striscia-seduta > .riga-dose {
+  margin-bottom: 0;
+}
+
+.builder-col > .striscia-seduta > section.card,
+.striscia-seduta .striscia-card {
+  padding: 12px 14px;
+}
+
+.striscia-titolo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.striscia-titolo .btn-piccolo {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.pill-conta {
+  margin-left: auto;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.voce-striscia + .voce-striscia {
+  margin-top: 8px;
+}
+
+.voce-striscia-riga {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.barra-striscia {
+  height: 6px;
+  margin-top: 4px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.barra-striscia i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.striscia-seduta .obiettivi-info .chips {
+  gap: 4px;
+}
+
+.striscia-seduta .obiettivi-info .chip {
+  padding: 2px 10px;
+  font-size: 13.5px;
+}
+
+@media (max-width: 1000px) {
+  .striscia-seduta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- Un esercizio: il layout di sempre, con le caselle nuove (etichetta sopra) ---- */
+
+.riga-esercizio .campo-dose {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.riga-esercizio .campo-dose input {
+  width: 52px;
+  padding: 3px 4px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.riga-esercizio .campo-dose input:focus {
+  font-weight: 600;
+}
+
+/* ---- Fine seduta: un esito per progressione ---- */
+
+.esiti-prog .esito-card {
+  justify-content: space-between;
+}
+
+.esito-nome {
+  flex: 1 1 200px;
+  min-width: 0;
+  font-weight: 500;
+  font-size: 14.5px;
+}
+
+.esiti-prog .nome-percepito .pill-conta {
+  margin-left: 4px;
+}
+
+.esiti-prog .esito-effetto {
+  flex: 1 0 100%;
+  font-size: 12.5px;
+}
+
+/* ---- Nuovo paziente / dati del paziente: tre riquadri separati ---- */
+
+.modal-paziente .colonne-paziente {
+  gap: 16px;
+}
+
+.modal-paziente .blocco-paziente {
+  padding: 4px 16px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.modal-paziente .blocco-paziente > .sotto-titolo {
+  margin: 12px 0 4px;
+  padding: 0;
+  background: none;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.modal-paziente .blocco-percorso {
+  margin-top: 16px;
+  margin-bottom: 4px;
+}
+
+/* ---- Elenco pazienti: a che punto e' ognuno, senza aprirlo ---- */
+
+.filtri-pillola {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.filtri-pillola button {
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 13.5px;
+}
+
+.filtri-pillola button.attiva {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+}
+
+.lista-larga .riga-paziente {
+  /* il nome e la fase si dividono lo spazio (la fase un po' più larga),
+     l'ultima visita sta larga quanto la data che ci scrive dentro */
+  grid-template-columns: minmax(240px, 1fr) minmax(240px, 1.2fr) 100px 44px;
+  gap: 24px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+/* una finestra stretta: nome, data e pulsante */
+@media (max-width: 820px) {
+  .lista-larga .riga-paziente {
+    grid-template-columns: minmax(0, 1fr) auto 44px;
+  }
+
+  .lista-larga .riga-paziente > :nth-child(2) {
+    display: none;
+  }
+}
+
+.nome-con-avviso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.nome-con-avviso .pillola,
+.nome-con-avviso .badge-stato {
+  flex: none;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.chi-paziente {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.chi-testo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chi-testo .dettaglio-riga {
+  font-size: 12.5px;
+  line-height: 1.25;
+}
+
+.chi-paziente {
+  gap: 10px;
+}
+
+.fase-colonna {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.25;
+}
+
+.fase-nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fase-mini {
+  display: flex;
+  gap: 5px;
+}
+
+.fase-mini i {
+  flex: 0 1 72px;
+  min-width: 30px;
+  height: 8px;
+  border-radius: 5px;
+  background: var(--border);
+}
+
+.fase-mini i.f {
+  background: var(--accent);
+}
+
+.fase-mini i.o {
+  background: var(--accent);
+  opacity: 0.45;
+}
+
+.pillola {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pillola.no {
+  background: color-mix(in srgb, var(--danger) 13%, var(--surface));
+  color: color-mix(in srgb, var(--danger) 82%, black);
+}
+
+.pillola.att {
+  background: color-mix(in srgb, var(--attenzione) 16%, var(--surface));
+  color: color-mix(in srgb, var(--attenzione) 82%, black);
+}
+
+/* Il pulsante della seduta compare passando sulla riga (o con la tastiera). */
+.riga-paziente .azione-riga {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.riga-paziente:hover .azione-riga,
+.riga-paziente:focus-within .azione-riga {
+  opacity: 1;
+}
+
+/* con un solo specchietto (di solito la dose) prende tutta la larghezza */
+.striscia-seduta > :only-child {
+  grid-column: 1 / -1;
+}
+
+.ultima-visita {
+  font-size: 13.5px;
+}
+
+/* ---- Rifinitura (22 nov): barra a una riga, data/ora/focus a pillola ---- */
+
+.builder-col > .builder-header.testata-fissa {
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  border-radius: 14px;
+}
+
+/* Due righe: sopra nome, patologia e fase (con il pallino del salvataggio a
+   destra); sotto tutte le impostazioni su una riga sola. */
+.builder-col > .builder-header.testata-fissa {
+  position: relative;
+}
+
+.testata-fissa .testata-chi {
+  flex: 1 0 100%;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 12px;
+  padding-right: 28px;
+}
+
+.testata-fissa .testata-chi .testata-fase {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pallino-salvataggio {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3f9d5a;
+}
+
+.pallino-salvataggio.giallo {
+  background: #e0a526;
+}
+
+.pallino-salvataggio.errore {
+  background: var(--danger);
+}
+
+.testata-fissa .testata-fase {
+  margin: 2px 0 0;
+  white-space: nowrap;
+  word-spacing: normal;
+  color: var(--text-dim);
+}
+
+.testata-fissa .scelta-binario {
+  margin: 0;
+  flex: none;
+}
+
+.testata-fissa .builder-header-actions {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.testata-fissa .builder-header-actions .field {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--pannello);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.testata-fissa .builder-header-actions .field input {
+  height: 28px;
+  width: auto;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.testata-fissa .data-field,
+.testata-fissa .ora-field {
+  flex: none;
+  width: auto;
+}
+
+.testata-fissa .data-field input {
+  width: 138px;
+  flex: none;
+}
+
+.testata-fissa .ora-field input {
+  width: 92px;
+  flex: none;
+}
+
+.testata-fissa .focus-field {
+  flex: 1 1 150px;
+  min-width: 120px;
+  max-width: 320px;
+}
+
+.testata-fissa .focus-field input {
+  width: 100%;
+}
+
+.fascia-precauzioni {
+  border-left: 0;
+  border-radius: 10px;
+  background: rgba(190, 50, 60, 0.09);
+  color: #a52a35;
+  font-weight: 600;
+}
+
+.fascia-precauzioni svg {
+  color: #a52a35;
+}
+
+/* La striscia riempie la riga anche con due soli specchietti. */
+.striscia-seduta {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 1000px) {
+  .striscia-seduta {
+    grid-auto-flow: row;
+    grid-auto-columns: minmax(0, 1fr);
+  }
+}
+
+/* Dose seduta e obiettivi fase come gli altri specchietti (22 nov) */
+.striscia-seduta .riga-dose-sintesi {
+  display: flex;
+  width: 100%;
+  padding: 0;
+  margin-bottom: 8px;
+  background: transparent;
+  border: 0;
+}
+.striscia-seduta .riga-dose-sintesi svg { margin-left: auto; }
+.barra-striscia i.oltre { background: var(--attenzione); }
+.riga-dose-dettaglio { padding: 8px 0 0; }
+.obiettivi-aperti { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+.obiettivi-aperti li { display: flex; align-items: center; gap: 8px; }
+.casella-vuota { width: 16px; height: 16px; flex: none; border: 1.5px solid var(--border); border-radius: 4px; }
+.testata-fissa .focus-field { min-width: 0; }
+.testata-fissa .focus-field > * { min-width: 0; }
+.testata-sep { font-weight: 400; color: var(--text-dim); }
+
+.testata-fissa .testata-chi { gap: 0; }
+.testata-sep { margin: 0 0.5em; }
+.testata-fissa .focus-field .suggerimenti-wrap { display: flex; align-items: center; flex: 1; min-width: 0; }
+.testata-fissa .focus-field input { line-height: 28px; height: 28px; padding: 0; }
+
+/* Le tre caselle hanno la stessa altezza: quella della piu' alta */
+.striscia-seduta { align-items: stretch; }
+.striscia-seduta > section.card { margin-bottom: 0; height: auto; }
+
+/* Come va oggi */
+.come-va { padding: 12px 14px; }
+.come-va .striscia-titolo { min-width: 0; }
+.come-va-prima { font-weight: 400; letter-spacing: 0; text-transform: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.come-va-riga { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.come-va-riga textarea { flex: 1 1 240px; min-width: 0; margin: 0; }
+.come-va-tecniche { gap: 6px; }
+.come-va-pannello { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+
+/* Riga esercizio su una riga sola: nome, caselle, nota (piccola, spesso vuota),
+   cestino. L'ultima volta e il massimale vanno sotto. Se manca spazio va a capo
+   la nota, mai il nome o le caselle. */
+.righe-seduta .riga-esercizio > .riga-testata { order: 1; flex: 1 0 170px; min-width: 150px; }
+.righe-seduta .riga-esercizio > .riga-params { order: 2; flex: none; }
+.righe-seduta .riga-esercizio > .riga-nota { order: 3; flex: 0 1 200px; width: auto; min-width: 110px; }
+.righe-seduta .riga-esercizio > .btn-togli { order: 4; }
+.righe-seduta .riga-esercizio > .ultima-volta { order: 5; }
+
+/* Come va oggi: pillole come nel disegno */
+.come-va .scelta-coppia.segmentata { display: inline-flex; gap: 6px; background: none; border: 0; padding: 0; }
+.come-va .scelta-coppia.segmentata button,
+.come-va .tecnica > button:not(.togli-tecnica),
+.come-va .come-va-tecniche > .btn-piccolo {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 5px 14px;
+  font-size: 14px;
+  box-shadow: none;
+}
+.come-va .scelta-coppia.segmentata button.scelta-attiva,
+.come-va .tecnica > button.scelta-attiva {
+  background: #dcefe5;
+  border-color: #b5d8c5;
+  color: #2f6b4f;
+  font-weight: 600;
+}
+.come-va .scelta-coppia.segmentata button.scelta-attiva.peggio {
+  background: #f8e1e1;
+  border-color: #e3b4b4;
+  color: #a52a35;
+}
+.come-va .scelta-coppia.segmentata button.scelta-attiva.uguale {
+  background: #eee9df;
+  border-color: var(--border);
+  color: var(--text);
+}
+.come-va .come-va-tecniche > .btn-piccolo { color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; }
+.come-va .tecnica { display: inline-flex; }
+
+/* Nome, caselle e nota sulla stessa linea di base: la nota ha l'altezza delle
+   caselle e sta a filo con il loro fondo (le etichette restano sopra). */
+.righe-seduta li.riga-esercizio { align-items: flex-end; }
+.righe-seduta .riga-esercizio > .riga-testata { align-items: center; min-height: 36px; }
+.righe-seduta .riga-esercizio .campo-dose input,
+.righe-seduta .riga-esercizio > .riga-nota {
+  height: 36px;
+  padding: 0 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.righe-seduta .riga-esercizio > .riga-nota { font-weight: 400; }
+.righe-seduta .riga-esercizio > .btn-togli { height: 36px; align-self: flex-end; }
+
+/* Caselle della dose: abbastanza larghe per "100 kg" o "Tieni 10\"" */
+.righe-seduta .riga-esercizio .campo-dose input { width: 60px; }
+.righe-seduta .riga-esercizio .campo-medio input { width: 76px; }
+.righe-seduta .riga-esercizio .campo-largo input { width: 104px; }
+
+/* Fine seduta */
+.fine-seduta .striscia-titolo { margin-bottom: 12px; }
+.fine-colonne { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 32px; align-items: start; }
+.fine-sx { display: flex; flex-direction: column; gap: 14px; }
+.fine-voto { display: flex; flex-direction: column; gap: 6px; font-size: 15px; color: var(--text-dim); }
+.voti { display: flex; flex-wrap: wrap; gap: 6px; }
+.voti .voto { width: 40px; height: 38px; padding: 0; border: 1px solid var(--border-forte); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 15px; }
+.voti .voto.attivo { background: var(--success); border-color: var(--success); color: #fff; font-weight: 600; }
+.fine-dx .esiti-prog { border: 0; padding: 0; margin: 0 0 14px; }
+.fine-dx .esito-card { border: 0; padding: 4px 0; margin: 0; }
+.fine-dx .esito-nome { flex: 1 1 auto; }
+.fine-dx .nome-percepito { color: var(--text-dim); font-size: 15px; margin-bottom: 4px; }
+.fine-dx .pill-conta { background: color-mix(in srgb, var(--success) 14%, var(--surface)); color: var(--success); }
+.esito-scelte button.attivo.esito-rimani,
+.esito-scelte button.attivo.esito-avanza { background: var(--success); border-color: var(--success); color: #fff; }
+.esito-scelte button.attivo.esito-indietro { background: var(--attenzione); border-color: var(--attenzione); color: #fff; }
+.esito-preimpostato { margin: 8px 0 0; }
+.fine-dx .note-seduta { margin-top: 0; }
+@media (max-width: 1000px) { .fine-colonne { grid-template-columns: minmax(0, 1fr); } }
+
+/* Riga esercizio: nome al centro in altezza; il cestino sta fisso a destra e non va mai a capo */
+.righe-seduta li.riga-esercizio { position: relative; padding-right: 48px; }
+.righe-seduta .riga-esercizio > .riga-testata { align-self: center; }
+.righe-seduta .riga-esercizio > .btn-togli { position: absolute; right: 8px; top: 8px; height: 34px; }
+.righe-seduta .riga-esercizio > .riga-nota { flex: 0 1 170px; min-width: 90px; }
+
+/* Dolore e sforzo: undici caselle su una riga sola */
+.voti { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 4px; }
+.voti .voto { width: 100%; height: 34px; font-size: 14px; border-radius: 7px; }
+
+/* Riga esercizio, versione finale: una riga che non va mai a capo (nome,
+   caselle, nota, cestino), tutto a filo con il fondo delle caselle. Il nome
+   si stringe per primo, poi la nota. L'ultima volta sta sotto. */
+.righe-seduta li.riga-esercizio { padding: 8px 10px; }
+.riga-esercizio > .riga-principale {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+.riga-principale > .riga-testata { flex: 1 1 140px; min-width: 90px; align-self: flex-end; min-height: 36px; }
+.riga-principale > .riga-params { flex: none; }
+.riga-principale > .riga-nota { flex: 1 1 150px; min-width: 60px; max-width: 220px; width: auto; }
+.riga-principale > .btn-togli { position: static; flex: none; height: 36px; width: 36px; padding: 0; opacity: 0; }
+.righe-seduta li:hover .riga-principale > .btn-togli,
+.righe-seduta li:focus-within .riga-principale > .btn-togli { opacity: 1; }
+
+/* Fine seduta: fondo colorato con due riquadri bianchi (dolore e sforzo / progressioni) e le note sotto */
+.card.fine-seduta { background: var(--pannello); }
+.fine-colonne { gap: 12px; }
+.fine-bianca { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; }
+.fine-seduta .fine-note { margin-top: 12px; }
+.fine-seduta .fine-note textarea { width: 100%; background: var(--surface); }
+.fine-seduta .modal-actions { margin-top: 12px; justify-content: flex-end; }
+
+.fine-colonne { align-items: stretch; }

@@ -80,10 +80,10 @@ test('costruzione: esercizi, dosaggi, al volo, Ctrl+Z, sezioni, salvataggio e ul
     await pagina.getByTitle('Aggiungi Squat bulgaro').click()
     await pagina.getByTitle('Aggiungi Ponte glutei').click()
     // i dosaggi di partenza arrivano dalla libreria
-    await expect(riga(pagina, 'Squat bulgaro').getByPlaceholder('serie')).toHaveValue('3')
-    await expect(riga(pagina, 'Squat bulgaro').getByPlaceholder('carico')).toHaveValue('20')
-    await riga(pagina, 'Squat bulgaro').getByPlaceholder('carico').fill('25')
-    await riga(pagina, 'Ponte glutei').getByPlaceholder('nota…').fill('lento in discesa')
+    await expect(riga(pagina, 'Squat bulgaro').getByLabel('Serie', { exact: true })).toHaveValue('3')
+    await expect(riga(pagina, 'Squat bulgaro').getByLabel('Carico', { exact: true })).toHaveValue('20')
+    await riga(pagina, 'Squat bulgaro').getByLabel('Carico', { exact: true }).fill('25')
+    await riga(pagina, 'Ponte glutei').getByPlaceholder('Nota…').fill('lento in discesa')
 
     // un esercizio che non e' in libreria, solo per questa seduta
     await pagina.getByPlaceholder('Filtra i proposti o cerca in tutta la libreria…').fill('Affondo laterale')
@@ -96,7 +96,7 @@ test('costruzione: esercizi, dosaggi, al volo, Ctrl+Z, sezioni, salvataggio e ul
     await pagina.locator('.titolo-esercizi').click()
     await pagina.keyboard.press('Control+z')
     await expect(riga(pagina, 'Ponte glutei')).toBeVisible()
-    await expect(riga(pagina, 'Ponte glutei').getByPlaceholder('nota…')).toHaveValue('lento in discesa')
+    await expect(riga(pagina, 'Ponte glutei').getByPlaceholder('Nota…')).toHaveValue('lento in discesa')
 
     // la sezione si rinomina, e se ne aggiunge un'altra
     await pagina.getByTitle('Rinomina').click()
@@ -108,11 +108,10 @@ test('costruzione: esercizi, dosaggi, al volo, Ctrl+Z, sezioni, salvataggio e ul
     await nuovaSezione.press('Enter')
     await expect(pagina.getByRole('heading', { name: 'Defaticamento', exact: true })).toBeVisible()
 
-    await pagina.locator('.campo-percepito', { hasText: 'Dolore' }).locator('.menu-scelta-bottone').click()
-    await pagina.locator('.menu-scelta-popup').getByRole('button', { name: '3', exact: true }).click()
+    await pagina.locator('.fine-voto', { hasText: 'Dolore' }).getByRole('button', { name: '3', exact: true }).click()
     await pagina.getByPlaceholder('Osservazioni generali, cose da riprendere la prossima volta…').fill('Bene')
     await pagina.screenshot({ path: join(FOTO, '11-costruzione.png'), fullPage: true })
-    await pagina.getByRole('button', { name: /Salva seduta \(3 esercizi\)/ }).click()
+    await pagina.getByRole('button', { name: /Salva seduta/ }).click()
 
     // riaperta, e' com'era
     await apriPaziente(pagina)
@@ -121,12 +120,14 @@ test('costruzione: esercizi, dosaggi, al volo, Ctrl+Z, sezioni, salvataggio e ul
     await expect(pagina.getByText('Modifica seduta')).toBeVisible()
     await expect(pagina.getByRole('heading', { name: 'Forza', exact: true })).toBeVisible()
     await expect(pagina.getByRole('heading', { name: 'Defaticamento', exact: true })).toBeVisible()
-    await expect(riga(pagina, 'Squat bulgaro').getByPlaceholder('carico')).toHaveValue('25')
-    await expect(riga(pagina, 'Ponte glutei').getByPlaceholder('nota…')).toHaveValue('lento in discesa')
+    await expect(riga(pagina, 'Squat bulgaro').getByLabel('Carico', { exact: true })).toHaveValue('25')
+    await expect(riga(pagina, 'Ponte glutei').getByPlaceholder('Nota…')).toHaveValue('lento in discesa')
     await expect(riga(pagina, 'Affondo laterale')).toBeVisible()
-    await expect(pagina.locator('.campo-percepito', { hasText: 'Dolore' }).locator('.menu-scelta-bottone')).toHaveText('3')
+    await expect(
+      pagina.locator('.fine-voto', { hasText: 'Dolore' }).getByRole('button', { name: '3', exact: true })
+    ).toHaveClass(/attivo/)
     // uscire senza cambiare niente non chiede e non salva una seconda volta
-    await pagina.getByRole('button', { name: 'Annulla' }).first().click()
+    await pagina.locator('.nome-nel-titolo').click()
 
     // la seduta dopo: l'ultima volta dello squat si legge e si ricopia
     await apriPaziente(pagina)
@@ -135,9 +136,9 @@ test('costruzione: esercizi, dosaggi, al volo, Ctrl+Z, sezioni, salvataggio e ul
     await pagina.getByTitle('Aggiungi Squat bulgaro').click()
     const ultima = riga(pagina, 'Squat bulgaro').locator('.ultima-volta')
     await expect(ultima).toContainText('25')
-    await expect(riga(pagina, 'Squat bulgaro').getByPlaceholder('carico')).toHaveValue('20')
+    await expect(riga(pagina, 'Squat bulgaro').getByLabel('Carico', { exact: true })).toHaveValue('20')
     await ultima.getByRole('button', { name: 'Ricopia' }).click()
-    await expect(riga(pagina, 'Squat bulgaro').getByPlaceholder('carico')).toHaveValue('25')
+    await expect(riga(pagina, 'Squat bulgaro').getByLabel('Carico', { exact: true })).toHaveValue('25')
     await expect(riga(pagina, 'Squat bulgaro').locator('.ultima-volta')).toHaveCount(0)
 
     expect(prova.errori, 'errori nella console').toEqual([])
