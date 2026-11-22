@@ -44,7 +44,7 @@ export function EditorQuestionario({
     void contaDaRicalcolare()
   }, [id, contaDaRicalcolare])
 
-  if (!dati) return <p className="hint">Caricamento…</p>
+  if (!dati) return <p className="hint caricamento-ritardato">Caricamento…</p>
 
   const aggiorna = (patch: Partial<QuestionarioCompleto>): void => {
     setDati({ ...dati, ...patch })

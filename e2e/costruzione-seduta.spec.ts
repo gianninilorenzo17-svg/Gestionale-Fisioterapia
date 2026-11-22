@@ -117,7 +117,7 @@ test('costruzione: esercizi, dosaggi, al volo, Ctrl+Z, sezioni, salvataggio e ul
     await apriPaziente(pagina)
     await pagina.getByRole('button', { name: 'Diario sedute' }).click()
     await pagina.getByTitle('Modifica la seduta').first().click()
-    await expect(pagina.getByText('Modifica seduta')).toBeVisible()
+    await expect(pagina.locator('.testata-fissa')).toBeVisible()
     await expect(pagina.getByRole('heading', { name: 'Forza', exact: true })).toBeVisible()
     await expect(pagina.getByRole('heading', { name: 'Defaticamento', exact: true })).toBeVisible()
     await expect(riga(pagina, 'Squat bulgaro').getByLabel('Carico', { exact: true })).toHaveValue('25')

@@ -58,7 +58,7 @@ export default function PannelloBackup(): React.JSX.Element {
       .catch(() => undefined)
   }, [])
 
-  if (!info) return <p className="hint">Caricamento…</p>
+  if (!info) return <p className="hint caricamento-ritardato">Caricamento…</p>
 
   const run = async (fn: () => Promise<unknown>): Promise<void> => {
     try {

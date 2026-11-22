@@ -54,7 +54,7 @@ export function SchedaIllustrata({
         {errore ? (
           <p className="auth-error">{errore}</p>
         ) : dati == null ? (
-          <p className="hint">Caricamento…</p>
+          <p className="hint caricamento-ritardato">Caricamento…</p>
         ) : (
           <>
             {manca('Senza foto', dati.senzaFoto)}

@@ -62,9 +62,9 @@ export default function CompilaQuestionario({
 
   if (!dati || !pronto) {
     return (
-      <div className="modal-overlay">
+      <div className="modal-overlay caricamento-ritardato">
         <div className="modal">
-          <p className="hint">Caricamento…</p>
+          <p className="hint caricamento-ritardato">Caricamento…</p>
         </div>
       </div>
     )

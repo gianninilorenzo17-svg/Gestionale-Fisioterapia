@@ -226,7 +226,7 @@ function ScreeningDelPaziente({
 
   if (!p) {
     onIndietro()
-    return <p className="hint">Caricamento…</p>
+    return <p className="hint caricamento-ritardato">Caricamento…</p>
   }
 
   return (
@@ -656,7 +656,7 @@ function Esecuzione({
     setModificato(true)
   }
 
-  if (!dati) return <p className="hint">Caricamento…</p>
+  if (!dati) return <p className="hint caricamento-ritardato">Caricamento…</p>
 
   return (
     <div className="page pagina-compila-screening">

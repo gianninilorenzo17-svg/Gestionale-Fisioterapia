@@ -118,6 +118,8 @@ export interface Canali {
   'aggiornamento:installa': () => void
   'finestra:comando': (c: 'riduci' | 'ingrandisci' | 'chiudi') => void
   'finestra:ingrandita': () => boolean
+  // La pagina e' disegnata con i suoi dati: la finestra nata nascosta si mostra.
+  'finestra:pronta': () => void
   // Apre il dialogo file e ritorna l'immagine gia' ridimensionata, o null.
   'scegliImmagine': () => string | null
   'auth:status': () => InfoAccesso
@@ -603,7 +605,8 @@ export const MAPPA_API = {
   // I pulsanti della barra disegnata in cima alla finestra.
   finestra: {
     comando: 'finestra:comando',
-    ingrandita: 'finestra:ingrandita'
+    ingrandita: 'finestra:ingrandita',
+    pronta: 'finestra:pronta'
   },
   scegliImmagine: 'scegliImmagine',
   auth: {

@@ -8,6 +8,7 @@ import { errMsg, formatData, giornoSettimanaBreve, maiuscola, oggiIso } from '..
 import StatoVuoto from '../../components/StatoVuoto'
 import { SchedaIllustrata } from './SchedaIllustrata'
 import SedutaAzioni from '../../components/SedutaAzioni'
+import { schedaPronta } from '../../components/quadro/useDatiQuadro'
 
 // Il colore del pallino accanto al dolore: lo si legge senza leggere il numero
 const coloreDolore = (d: number): string =>
@@ -30,13 +31,16 @@ export function DiarioCard({
   onApri: (id: number) => void
   onDuplica: (id: number) => void
 }): React.JSX.Element {
-  const [sedute, setSedute] = useState<SedutaRiepilogo[]>([])
+  // Le sedute gia' lette aprendo la scheda (preparaScheda): l'elenco compare
+  // pieno, e si rilegge in silenzio.
+  const giaLette = schedaPronta(paziente.id)?.sedute
+  const [sedute, setSedute] = useState<SedutaRiepilogo[]>(giaLette ?? [])
   const [periodo, setPeriodo] = useState<{ dal: string; al: string } | null>(null)
   const [anteprima, setAnteprima] = useState<number | null>(null)
 
   // Prima che le sedute arrivino l'elenco e' vuoto per forza: senza questo
   // si vedrebbe per un attimo "Nessuna seduta ancora" e poi tutto si sposta.
-  const [caricate, setCaricate] = useState(false)
+  const [caricate, setCaricate] = useState(giaLette != null)
 
   const load = async (): Promise<void> => {
     setSedute(await window.api.sedute.list(paziente.id))

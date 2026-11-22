@@ -15,7 +15,7 @@ test('seduta: si salva, si ritrova nel diario e con la ricerca', async () => {
 
     await pagina.getByRole('button', { name: 'Nuova seduta', exact: true }).click()
     await expect(pagina.getByRole('button', { name: 'Salva seduta' }).first()).toBeVisible()
-    await pagina.getByPlaceholder('es. preparazione corsa').fill('Spalla destra')
+    await pagina.getByPlaceholder('es. corsa').fill('Spalla destra')
     await pagina
       .getByPlaceholder('Osservazioni generali, cose da riprendere la prossima volta…')
       .fill('Fitta alla spalla nei movimenti sopra la testa, migliora dopo il riscaldamento.')
@@ -54,7 +54,7 @@ test('seduta: si salva, si ritrova nel diario e con la ricerca', async () => {
     await expect(voce).toHaveCount(1)
     await expect(voce).toContainText('Note')
     await voce.click()
-    await expect(pagina.getByText('Modifica seduta')).toBeVisible()
+    await expect(pagina.locator('.testata-fissa')).toBeVisible()
     await expect(
       pagina.getByPlaceholder('Osservazioni generali, cose da riprendere la prossima volta…')
     ).toHaveValue(/sopra la testa/)

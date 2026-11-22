@@ -138,7 +138,7 @@ export default function AggiungiAlGiorno({
             </div>
 
             {sue == null ? (
-              <p className="hint">Caricamento…</p>
+              <p className="hint caricamento-ritardato">Caricamento…</p>
             ) : sue.length === 0 ? (
               <>
                 <p className="hint">

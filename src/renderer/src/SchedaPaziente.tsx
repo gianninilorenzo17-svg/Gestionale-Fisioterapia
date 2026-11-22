@@ -28,6 +28,15 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
 
   useEffect(carica, [carica])
 
+  // La finestra e' nata nascosta: si mostra quando il programma e' disegnato
+  // (il fotogramma dopo), cosi' compare gia' piena.
+  const disegnata = dati != null || errore !== ''
+  useEffect(() => {
+    if (!disegnata) return
+    const f = requestAnimationFrame(() => void window.api.finestra.pronta().catch(() => undefined))
+    return () => cancelAnimationFrame(f)
+  }, [disegnata])
+
   // La barra in cima alla finestra: il titolo, e la presa per spostarla.
   const barra = <BarraFinestra titolo={dati ? `Scheda — ${dati.paziente}` : 'Scheda'} />
 
@@ -42,7 +51,7 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
     return (
       <div className="finestra-scheda">
         {barra}
-        <p className="hint">Caricamento…</p>
+        <p className="hint caricamento-ritardato">Caricamento…</p>
       </div>
     )
 

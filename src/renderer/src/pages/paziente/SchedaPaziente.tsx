@@ -33,7 +33,7 @@ import ValutazionePaziente from '../../components/ValutazionePaziente'
 import QuadroPaziente from '../../components/quadro/QuadroPaziente'
 import BodyChartPaziente from '../../components/BodyChartPaziente'
 import IndiceSezioni, { type VoceIndice } from '../../components/IndiceSezioni'
-import { useDatiQuadro } from '../../components/quadro/useDatiQuadro'
+import { ricordaScheda, schedaPronta, useDatiQuadro } from '../../components/quadro/useDatiQuadro'
 import type {
   Destinazione,
   SchedaAperta,
@@ -109,14 +109,19 @@ export function SchedaPaziente({
       return n
     })
   }, [paziente])
-  const [fasi, setFasi] = useState<Fase[]>([])
+  // Chi apre la scheda l'ha gia' letta (preparaScheda in useDatiQuadro.ts): si
+  // parte da li', cosi' compare gia' piena, e si rilegge in silenzio.
+  const pronta = useRef(schedaPronta(paziente.id)).current
+  const [fasi, setFasi] = useState<Fase[]>(pronta?.fasi ?? [])
   // Serve solo a sapere se c'e' una seduta da riprendere e quale.
-  const [ultimaSeduta, setUltimaSeduta] = useState<number | null>(null)
+  const [ultimaSeduta, setUltimaSeduta] = useState<number | null>(
+    () => pronta?.sedute.find((s) => s.data <= oggiIso())?.id ?? null
+  )
 
   // Dipende dal paziente intero e non dal solo id: quando si salva una seduta
   // l'elenco dei pazienti si ricarica, l'oggetto cambia, e cosi' "Riprendi
   // l'ultima" punta davvero all'ultima.
-  const [sedutePaziente, setSedutePaziente] = useState<SedutaRiepilogo[]>([])
+  const [sedutePaziente, setSedutePaziente] = useState<SedutaRiepilogo[]>(pronta?.sedute ?? [])
   // Quante sedute aspettano il paziente: si vede sulla linguetta, senza entrare.
   const daFare = sedutePaziente.filter((s) => s.data > oggiIso()).length
   const [programma, setProgramma] = useState(false)
@@ -155,6 +160,7 @@ export function SchedaPaziente({
       // riparte da quella davvero svolta
       .then((righe) => {
         setSedutePaziente(righe)
+        ricordaScheda(paziente.id, { sedute: righe })
         setUltimaSeduta(righe.find((s) => s.data <= oggi)?.id ?? null)
       })
   }, [paziente])
@@ -164,10 +170,14 @@ export function SchedaPaziente({
   useEffect(() => {
     if (paziente.patologia_id == null) {
       setFasi([])
+      ricordaScheda(paziente.id, { fasi: [] })
       return
     }
-    void window.api.fasi.list(paziente.patologia_id).then(setFasi)
-  }, [paziente.patologia_id])
+    void window.api.fasi.list(paziente.patologia_id).then((f) => {
+      setFasi(f)
+      ricordaScheda(paziente.id, { fasi: f })
+    })
+  }, [paziente.id, paziente.patologia_id])
 
   const setPatologia = async (patologiaId: number | null): Promise<void> => {
     if (

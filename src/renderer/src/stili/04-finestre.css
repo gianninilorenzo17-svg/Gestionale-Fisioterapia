@@ -59,6 +59,17 @@
   }
 }
 
+/* La seduta che si sta aprendo si prepara nascosta, con la pagina di prima
+   ancora in vista (PazientiPage): quando e' tutta letta compare, gia' piena,
+   con la stessa dissolvenza delle sezioni. */
+.seduta-in-arrivo:not([hidden]) {
+  display: contents;
+}
+
+.seduta-in-arrivo > .page {
+  animation: entrata-pagina 0.18s ease-out;
+}
+
 /* La scritta "Caricamento…" si vede solo se si aspetta piu' di mezzo secondo:
    prima, un caricamento breve faceva lampeggiare la scritta e poi la pagina. */
 .caricamento-ritardato {

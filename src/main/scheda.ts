@@ -25,6 +25,9 @@ export function apriScheda(sedutaId: number): void {
   const win = new BrowserWindow({
     width: 820,
     height: 980,
+    // Nasce nascosta e si mostra quando la pagina ha disegnato il programma
+    // (canale finestra:pronta): prima si vedeva la cornice vuota che si riempiva.
+    show: false,
     // il bianco e' anche il fondo della finestra: senza, mentre carica si vede
     // un lampo del colore di sistema
     backgroundColor: '#ffffff',
@@ -46,6 +49,11 @@ export function apriScheda(sedutaId: number): void {
   zoomabile(win)
   win.on('closed', () => aperte.delete(sedutaId))
   aperte.set(sedutaId, win)
+  // Se la pagina non risponde (un errore prima di disegnare), la finestra si
+  // mostra lo stesso: meglio vuota che mai aperta.
+  setTimeout(() => {
+    if (!win.isDestroyed() && !win.isVisible()) win.show()
+  }, 2000)
 
   const rotta = `scheda=${sedutaId}`
   if (process.env['ELECTRON_RENDERER_URL']) {

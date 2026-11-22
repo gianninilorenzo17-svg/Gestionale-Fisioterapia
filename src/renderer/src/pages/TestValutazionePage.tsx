@@ -325,7 +325,7 @@ function EditorTest({
       .catch((e) => toastErrore(errMsg(e)))
   }, [id])
 
-  if (!dati) return <p className="hint">Caricamento…</p>
+  if (!dati) return <p className="hint caricamento-ritardato">Caricamento…</p>
 
   const aggiorna = (patch: Partial<TestValutazioneCompleto>): void => {
     setDati({ ...dati, ...patch })

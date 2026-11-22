@@ -166,7 +166,8 @@ test('quadro: panoramica del percorso, numeri solo se ci sono, un clic porta all
     await expect(quadro.locator('.q-obiettivi')).toContainText('1/2')
     await expect(quadro).toContainText('Ultima seduta')
     await expect(quadro).toContainText('Bene il lavoro eccentrico')
-    await expect(quadro).toContainText('Leg extension')
+    // su cosa si e' lavorato: le famiglie di esercizi, non i nomi (un solo esercizio = tutto)
+    await expect(quadro.locator('.q-lavoro')).toContainText('100%')
     await expect(quadro).toContainText('Questa settimana')
     // dolore: l'ultimo e' 2, partiva da 6
     const numeri = quadro.locator('.q-numeri')

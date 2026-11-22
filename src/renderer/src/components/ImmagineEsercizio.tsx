@@ -41,7 +41,7 @@ export default function ImmagineEsercizio({
         ) : src ? (
           <img className="immagine-grande" src={src} alt={nome} />
         ) : (
-          <p className="hint">Caricamento…</p>
+          <p className="hint caricamento-ritardato">Caricamento…</p>
         )}
         <div className="modal-actions">
           <button className="primary" onClick={onClose}>

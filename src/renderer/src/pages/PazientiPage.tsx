@@ -11,6 +11,7 @@ import ImportaPedana from '../components/pedana/ImportaPedana'
 import type { AnteprimaPedana } from '../../../shared/pedana'
 import { useScorciatoie } from '../scorciatoie'
 import { SchedaAperta, SchedaPaziente } from './paziente/SchedaPaziente'
+import { preparaScheda } from '../components/quadro/useDatiQuadro'
 
 // Da quanto non viene: "oggi", "ieri", "5 giorni fa", "3 settimane fa".
 function quantoFa(data: string | null): string {
@@ -124,10 +125,31 @@ export default function PazientiPage({
     apriPaziente ? builderDaRichiesta(apriPaziente) : null
   )
 
-  const load = async (): Promise<void> => {
-    setPazienti(await window.api.pazienti.list())
+  const load = async (): Promise<PazienteDettaglio[]> => {
+    const lista = await window.api.pazienti.list()
+    setPazienti(lista)
     setElencoLetto(true)
+    return lista
   }
+
+  // La scheda di quale paziente e' gia' stata letta per questa apertura: finche'
+  // non lo e', resta in vista la pagina di prima (o una pagina vuota, se si
+  // arriva da un'altra sezione) invece di una scheda che si riempie a pezzi.
+  const [schedaLetta, setSchedaLetta] = useState<number | null>(null)
+  // L'ultima richiesta vince: due clic di fila non aprono il primo dopo il secondo.
+  const richiesta = useRef(0)
+  const apriScheda = async (p: PazienteDettaglio, linguetta: SchedaAperta = 'quadro'): Promise<void> => {
+    const mia = ++richiesta.current
+    await preparaScheda(p)
+    if (mia !== richiesta.current) return
+    setSchedaLetta(p.id)
+    setScheda(linguetta)
+    setSelId(p.id)
+  }
+
+  // La seduta che si sta aprendo resta nascosta finche' non e' tutta letta.
+  const [builderPronto, setBuilderPronto] = useState<StatoBuilder>(null)
+  const dopoAttesa = useRef(false)
 
   const scegliFilePedana = async (): Promise<void> => {
     try {
@@ -162,6 +184,8 @@ export default function PazientiPage({
   // di un paziente sotto il nome di un altro.
   useEffect(() => {
     if (apriPaziente == null) return
+    richiesta.current++
+    setSchedaLetta(null)
     setScheda('quadro')
     setBuilder(builderDaRichiesta(apriPaziente))
     setSelId(apriPaziente.id)
@@ -206,10 +230,7 @@ export default function PazientiPage({
     <div
       key={p.id}
       className="riga-paziente"
-      onClick={() => {
-        setSelId(p.id)
-        setScheda('quadro')
-      }}
+      onClick={() => void apriScheda(p)}
     >
       <span className="chi-paziente">
         <span className="chi-testo">
@@ -287,35 +308,75 @@ export default function PazientiPage({
     }
   ])
 
-  // Si sta aprendo una seduta o una scheda e l'elenco non e' ancora arrivato:
-  // una pagina vuota (che entra con la sua dissolvenza) invece dell'elenco.
-  if (!elencoLetto && selId != null) return <div className="page" />
+  // Un paziente aperto senza passare da apriScheda (arrivando da un'altra sezione,
+  // tornando da una seduta aperta dall'elenco): si legge la sua scheda adesso.
+  const daPreparare = sel != null && builder == null && schedaLetta !== sel.id ? sel : null
+  useEffect(() => {
+    if (daPreparare) void apriScheda(daPreparare, scheda)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [daPreparare?.id])
 
-  if (builder && sel) {
-    return (
-      <SedutaBuilder
-        paziente={sel}
-        sedutaId={builder.sedutaId}
-        duplicaDa={builder.duplicaDa}
-        dataIniziale={builder.dataIniziale}
-        onClose={(salvata) => {
-          const tornaIndietro = builder.daFuori === true
-          setBuilder(null)
-          if (salvata) {
-            void load()
-            onSedutaSalvata?.()
-          } else if (tornaIndietro) {
-            onEsciDallaSeduta?.()
-          }
-        }}
-      />
-    )
-  }
+  const builderVisibile = builder != null && builderPronto === builder
+  // La scheda si mostra solo gia' letta; altrimenti l'elenco (se da li' si e'
+  // aperta una seduta) o una pagina vuota.
+  const selVisibile = sel != null && schedaLetta === sel.id ? sel : null
+
+  const seduta =
+    builder && sel ? (
+      <div className="seduta-in-arrivo" hidden={!builderVisibile}>
+        <SedutaBuilder
+          paziente={sel}
+          sedutaId={builder.sedutaId}
+          duplicaDa={builder.duplicaDa}
+          dataIniziale={builder.dataIniziale}
+          onPronto={() => setBuilderPronto(builder)}
+          onClose={(salvata) => {
+            const tornaIndietro = builder.daFuori === true
+            if (salvata) {
+              setBuilder(null)
+              void load()
+              onSedutaSalvata?.()
+            } else if (tornaIndietro) {
+              setBuilder(null)
+              onEsciDallaSeduta?.()
+            } else {
+              // si torna alla scheda: la si rilegge prima, cosi' compare gia' piena
+              const mia = ++richiesta.current
+              void preparaScheda(sel).then(() => {
+                if (mia !== richiesta.current) return
+                setSchedaLetta(sel.id)
+                setBuilder(null)
+              })
+            }
+          }}
+        />
+      </div>
+    ) : null
+
+  // Si sta aprendo una seduta o una scheda e l'elenco (o la scheda) non e' ancora
+  // arrivato: una pagina vuota (che entra con la sua dissolvenza) invece dell'elenco.
+  const inAttesa =
+    (!elencoLetto && selId != null) ||
+    (builder != null && builder.daFuori === true) ||
+    (builder == null && sel != null && selVisibile == null)
+
+  // Dopo la pagina vuota la scheda entra con la dissolvenza, invece di comparire
+  // di colpo sulla pagina gia' entrata.
+  if (inAttesa) dopoAttesa.current = true
 
   return (
+    <>
+      {builderVisibile ? null : inAttesa ? <div className="page" /> : pagina()}
+      {seduta}
+    </>
+  )
+
+  function pagina(): React.JSX.Element {
+    const sel = selVisibile
+    return (
     // Senza un paziente aperto la pagina e' la lista, larga quanto la
     // finestra; con la scheda aperta resta la colonna di lettura di prima.
-    <div className={sel ? 'page step-flow' : 'page lista-larga'}>
+    <div className={`${sel ? 'page step-flow' : 'page lista-larga'}${dopoAttesa.current ? ' entrata-pagina' : ''}`}>
       <header className="page-header">
         <h2>Pazienti</h2>
       </header>
@@ -347,7 +408,9 @@ export default function PazientiPage({
           patologie={patologie}
           scheda={scheda}
           onSchedaChange={setScheda}
-          onChanged={load}
+          onChanged={async () => {
+            await load()
+          }}
           onDeleted={() => {
             setSelId(null)
             void load()
@@ -498,9 +561,9 @@ export default function PazientiPage({
             setImportPedana(null)
             if (importatoIn !== null) {
               // si apre il paziente, sulla pagina della pedana
-              void load().then(() => {
-                setScheda('pedana')
-                setSelId(importatoIn)
+              void load().then((lista) => {
+                const p = lista.find((x) => x.id === importatoIn)
+                if (p) void apriScheda(p, 'pedana')
               })
             }
           }}
@@ -514,12 +577,15 @@ export default function PazientiPage({
           onChiudi={(salvato, nuovoId) => {
             setNuovo(false)
             if (salvato) {
-              void load()
-              if (nuovoId != null) setSelId(nuovoId)
+              void load().then((lista) => {
+                const p = nuovoId == null ? undefined : lista.find((x) => x.id === nuovoId)
+                if (p) void apriScheda(p)
+              })
             }
           }}
         />
       )}
     </div>
-  )
+    )
+  }
 }

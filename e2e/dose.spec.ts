@@ -116,24 +116,25 @@ test('dose: la categoria si conta, la fase prende i numeri, la seduta dice se ci
     // ---- in seduta: la riga della dose e il monopodalico
     await pagina.getByRole('button', { name: 'Nuova seduta', exact: true }).click()
     const dose = pagina.locator('.riga-dose')
-    await expect(dose).toContainText('Pliometria est. 0')
+    await expect(dose.locator('.voce-striscia', { hasText: 'Pliometria' })).toContainText('0/')
     await pagina.getByTitle('Aggiungi un esercizio a questa sezione').nth(0).click()
     await pagina.getByTitle('Aggiungi Single leg hop').click()
     await pagina.getByTitle('Aggiungi Broad jump').click()
     // il bottoncino c'e' solo sull'esercizio "a scelta"
     await expect(riga(pagina, 'Single leg hop').locator('.btn-monopodalico')).toHaveCount(0)
     // single leg hop 3 × 10 a una gamba = 60, broad jump 2 × 15 = 30
-    await expect(dose.locator('.voce-dose', { hasText: 'Pliometria' })).toHaveText(/90/)
+    await expect(dose.locator('.voce-striscia', { hasText: 'Pliometria' })).toContainText('90/')
     await riga(pagina, 'Broad jump').getByRole('button', { name: 'Bipodalico' }).click()
     await expect(riga(pagina, 'Broad jump').getByRole('button', { name: 'Monopodalico' })).toBeVisible()
-    await expect(dose.locator('.voce-dose', { hasText: 'Pliometria' })).toHaveText(/120/)
-    await expect(dose.locator('.voce-dose', { hasText: 'Pliometria' })).toHaveClass(/ok/)
+    await expect(dose.locator('.voce-striscia', { hasText: 'Pliometria' })).toContainText('120/')
 
     await pagina.getByTitle('Aggiungi un esercizio a questa sezione').nth(1).click()
     await pagina.getByTitle('Aggiungi Leg extension').click()
-    await expect(dose.locator('.voce-dose', { hasText: 'Quadricipite' })).toHaveClass(/ok/)
-    await expect(dose.locator('.voce-dose', { hasText: 'Hamstring' })).toHaveClass(/poco/)
+    // aperta, la striscia dice com'e' messa ogni voce
     await dose.locator('.riga-dose-sintesi').click()
+    await expect(dose.locator('li.ok', { hasText: 'Pliometria' })).toBeVisible()
+    await expect(dose.locator('li.ok', { hasText: 'Quadricipite' })).toBeVisible()
+    await expect(dose.locator('li.poco', { hasText: 'Hamstring' })).toBeVisible()
     await expect(dose).toContainText('in settimana 0 su almeno 9')
     await pagina.screenshot({ path: join(FOTO, '42-dose-seduta.png'), fullPage: true })
     await pagina.getByRole('button', { name: /Salva seduta/ }).click()

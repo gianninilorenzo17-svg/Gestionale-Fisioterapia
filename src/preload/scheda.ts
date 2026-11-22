@@ -71,7 +71,8 @@ const api: Pick<Api, 'scheda' | 'finestra'> = {
   },
   finestra: {
     comando: (c: 'riduci' | 'ingrandisci' | 'chiudi') => ipcRenderer.invoke('finestra:comando', c),
-    ingrandita: () => ipcRenderer.invoke('finestra:ingrandita')
+    ingrandita: () => ipcRenderer.invoke('finestra:ingrandita'),
+    pronta: () => ipcRenderer.invoke('finestra:pronta')
   }
 }
 

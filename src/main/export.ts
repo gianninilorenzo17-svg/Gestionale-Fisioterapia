@@ -264,6 +264,9 @@ export async function apriAnteprimaCartella(
   const win = new BrowserWindow({
     width: 900,
     height: 1000,
+    // nasce nascosta e compare a pagina gia' disegnata, non bianca che si riempie
+    show: false,
+    backgroundColor: '#ffffff',
     title: `Anteprima — ${cognome} ${nome}`,
     autoHideMenuBar: true,
     ...barraDisegnata(),
@@ -279,6 +282,7 @@ export async function apriAnteprimaCartella(
   zoomabile(win)
   win.on('closed', () => anteprimeAperte.delete(pazienteId))
   anteprimeAperte.set(pazienteId, win)
+  win.once('ready-to-show', () => win.show())
   await win.loadFile(tmp)
   eliminaTemporaneoPresto(tmp)
 }
@@ -339,6 +343,9 @@ export async function apriAnteprimaRelazione(
   const win = new BrowserWindow({
     width: 900,
     height: 1000,
+    // nasce nascosta e compare a pagina gia' disegnata, non bianca che si riempie
+    show: false,
+    backgroundColor: '#ffffff',
     title: titolo,
     autoHideMenuBar: true,
     ...barraDisegnata(),
@@ -354,6 +361,7 @@ export async function apriAnteprimaRelazione(
   zoomabile(win)
   win.on('closed', () => relazioniAperte.delete(chiave))
   relazioniAperte.set(chiave, win)
+  win.once('ready-to-show', () => win.show())
   await win.loadFile(tmp)
   eliminaTemporaneoPresto(tmp)
 }
@@ -441,6 +449,9 @@ async function mostraReport(r: DatiReport, sessioneId: number): Promise<void> {
   const win = new BrowserWindow({
     width: 980,
     height: 1000,
+    // nasce nascosta e compare a pagina gia' disegnata, non bianca che si riempie
+    show: false,
+    backgroundColor: '#ffffff',
     title: `Report — ${r.cognome} ${r.nome}`,
     autoHideMenuBar: true,
     ...barraDisegnata(),
@@ -456,6 +467,7 @@ async function mostraReport(r: DatiReport, sessioneId: number): Promise<void> {
   zoomabile(win)
   win.on('closed', () => reportAperti.delete(sessioneId))
   reportAperti.set(sessioneId, win)
+  win.once('ready-to-show', () => win.show())
   await win.loadFile(tmp)
   eliminaTemporaneoPresto(tmp)
 }

@@ -59,6 +59,10 @@ interface Props {
   // il giorno della seduta nuova, se non e' oggi (copiando dalla settimana)
   dataIniziale?: string
   onClose: (salvata: boolean) => void
+  // Chiamata quando la seduta e' tutta letta: chi la apre puo' tenerla nascosta
+  // fino a quel momento e lasciare in vista la pagina di prima, invece di
+  // mostrare una pagina vuota che si riempie.
+  onPronto?: () => void
 }
 
 // Quello che serve per comporre e che non cambia mentre si compone: si legge
@@ -112,9 +116,15 @@ export default function SedutaBuilder({
   sedutaId,
   duplicaDa,
   dataIniziale,
-  onClose
+  onClose,
+  onPronto
 }: Props): React.JSX.Element {
   const [pronto, setPronto] = useState(false)
+  const avvisaPronto = useRef(onPronto)
+  avvisaPronto.current = onPronto
+  useEffect(() => {
+    if (pronto) avvisaPronto.current?.()
+  }, [pronto])
   const [contesto, setContesto] = useState<Contesto>(CONTESTO_VUOTO)
   const [campi, setCampi] = useState<CampiSeduta>({
     data: dataIniziale ?? oggiIso(),

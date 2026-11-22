@@ -1253,6 +1253,12 @@ export function registerIpc(): void {
       else finestra.maximize()
     } else if (comando === 'chiudi') finestra.close()
   })
+  // La scheda del paziente nasce nascosta e si mostra quando ha i suoi dati:
+  // prima compariva la cornice vuota e il programma arrivava dopo.
+  handleConFinestra('finestra:pronta', (evento) => {
+    const finestra = BrowserWindow.fromWebContents(evento.sender)
+    if (finestra && !finestra.isDestroyed() && !finestra.isVisible()) finestra.show()
+  })
   handleConFinestra('finestra:ingrandita', (evento) => {
     const finestra = BrowserWindow.fromWebContents(evento.sender)
     return finestra != null && !finestra.isDestroyed() && finestra.isMaximized()

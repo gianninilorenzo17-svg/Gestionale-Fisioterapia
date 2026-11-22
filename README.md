@@ -64,6 +64,19 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.21
+
+**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge il promemoria «scrivere al
+paziente» (migrazione 78): non si può annullare, quindi prima fa da solo una copia dell'archivio.
+
+- Quadro del paziente a cruscotto, con gli elenchi delle parti in Clinica e Percorso e il Diario a righe
+- Seduta rifatta: striscia con dose, progressioni e obiettivi, «Come va oggi», righe esercizio più chiare,
+  fine seduta con una riga per progressione (Indietro / Resta / Avanza)
+- Follow-up: promemoria «scrivere al paziente» con la campanella, ricerca, Concludi e Follow-up nelle righe
+- Aperture più pulite: la scheda del paziente, il Diario e la seduta compaiono già pieni invece di
+  riempirsi sotto gli occhi; le finestre a parte (scheda per il paziente, anteprima della cartella,
+  relazioni, report) si mostrano solo a pagina disegnata; la scritta «Caricamento…» non lampeggia più
+
 ### v0.5.20
 
 **Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge le tabelle dei farmaci
