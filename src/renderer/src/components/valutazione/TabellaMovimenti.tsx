@@ -125,15 +125,18 @@ export function TabellaMovimenti({
           ))}
         </span>
         <span className="gm-dolore">
-          <input
-            type="checkbox"
+          {/* i rilievi vecchi avevano il dolore graduato: qualunque valore
+              diverso da zero vuol dire che il dolore c'era */}
+          <button
+            type="button"
+            className={(r[t.dolore] ?? 0) > 0 ? 'pillola-dolore scelta-attiva' : 'pillola-dolore'}
             title="Dolore durante il movimento"
+            aria-pressed={(r[t.dolore] ?? 0) > 0}
             disabled={soloLettura}
-            // i rilievi vecchi avevano il dolore graduato: qualunque valore
-            // diverso da zero vuol dire che il dolore c'era
-            checked={(r[t.dolore] ?? 0) > 0}
-            onChange={(e) => onCambia(id, lato, { [t.dolore]: e.target.checked ? 1 : null })}
-          />
+            onClick={() => onCambia(id, lato, { [t.dolore]: (r[t.dolore] ?? 0) > 0 ? null : 1 })}
+          >
+            dolore
+          </button>
         </span>
         {conGradi &&
           (m.gradi === 1 ? (
@@ -164,7 +167,8 @@ export function TabellaMovimenti({
     <div className="movimenti">
       {TIPI.map((t) => (
         <div key={t.tipo} className="riquadro-test blocco-movimenti">
-          <div className="sotto-titolo">{t.titolo}</div>
+          <div className="testata-blocco">
+            <div className="sotto-titolo">{t.titolo}</div>
           {/* Un clic per dire che quello che non hai segnato e' nella norma: la
               relazione e la cartella lo scrivono, invece di lasciare il dubbio
               fra "normale" e "non valutato". Ripremuto, toglie le spunte. */}
@@ -187,6 +191,7 @@ export function TabellaMovimenti({
               <Aiuto testo="Segna nella norma tutti i movimenti di questo riquadro in cui non hai messo né l'intensità né il dolore; quelli che hai già segnato restano come sono. Ripremendo il pulsante le spunte si tolgono. L'attivo e il passivo hanno le loro spunte: un movimento può essere limitato in attivo e nella norma in passivo. La spunta nella colonna Norma fa la stessa cosa per un movimento solo; se poi segni un'intensità o il dolore, si toglie da sola." />
             </div>
           )}
+          </div>
           <div className={classeGriglia}>
             {dueLati && (
               <>

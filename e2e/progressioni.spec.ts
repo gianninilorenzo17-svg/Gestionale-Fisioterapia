@@ -113,7 +113,9 @@ test('progressioni: dalla libreria alla seduta e allo specchietto', async () => 
     // un esercizio che e' uno step non si elimina dalla libreria
     await pagina.getByRole('button', { name: 'Esercizi', exact: true }).click()
     await pagina.getByPlaceholder('Cerca categoria, distretto o esercizio…').fill('Wall sit')
-    await pagina.getByTitle('Elimina').first().click()
+    // Elimina sta nel menu «⋯» della riga
+    await pagina.locator('.riga-esercizio').first().getByTitle('Altre azioni').click()
+    await pagina.locator('.menu-tendina').getByRole('button', { name: 'Elimina' }).click()
     await pagina.getByRole('button', { name: /Elimina|Conferma|Sì/ }).last().click()
     await expect(pagina.getByText(/uno step di una progressione/)).toBeVisible()
 

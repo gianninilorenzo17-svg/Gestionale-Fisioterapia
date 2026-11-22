@@ -21,6 +21,7 @@ import SceltaConRicerca from '../components/SceltaConRicerca'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'
 import RitaglioImmagine from '../components/RitaglioImmagine'
 import Modale from '../components/Modale'
+import MenuAltro from '../components/MenuAltro'
 import { errMsg } from '../lib'
 import { daPrecarico, ricorda } from '../precarico'
 import type { Dosaggio } from '../../../shared/dosaggio'
@@ -365,109 +366,91 @@ export default function EserciziPage(): React.JSX.Element {
         </button>
       </div>
 
-      {/* La tabella scorre di lato dentro al suo riquadro: con il testo
-          ingrandito non ci sta piu' in larghezza, e prima usciva fuori. */}
-      <div className="tabella-scorre">
-        <table className="data-table tabella-esercizi">
-          <thead>
-            <tr>
-              <th className="col-nome">Nome</th>
-              {mostraCategoria && <th className="col-categoria">Categoria</th>}
-              <th className="col-param">Serie</th>
-              <th className="col-param" title="Ripetizioni">
-                Rip.
-              </th>
-              <th className="col-param">Carico</th>
-              <th className="col-param">Recupero</th>
-              <th className="col-azioni"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {ordinati(lista).map((e) => (
-              <tr key={e.id} className={e.archiviato ? 'archiviato' : ''}>
-                <td className="col-nome">
-                  {/* Nome e icone in due colonne: in linea, con un nome lungo che
-                      va a capo, le icone finivano sotto la seconda riga. */}
-                  <div className="cella-nome">
-                    <span
-                      className="nome-esercizio"
-                      title={e.nome_alternativo ? `${e.nome} (${e.nome_alternativo})` : e.nome}
-                    >
-                      {e.nome}
-                      {e.nome_alternativo && <span className="hint"> · {e.nome_alternativo}</span>}
-                    </span>
-                    <span className="icone-nome">
-                  {e.link && (
-                    <button
-                      className="icona-esercizio"
-                      title="Apri video"
-                      onClick={() => window.api.apriLink(e.link!).catch((err) => toastErrore(errMsg(err)))}
-                    >
-                      <Video size={16} />
-                    </button>
-                  )}
-                  {e.ha_immagine === 1 && (
-                    <button
-                      className="icona-esercizio"
-                      title="Vedi immagine"
-                      onClick={() => setImmagineAperta(e)}
-                    >
-                      <ImageIcon size={16} />
-                    </button>
-                  )}
+      {/* Una riga per esercizio: il nome (con cosa ha di particolare), la dose
+          in una frase sola e, passando sopra, le azioni. */}
+      <div className={`tabella-esercizi elenco-righe${mostraCategoria ? ' con-categoria' : ''}`}>
+        {ordinati(lista).map((e) => {
+          const dose = [
+            volumeTesto(dosaggioDi(e)),
+            caricoTesto(e.carico_default, e.unita_carico),
+            recuperoEsteso(dosaggioDi(e))
+          ]
+            .filter(Boolean)
+            .join(' · ')
+          return (
+            <div
+              key={e.id}
+              className={`riga-lista riga-esercizio${e.archiviato ? ' archiviato' : ''}`}
+              onClick={() => void apriModifica(e)}
+            >
+              <span className="chi-testo">
+                <span
+                  className="nome-esercizio"
+                  title={e.nome_alternativo ? `${e.nome} (${e.nome_alternativo})` : e.nome}
+                >
+                  <b>{e.nome}</b>
+                  {e.nome_alternativo && <span className="hint"> · {e.nome_alternativo}</span>}
+                  {e.gambe === 'scelta' && <span className="tag-riga">1 o 2 gambe</span>}
+                  {e.gambe === 'una' && <span className="tag-riga">una gamba</span>}
                   {e.varianti.length > 0 && (
-                    <span className="badge" title={e.varianti.map((v) => v.nome).join('\n')}>
+                    <span className="tag-riga acc" title={e.varianti.map((v) => v.nome).join('\n')}>
                       {e.varianti.length === 1 ? '1 variante' : `${e.varianti.length} varianti`}
                     </span>
                   )}
-                  {e.archiviato ? <span className="badge">archiviato</span> : null}
-                    </span>
-                  </div>
-                </td>
-                {mostraCategoria && (
-                  <td className="col-categoria" title={e.categoria_nome}>
-                    {e.categoria_nome}
-                  </td>
-                )}
-                <td className="col-param">{e.serie_default ?? '—'}</td>
-                <td className="col-param" title={aCluster(dosaggioDi(e)) ? 'Cluster × ripetizioni' : undefined}>
-                  {ripetizioniTesto(dosaggioDi(e)) ?? '—'}
-                </td>
-                <td className="col-param">
-                  {caricoTesto(e.carico_default, e.unita_carico) ?? '—'}
-                </td>
-                <td className="col-param" title={aCluster(dosaggioDi(e)) ? 'Tra i cluster / tra le serie' : undefined}>
-                  {recuperoTesto(dosaggioDi(e)) ?? '—'}
-                </td>
-                <td className="row-actions col-azioni">
-                  <button title="Modifica" onClick={() => void apriModifica(e)}>
-                    <Pencil size={16} />
-                  </button>
+                  {e.archiviato ? <span className="tag-riga">archiviato</span> : null}
+                </span>
+                {mostraCategoria && <span className="dettaglio-riga">{e.categoria_nome}</span>}
+              </span>
+              <span
+                className="dose-riga-esercizio"
+                title={aCluster(dosaggioDi(e)) ? 'Serie × (cluster × ripetizioni)' : undefined}
+              >
+                {dose || <span className="hint">nessuna dose di partenza</span>}
+              </span>
+              <span className="azioni-riga" onClick={(ev) => ev.stopPropagation()}>
+                {e.link && (
                   <button
-                    title={
-                      e.archiviato
-                        ? 'Rimetti in elenco'
-                        : "Togli dall'elenco, tenendo le sedute in cui l'hai usato"
-                    }
-                    onClick={() => void archivia(e)}
+                    className="btn-icona azione-sempre"
+                    title="Apri video"
+                    onClick={() => window.api.apriLink(e.link!).catch((err) => toastErrore(errMsg(err)))}
                   >
-                    {e.archiviato ? <ArchiveRestore size={16} /> : <Archive size={16} />}
+                    <Video size={16} />
                   </button>
-                  <button className="danger" title="Elimina" onClick={() => void elimina(e)}>
-                    <Trash2 size={16} />
+                )}
+                {e.ha_immagine === 1 && (
+                  <button
+                    className="btn-icona azione-sempre"
+                    title="Vedi immagine"
+                    onClick={() => setImmagineAperta(e)}
+                  >
+                    <ImageIcon size={16} />
                   </button>
-                </td>
-              </tr>
-            ))}
-            {lista.length === 0 && (
-              <tr>
-                <td colSpan={mostraCategoria ? 7 : 6} className="empty">
-                  Nessun esercizio qui.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                )}
+                <button
+                  className="btn-icona azione-nascosta"
+                  title="Modifica"
+                  onClick={() => void apriModifica(e)}
+                >
+                  <Pencil size={16} />
+                </button>
+                <MenuAltro
+                  voci={[
+                    {
+                      etichetta: e.archiviato ? 'Rimetti in elenco' : 'Archivia',
+                      title: e.archiviato
+                        ? 'Rimetti in elenco'
+                        : "Togli dall'elenco, tenendo le sedute in cui l'hai usato",
+                      icona: e.archiviato ? ArchiveRestore : Archive,
+                      onClick: () => void archivia(e)
+                    },
+                    { etichetta: 'Elimina', icona: Trash2, pericolo: true, onClick: () => void elimina(e) }
+                  ]}
+                />
+              </span>
+            </div>
+          )
+        })}
+        {lista.length === 0 && <p className="empty riga-vuota">Nessun esercizio qui.</p>}
       </div>
     </>
   )
@@ -523,223 +506,243 @@ export default function EserciziPage(): React.JSX.Element {
         // Cliccando fuori (o premendo Invio) si salva, come nel resto della
         // configurazione: si butta via solo un esercizio nuovo ancora senza
         // nome. "Annulla" resta il modo per uscire senza salvare.
-        <Modale onConferma={chiudiCliccandoFuori}>
+        <Modale className="modal-schede" onConferma={chiudiCliccandoFuori}>
             <div className="modal-testata">
               <h3>{form.id == null ? 'Nuovo esercizio' : 'Modifica esercizio'}</h3>
               <button className="primary" onClick={() => void salva()}>
                 Salva
               </button>
             </div>
-            <label>
-              Nome *
-              <input
-                autoFocus
-                value={form.nome}
-                onChange={(e) => setForm({ ...form, nome: e.target.value })}
-              />
-            </label>
-            <label>
-              Nome alternativo (opzionale)
-              <input
-                value={form.nome_alternativo}
-                placeholder="Per esempio il nome in inglese"
-                onChange={(e) => setForm({ ...form, nome_alternativo: e.target.value })}
-              />            </label>
-            <label>
-              Categoria *
-              {/* Si scrive invece di scorrere: con trenta categorie la tendina
-                  di Windows si apriva lunga mezza schermata. */}
-              <SceltaConRicerca
-                voci={vociCategorie}
-                valore={form.categoria_id}
-                segnaposto="Scrivi o scegli la categoria…"
-                onCambia={(id) => setForm({ ...form, categoria_id: id })}
-              />
-            </label>
-            <label>
-              Gambe
-              <Tendina
-                value={form.gambe}
-                onChange={(e) => setForm({ ...form, gambe: e.target.value as Gambe })}
-              >
-                <option value="due">Due</option>
-                <option value="scelta">A scelta in seduta (squat, CMJ, affondi…)</option>
-                <option value="una">Sempre una (single leg hop…)</option>
-              </Tendina>
-            </label>
-            <p className="modal-testo">
-              Valori di default, proposti quando aggiungi l&apos;esercizio a una seduta:
-            </p>
-            <div className={`form-row ${clusterNelForm ? 'form-row-3' : 'form-row-4'}`}>
+
+            <section className="riquadro-form">
+              <div className="titolo-riquadro">Esercizio</div>
               <label>
-                Serie
+                Nome *
                 <input
-                  value={form.serie_default}
-                  placeholder="es. 3"
-                  onChange={(e) => setForm({ ...form, serie_default: e.target.value })}
+                  autoFocus
+                  value={form.nome}
+                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
                 />
               </label>
-              {clusterNelForm && (
+              <label>
+                Nome alternativo (opzionale)
+                <input
+                  value={form.nome_alternativo}
+                  placeholder="Per esempio il nome in inglese"
+                  onChange={(e) => setForm({ ...form, nome_alternativo: e.target.value })}
+                />
+              </label>
+              <label>
+                Categoria *
+                {/* Si scrive invece di scorrere: con trenta categorie la tendina
+                    di Windows si apriva lunga mezza schermata. */}
+                <SceltaConRicerca
+                  voci={vociCategorie}
+                  valore={form.categoria_id}
+                  segnaposto="Scrivi o scegli la categoria…"
+                  onCambia={(id) => setForm({ ...form, categoria_id: id })}
+                />
+              </label>
+              <label>
+                Gambe
+                <Tendina
+                  value={form.gambe}
+                  onChange={(e) => setForm({ ...form, gambe: e.target.value as Gambe })}
+                >
+                  <option value="due">Due</option>
+                  <option value="scelta">A scelta in seduta (squat, CMJ, affondi…)</option>
+                  <option value="una">Sempre una (single leg hop…)</option>
+                </Tendina>
+              </label>
+            </section>
+
+            <section className="riquadro-form">
+              <div className="titolo-riquadro">Dose di partenza</div>
+              <p className="hint">Proposta quando aggiungi l&apos;esercizio a una seduta.</p>
+              <div className={`form-row ${clusterNelForm ? 'form-row-3' : 'form-row-4'}`}>
                 <label>
-                  Cluster per serie
+                  Serie
                   <input
-                    value={form.cluster_default}
+                    value={form.serie_default}
                     placeholder="es. 3"
-                    onChange={(e) => setForm({ ...form, cluster_default: e.target.value })}
+                    onChange={(e) => setForm({ ...form, serie_default: e.target.value })}
                   />
                 </label>
-              )}
-              <label>
-                {clusterNelForm ? 'Ripetizioni per cluster' : 'Ripetizioni'}
-                <input
-                  value={form.ripetizioni_default}
-                  placeholder={clusterNelForm ? 'es. 2' : 'es. 10'}
-                  onChange={(e) => setForm({ ...form, ripetizioni_default: e.target.value })}
-                />
-              </label>
-              {rirNelForm && (
+                {clusterNelForm && (
+                  <label>
+                    Cluster per serie
+                    <input
+                      value={form.cluster_default}
+                      placeholder="es. 3"
+                      onChange={(e) => setForm({ ...form, cluster_default: e.target.value })}
+                    />
+                  </label>
+                )}
                 <label>
-                  RIR
+                  {clusterNelForm ? 'Ripetizioni per cluster' : 'Ripetizioni'}
                   <input
-                    value={form.rir_default}
-                    placeholder="es. 2"
-                    onChange={(e) => setForm({ ...form, rir_default: e.target.value })}
+                    value={form.ripetizioni_default}
+                    placeholder={clusterNelForm ? 'es. 2' : 'es. 10'}
+                    onChange={(e) => setForm({ ...form, ripetizioni_default: e.target.value })}
                   />
                 </label>
-              )}
-              {/* Carico e unita' stanno nella stessa casella: sono una cosa
-                  sola ("10 kg"), e come campi separati avrebbero sballato la
-                  griglia del form. L'unita' e' dell'esercizio, perche' la panca
-                  si carica in chili e il plank si tiene in secondi. */}
-              <label>
-                Carico
-                <span className="campo-con-unita">
-                  <input
-                    value={form.carico_default}
-                    placeholder="es. 10"
-                    onChange={(e) => setForm({ ...form, carico_default: e.target.value })}
-                  />
-                  <input
-                    className="casella-unita"
-                    value={form.unita_carico}
-                    placeholder="kg"
-                    maxLength={12}
-                    title="Unità di misura: kg, sec, cm… Lascia vuoto se non serve."
-                    onChange={(e) => setForm({ ...form, unita_carico: e.target.value })}
-                  />
-                </span>
-              </label>
-              {clusterNelForm && (
+                {rirNelForm && (
+                  <label>
+                    RIR
+                    <input
+                      value={form.rir_default}
+                      placeholder="es. 2"
+                      onChange={(e) => setForm({ ...form, rir_default: e.target.value })}
+                    />
+                  </label>
+                )}
+                {/* Carico e unita' stanno nella stessa casella: sono una cosa
+                    sola ("10 kg"), e come campi separati avrebbero sballato la
+                    griglia del form. L'unita' e' dell'esercizio, perche' la panca
+                    si carica in chili e il plank si tiene in secondi. */}
                 <label>
-                  Recupero tra i cluster
-                  <input
-                    value={form.recupero_cluster_default}
-                    placeholder={'es. 15"'}
-                    onChange={(e) =>
-                      setForm({ ...form, recupero_cluster_default: e.target.value })
-                    }
-                  />
-                </label>
-              )}
-              <label>
-                {clusterNelForm ? 'Recupero tra le serie' : 'Recupero'}
-                <input
-                  value={form.recupero_default}
-                  placeholder="es. 1 min"
-                  onChange={(e) => setForm({ ...form, recupero_default: e.target.value })}
-                />
-              </label>
-            </div>
-            {clusterNelForm && (
-              <p className="hint">
-                Sulla scheda: <b>{anteprimaCluster}</b>
-              </p>
-            )}
-            <label>
-              Link video (opzionale)
-              <input
-                value={form.link}
-                placeholder="es. https://youtube.com/watch?v=…"
-                onChange={(e) => setForm({ ...form, link: e.target.value })}
-              />
-            </label>
-            <div className="campo-immagine">
-              <span className="campo-immagine-etichetta">Immagine (opzionale)</span>
-              {form.immagine ? (
-                <>
-                  <img className="immagine-anteprima" src={form.immagine} alt="" />
-                  <div className="campo-immagine-azioni">
-                    <button onClick={() => void scegliImmagine()}>Sostituisci…</button>
-                    <button onClick={() => setInRitaglio(form.immagine)}>Ritaglia di nuovo…</button>
-                    <button
-                      className="danger"
-                      onClick={() => setForm({ ...form, immagine: null, immagineCambiata: true })}
-                    >
-                      Rimuovi
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="campo-immagine-azioni">
-                  <button onClick={() => void scegliImmagine()}>Scegli immagine…</button>
-                </div>
-              )}
-            </div>
-            <label>
-              Nota tecnica
-              <textarea
-                rows={3}
-                value={form.nota_tecnica}
-                placeholder="Indicazioni sul gesto tecnico, precauzioni…"
-                onChange={(e) => setForm({ ...form, nota_tecnica: e.target.value })}
-              />
-            </label>
-            <div className="campo-varianti">
-              <span className="campo-varianti-etichetta">Varianti (opzionale)</span>
-              {form.varianti.map((v, i) => (
-                <div className="variante-riga" key={v.id ?? `nuova-${i}`}>
-                  <input
-                    value={v.nome}
-                    placeholder="es. con conteggio all'indietro"
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        varianti: form.varianti.map((x, j) => (j === i ? { ...x, nome: e.target.value } : x))
-                      })
-                    }
-                  />
-                  <span className="variante-azioni">
-                    <button
-                      title="Più in alto (più facile)"
-                      disabled={i === 0}
-                      onClick={() => setForm({ ...form, varianti: spostaVariante(form.varianti, i, i - 1) })}
-                    >
-                      <ChevronUp size={16} />
-                    </button>
-                    <button
-                      title="Più in basso (più difficile)"
-                      disabled={i === form.varianti.length - 1}
-                      onClick={() => setForm({ ...form, varianti: spostaVariante(form.varianti, i, i + 1) })}
-                    >
-                      <ChevronDown size={16} />
-                    </button>
-                    <button
-                      className="danger"
-                      title="Togli la variante"
-                      onClick={() => setForm({ ...form, varianti: form.varianti.filter((_, j) => j !== i) })}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                  Carico
+                  <span className="campo-con-unita">
+                    <input
+                      value={form.carico_default}
+                      placeholder="es. 10"
+                      onChange={(e) => setForm({ ...form, carico_default: e.target.value })}
+                    />
+                    <input
+                      className="casella-unita"
+                      value={form.unita_carico}
+                      placeholder="kg"
+                      maxLength={12}
+                      title="Unità di misura: kg, sec, cm… Lascia vuoto se non serve."
+                      onChange={(e) => setForm({ ...form, unita_carico: e.target.value })}
+                    />
                   </span>
-                </div>
-              ))}
-              <button
-                className="btn-aggiungi-lista"
-                onClick={() => setForm({ ...form, varianti: [...form.varianti, { id: null, nome: '' }] })}
-              >
-                <Plus size={16} /> Aggiungi una variante
-              </button>
-            </div>
+                </label>
+                {clusterNelForm && (
+                  <label>
+                    Recupero tra i cluster
+                    <input
+                      value={form.recupero_cluster_default}
+                      placeholder={'es. 15"'}
+                      onChange={(e) =>
+                        setForm({ ...form, recupero_cluster_default: e.target.value })
+                      }
+                    />
+                  </label>
+                )}
+                <label>
+                  {clusterNelForm ? 'Recupero tra le serie' : 'Recupero'}
+                  <input
+                    value={form.recupero_default}
+                    placeholder="es. 1 min"
+                    onChange={(e) => setForm({ ...form, recupero_default: e.target.value })}
+                  />
+                </label>
+              </div>
+              {clusterNelForm && (
+                <p className="hint">
+                  Sulla scheda: <b>{anteprimaCluster}</b>
+                </p>
+              )}
+            </section>
+
+            <section className="riquadro-form">
+              <div className="titolo-riquadro">Varianti (opzionale)</div>
+              <div className="campo-varianti">
+                {form.varianti.map((v, i) => (
+                  <div className="variante-riga" key={v.id ?? `nuova-${i}`}>
+                    <input
+                      value={v.nome}
+                      placeholder="es. con conteggio all'indietro"
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          varianti: form.varianti.map((x, j) => (j === i ? { ...x, nome: e.target.value } : x))
+                        })
+                      }
+                    />
+                    <span className="variante-azioni">
+                      <button
+                        title="Più in alto (più facile)"
+                        disabled={i === 0}
+                        onClick={() => setForm({ ...form, varianti: spostaVariante(form.varianti, i, i - 1) })}
+                      >
+                        <ChevronUp size={16} />
+                      </button>
+                      <button
+                        title="Più in basso (più difficile)"
+                        disabled={i === form.varianti.length - 1}
+                        onClick={() => setForm({ ...form, varianti: spostaVariante(form.varianti, i, i + 1) })}
+                      >
+                        <ChevronDown size={16} />
+                      </button>
+                      <button
+                        className="danger"
+                        title="Togli la variante"
+                        onClick={() => setForm({ ...form, varianti: form.varianti.filter((_, j) => j !== i) })}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </span>
+                  </div>
+                ))}
+                <button
+                  className="btn-aggiungi-lista"
+                  onClick={() => setForm({ ...form, varianti: [...form.varianti, { id: null, nome: '' }] })}
+                >
+                  <Plus size={16} /> Aggiungi una variante
+                </button>
+              </div>
+            </section>
+
+            {/* Video, immagine e nota sul gesto: si usano di rado, quindi stanno
+                chiusi finche' non c'e' qualcosa di scritto o non si apre. */}
+            <details
+              className="riquadro-form ripiegato"
+              open={!!(form.link || form.immagine || form.nota_tecnica)}
+            >
+              <summary>Video, immagine e nota sul gesto</summary>
+              <label>
+                Link video (opzionale)
+                <input
+                  value={form.link}
+                  placeholder="es. https://youtube.com/watch?v=…"
+                  onChange={(e) => setForm({ ...form, link: e.target.value })}
+                />
+              </label>
+              <div className="campo-immagine">
+                <span className="campo-immagine-etichetta">Immagine (opzionale)</span>
+                {form.immagine ? (
+                  <>
+                    <img className="immagine-anteprima" src={form.immagine} alt="" />
+                    <div className="campo-immagine-azioni">
+                      <button onClick={() => void scegliImmagine()}>Sostituisci…</button>
+                      <button onClick={() => setInRitaglio(form.immagine)}>Ritaglia di nuovo…</button>
+                      <button
+                        className="danger"
+                        onClick={() => setForm({ ...form, immagine: null, immagineCambiata: true })}
+                      >
+                        Rimuovi
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="campo-immagine-azioni">
+                    <button onClick={() => void scegliImmagine()}>Scegli immagine…</button>
+                  </div>
+                )}
+              </div>
+              <label>
+                Nota tecnica
+                <textarea
+                  rows={3}
+                  value={form.nota_tecnica}
+                  placeholder="Indicazioni sul gesto tecnico, precauzioni…"
+                  onChange={(e) => setForm({ ...form, nota_tecnica: e.target.value })}
+                />
+              </label>
+            </details>
+
             <div className="modal-actions">
               <button onClick={() => setForm(null)}>Annulla</button>
               <button className="primary" onClick={() => void salva()}>

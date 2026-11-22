@@ -1,29 +1,57 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CalendarClock, CheckCircle2, HeartPulse, RotateCcw } from 'lucide-react'
+import { CalendarClock, CheckCircle2, RotateCcw, Star } from 'lucide-react'
 import StatoVuoto from '../components/StatoVuoto'
+import MenuAltro from '../components/MenuAltro'
 import type { PazienteDettaglio, Promemoria } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
-import Modale from '../components/Modale'
-import { errMsg, formatData, testoPromemoria, oggiIso } from '../lib'
+import { errMsg, formatData, testoPromemoria, oggiIso, aggiungiGiorni } from '../lib'
 
-// Chi stai seguendo adesso e chi hai finito di seguire.
+// Chi hai da sentire e chi hai finito di seguire, in un elenco solo.
 //
-// La spunta "contattato" vuol dire "sentito, e per ora non ho altro in
-// programma": rimettendo una data si toglie da sola, perche' c'e' di nuovo
-// qualcosa in sospeso. La data dell'ultimo contatto resta comunque sotto al
-// nome, cosi' non si perde la memoria di quando lo hai sentito.
+// «Da fare» mette in fila per data i questionari, gli screening e i test da
+// rifare e i pazienti da risentire: prima gli scaduti e quelli di oggi, poi la
+// settimana, poi il resto. «Follow-up» e «Conclusi» sono gli elenchi completi.
+// Chi stai seguendo adesso non e' qui: sta nell'elenco dei pazienti, dove si
+// mette in follow-up o si conclude dalla riga.
 //
-// Non c'e' nessun avviso che interrompe: solo un numerino accanto a
-// "Follow-up" nel menu, con quanti sono da sentire. Le date passate si vedono in
-// rosso, quindi basta scorrere l'elenco per capire chi e' in ritardo.
+// La spunta «sentito» vuol dire «sentito, e per ora non ho altro in
+// programma»: rimettendo una data si toglie da sola. La data dell'ultimo
+// contatto resta, cosi' non si perde la memoria di quando lo hai sentito.
 
-// Fra tante settimane da oggi: le proposte quando si chiude un ciclo.
-function fraSettimane(n: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() + n * 7)
-  const p = (n: number): string => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+type Filtro = 'fare' | 'followup' | 'conclusi'
+
+const GIORNI = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab']
+const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
+
+function dataLocale(iso: string): Date {
+  return new Date(`${iso.slice(0, 10)}T00:00:00`)
+}
+
+// «Oggi», «Da 4 giorni» per chi e' in ritardo, poi «Gio 26» e, piu' in la,
+// «Gio 3 dic». Sempre con la maiuscola.
+function quando(iso: string, oggi: string): { grande: string; piccolo: string } {
+  const diff = Math.round((dataLocale(iso).getTime() - dataLocale(oggi).getTime()) / 86400000)
+  const piccolo = diff < 0 ? `era il ${formatData(iso)}` : ''
+  if (diff === 0) return { grande: 'Oggi', piccolo }
+  if (diff < 0) return { grande: diff === -1 ? 'Da 1 giorno' : `Da ${-diff} giorni`, piccolo }
+  const d = dataLocale(iso)
+  const g = GIORNI[d.getDay()]
+  if (diff === 1) return { grande: `Domani`, piccolo: `${g} ${d.getDate()}` }
+  if (diff <= 7) return { grande: `${g} ${d.getDate()}`, piccolo: '' }
+  return { grande: `${g} ${d.getDate()} ${MESI[d.getMonth()]}`, piccolo: '' }
+}
+
+interface Voce {
+  chiave: string
+  pazienteId: number
+  nome: string
+  sotto: string
+  pillola: string
+  tono: 'att' | 'acc'
+  data: string | null
+  azione?: { etichetta: string; fa: () => Promise<unknown> }
+  menu: Parameters<typeof MenuAltro>[0]['voci']
 }
 
 export default function FollowUpPage({
@@ -39,14 +67,14 @@ export default function FollowUpPage({
   // Dopo ogni cambiamento: il menu rilegge quanti sono da sentire.
   onCambiato?: () => void
 }): React.JSX.Element {
-  const [trattamento, setTrattamento] = useState<PazienteDettaglio[]>([])
   const [concluso, setConcluso] = useState<PazienteDettaglio[]>([])
   const [promemoria, setPromemoria] = useState<Promemoria[]>([])
+  const [filtro, setFiltro] = useState<Filtro>('fare')
+  const [ricerca, setRicerca] = useState('')
 
   const carica = useCallback(async (): Promise<void> => {
     try {
-      const { trattamento: t, concluso: c } = await window.api.followUp.list()
-      setTrattamento(t)
+      const { concluso: c } = await window.api.followUp.list()
       setConcluso(c)
       setPromemoria(await window.api.promemoria.list(null))
       onCambiato?.()
@@ -68,19 +96,8 @@ export default function FollowUpPage({
     }
   }
 
-  // Il paziente di cui si sta chiudendo il ciclo: la finestra chiede se vuole
-  // un follow-up e fra quanto. Senza follow-up resta fra i "Conclusi".
-  // `soloFollowUp`: dalla riga di chi e' in trattamento si puo' anche solo
-  // "metterlo in follow-up", dove la domanda e' soltanto fra quanto.
-  const [inChiusura, setInChiusura] = useState<{
-    paziente: PazienteDettaglio
-    soloFollowUp: boolean
-  } | null>(null)
-
-  // La ricerca vale per tutte le liste della pagina.
-  const [ricerca, setRicerca] = useState('')
   const norma = (t: string): string =>
-    t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
   const cercato = norma(ricerca.trim())
   const corrisponde = (p: { nome: string; cognome: string }): boolean =>
     cercato === '' ||
@@ -103,23 +120,10 @@ export default function FollowUpPage({
     })
   }
 
-  const concludi = (p: PazienteDettaglio, settimane: number | null): void => {
-    setInChiusura(null)
-    void esegui(() =>
-      window.api.followUp.setStato(
-        p.id,
-        'concluso',
-        settimane == null ? null : fraSettimane(settimane)
-      )
-    )
-  }
-
   const riprendi = async (p: PazienteDettaglio): Promise<void> => {
     if (
       !(await chiedi(
-        `${p.nome} ${p.cognome} ha ripreso il trattamento?
-
-` +
+        `${p.nome} ${p.cognome} ha ripreso il trattamento?\n\n` +
           'Torna nell’elenco di chi stai seguendo. La data del prossimo contatto viene tolta, ' +
           'la recensione e la data dell’ultimo contatto restano.'
       ))
@@ -131,15 +135,99 @@ export default function FollowUpPage({
 
   const oggi = oggiIso()
   // Chi ha concluso senza follow-up (nessuna data e mai contattato) sta nei
-  // conclusi, sotto; tutti gli altri restano nel follow-up come sempre, anche
-  // quando li hai già sentiti.
+  // conclusi; tutti gli altri restano nel follow-up come sempre, anche quando
+  // li hai gia' sentiti.
   const tuttiConclusi = concluso.filter((p) => p.follow_up_il == null && p.contattato_il == null)
   const tuttiInFollowUp = concluso.filter((p) => !tuttiConclusi.includes(p))
+
+  const menuFollowUp = (p: PazienteDettaglio): Voce['menu'] => [
+    {
+      etichetta: p.recensione === 1 ? 'Togli la recensione' : 'Ha lasciato la recensione',
+      icona: Star,
+      onClick: () => void esegui(() => window.api.followUp.setRecensione(p.id, p.recensione !== 1))
+    },
+    { etichetta: 'Ha ripreso il trattamento', icona: RotateCcw, onClick: () => void riprendi(p) },
+    { etichetta: 'Concludi', icona: CheckCircle2, onClick: () => void chiudiFollowUp(p) }
+  ]
+
+  // Le righe di «Da fare»: promemoria e follow-up con una data, per data.
+  const daFare: Voce[] = [
+    ...promemoria
+      .filter((m) => corrisponde({ nome: m.paziente_nome, cognome: m.paziente_cognome }))
+      .map<Voce>((m) => ({
+        chiave: `m${m.id}`,
+        pazienteId: m.paziente_id,
+        nome: `${m.paziente_cognome} ${m.paziente_nome}`,
+        sotto: m.nota ?? '',
+        pillola: testoPromemoria(m),
+        tono: 'att',
+        data: m.scadenza,
+        azione: { etichetta: 'Fatto', fa: () => window.api.promemoria.setFatto(m.id, true) },
+        menu: []
+      })),
+    ...tuttiInFollowUp
+      .filter((p) => p.follow_up_il != null && corrisponde(p))
+      .map<Voce>((p) => ({
+        chiave: `f${p.id}`,
+        pazienteId: p.id,
+        nome: `${p.cognome} ${p.nome}`,
+        sotto: p.patologia_nome ?? '',
+        pillola: 'Da risentire',
+        tono: 'acc',
+        data: p.follow_up_il,
+        azione: { etichetta: 'Sentito', fa: () => window.api.followUp.segnaContattato(p.id, true) },
+        menu: menuFollowUp(p)
+      }))
+  ].sort((a, b) => (a.data ?? '').localeCompare(b.data ?? ''))
+
+  const finoA = aggiungiGiorni(oggi, 7)
+  const gruppi = [
+    { titolo: 'Scaduti o oggi', voci: daFare.filter((v) => (v.data ?? '') <= oggi) },
+    {
+      titolo: 'Questa settimana',
+      voci: daFare.filter((v) => (v.data ?? '') > oggi && (v.data ?? '') <= finoA)
+    },
+    { titolo: 'Più avanti', voci: daFare.filter((v) => (v.data ?? '') > finoA) }
+  ].filter((g) => g.voci.length > 0)
+
+  const inFollowUp = tuttiInFollowUp
+    .filter(corrisponde)
+    .sort((a, b) => (a.follow_up_il ?? '9999').localeCompare(b.follow_up_il ?? '9999'))
   const conclusi = tuttiConclusi.filter(corrisponde)
-  const inFollowUp = tuttiInFollowUp.filter(corrisponde)
-  const inTrattamento = trattamento.filter(corrisponde)
-  const promemoriaVisibili = promemoria.filter((m) =>
-    corrisponde({ nome: m.paziente_nome, cognome: m.paziente_cognome })
+
+  const riga = (v: Voce): React.JSX.Element => {
+    const q = v.data ? quando(v.data, oggi) : null
+    return (
+      <div key={v.chiave} className="riga-lista riga-fu" onClick={() => onApriPaziente(v.pazienteId)}>
+        <span className="chi-testo">
+          <b>{v.nome}</b>
+          {v.sotto && <span className="dettaglio-riga">{v.sotto}</span>}
+        </span>
+        <span>
+          <span className={`pillola ${v.tono}`}>{v.pillola}</span>
+        </span>
+        <span className="quando">
+          {q && (
+            <>
+              <b className={v.data! <= oggi ? 'in-ritardo' : ''}>{q.grande}</b>
+              {q.piccolo && <span className="dettaglio-riga">{q.piccolo}</span>}
+            </>
+          )}
+        </span>
+        <span className="azioni-riga" onClick={(e) => e.stopPropagation()}>
+          {v.azione && (
+            <button className="btn-piccolo" onClick={() => void esegui(v.azione!.fa)}>
+              ✓ {v.azione.etichetta}
+            </button>
+          )}
+          {v.menu.length > 0 && <MenuAltro voci={v.menu} />}
+        </span>
+      </div>
+    )
+  }
+
+  const vuoto = (titolo: string, testo: string): React.JSX.Element => (
+    <StatoVuoto icona={CalendarClock} titolo={titolo} testo={testo} />
   )
 
   return (
@@ -156,307 +244,158 @@ export default function FollowUpPage({
             value={ricerca}
             onChange={(e) => setRicerca(e.target.value)}
           />
+          <div className="filtri-pillola" role="group" aria-label="Quali elenchi">
+            {(
+              [
+                ['fare', 'Da fare', daFare.length],
+                ['followup', 'Follow-up', tuttiInFollowUp.length],
+                ['conclusi', 'Conclusi', tuttiConclusi.length]
+              ] as const
+            ).map(([valore, etichetta, quanti]) => (
+              <button
+                key={valore}
+                className={filtro === valore ? 'attiva' : ''}
+                aria-pressed={filtro === valore}
+                onClick={() => setFiltro(valore)}
+              >
+                {etichetta} · {quanti}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* I questionari, gli screening e i test da rifare, di tutti i pazienti: in
-            cima, perche' hanno una data e sono i primi da guardare. */}
-        {promemoriaVisibili.length > 0 && (
-          <section className="card">
-            <div className="card-header-row">
-              <h3>Da rifare</h3>
-              <span className="hint">
-                {promemoriaVisibili.filter((m) => m.scadenza <= oggi).length > 0
-                  ? `${promemoriaVisibili.filter((m) => m.scadenza <= oggi).length} in scadenza`
-                  : 'Nessuno in scadenza'}
-              </span>
-            </div>
-            <ul className="sedute-list elenco-promemoria">
-              {promemoriaVisibili.map((m) => (
-                <li key={m.id}>
-                  <input
-                    type="checkbox"
-                    title="Fatto"
-                    checked={false}
-                    onChange={() => void esegui(() => window.api.promemoria.setFatto(m.id, true))}
-                  />
-                  <button
-                    className="nome-cliccabile"
-                    title="Apri la scheda del paziente"
-                    onClick={() => onApriPaziente(m.paziente_id)}
-                  >
-                    {m.paziente_cognome} {m.paziente_nome}
-                  </button>
-                  <span className="promemoria-cosa">
-                    {testoPromemoria(m)}
-                    {m.nota && <span className="sotto-riga">{m.nota}</span>}
-                  </span>
-                  <span className={m.scadenza <= oggi ? 'data-scaduta promemoria-data' : 'promemoria-data'}>
-                    entro il {formatData(m.scadenza)}
-                  </span>
-                </li>
+        {filtro === 'fare' &&
+          (gruppi.length === 0 ? (
+            vuoto(
+              ricerca ? 'Nessun risultato' : 'Niente da fare',
+              ricerca
+                ? 'Nessun paziente corrisponde alla ricerca.'
+                : 'Qui compaiono i questionari e i test da rifare e i pazienti da risentire, in ordine di data.'
+            )
+          ) : (
+            <div className="elenco-righe">
+              {gruppi.map((g) => (
+                <div key={g.titolo}>
+                  <div className="gruppo-righe">
+                    {g.titolo} <span className="conta-gruppo">{g.voci.length}</span>
+                  </div>
+                  {g.voci.map(riga)}
+                </div>
               ))}
-            </ul>
-          </section>
-        )}
-
-        <section className="card">
-          <div className="card-header-row">
-            <h3>In trattamento</h3>
-            <span className="hint">
-              {inTrattamento.length === 1 ? '1 paziente' : `${inTrattamento.length} pazienti`}
-            </span>
-          </div>
-          {trattamento.length === 0 ? (
-            <StatoVuoto
-              icona={HeartPulse}
-              titolo="Nessun paziente in trattamento"
-              testo="Qui compaiono i pazienti che stai seguendo, con la data dell'ultima seduta: chi non si fa vivo da settimane si vede subito."
-            />
-          ) : inTrattamento.length === 0 ? (
-            <p className="hint">Nessun paziente corrisponde alla ricerca.</p>
-          ) : (
-            <ul className="sedute-list elenco-followup">
-              {inTrattamento.map((p) => (
-                // Nome a sinistra, patologia a destra e il pulsante in fondo:
-                // tutto su una riga sola. L'ultima seduta resta perché è quella
-                // che dice chi non si fa vivo da settimane.
-                <li key={p.id} className="riga-trattamento">
-                  <button
-                    className="nome-cliccabile"
-                    title="Apri la scheda del paziente"
-                    onClick={() => onApriPaziente(p.id)}
-                  >
-                    {p.cognome} {p.nome}
-                  </button>
-                  <span className="colonna-patologia">{p.patologia_nome ?? '—'}</span>
-                  <span className="colonna-ultima">
-                    {p.ultima_seduta
-                      ? `Ultima seduta ${formatData(p.ultima_seduta)}`
-                      : 'Nessuna seduta ancora'}
-                  </span>
-                  <span className="azioni-conclusi">
-                    <button
-                      className="btn-stato"
-                      title="Mettilo in follow-up: scegli fra quanto risentirlo"
-                      aria-label="Mettilo in follow-up: scegli fra quanto risentirlo"
-                      onClick={() => setInChiusura({ paziente: p, soloFollowUp: true })}
-                    >
-                      <CalendarClock size={18} />
-                    </button>
-                    <button
-                      className="btn-stato"
-                      title="Concludi: il ciclo è finito"
-                      aria-label="Concludi: il ciclo è finito"
-                      onClick={() => setInChiusura({ paziente: p, soloFollowUp: false })}
-                    >
-                      <CheckCircle2 size={18} />
-                    </button>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="card">
-          <div className="card-header-row">
-            <h3>Follow-up</h3>
-            <span className="hint">
-              {inFollowUp.filter((p) => p.follow_up_il != null && p.follow_up_il <= oggi).length > 0
-                ? `${
-                    inFollowUp.filter((p) => p.follow_up_il != null && p.follow_up_il <= oggi)
-                      .length
-                  } da sentire`
-                : 'Nessuno in scadenza'}
-            </span>
-          </div>
-          {tuttiInFollowUp.length === 0 ? (
-            <StatoVuoto
-              icona={CalendarClock}
-              titolo="Nessun paziente in follow-up"
-              testo="Quando concludi un paziente e scegli un follow-up, finisce qui con la data in cui risentirlo."
-            />
-          ) : inFollowUp.length === 0 ? (
-            <p className="hint">Nessun paziente corrisponde alla ricerca.</p>
-          ) : (
-            <div className="tabella-scorre tabella-followup-scorre">
-              <table className="data-table tabella-followup">
-                <thead>
-                  <tr>
-                    <th className="col-nome">Paziente</th>
-                    <th>Da sentire il</th>
-                    <th>Contattato</th>
-                    <th>Recensione</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {inFollowUp.map((p) => {
-                    const scaduto = p.follow_up_il != null && p.follow_up_il <= oggi
-                    return (
-                      <tr key={p.id}>
-                        <td className="col-nome">
-                          <button
-                            className="nome-cliccabile"
-                            title="Apri la scheda del paziente"
-                            onClick={() => onApriPaziente(p.id)}
-                          >
-                            {p.cognome} {p.nome}
-                          </button>
-                          {p.contattato_il && (
-                            <span className="sotto-riga">
-                              Ultimo contatto {formatData(p.contattato_il)}
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          <input
-                            type="date"
-                            className={scaduto ? 'data-scaduta' : ''}
-                            value={p.follow_up_il ?? ''}
-                            onChange={(e) =>
-                              void esegui(() =>
-                                window.api.followUp.setFollowUp(p.id, e.target.value || null)
-                              )
-                            }
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="checkbox"
-                            title="L’ho sentito e non ho altro in programma"
-                            checked={p.contattato_il != null && p.follow_up_il == null}
-                            onChange={(e) =>
-                              void esegui(() =>
-                                window.api.followUp.segnaContattato(p.id, e.target.checked)
-                              )
-                            }
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="checkbox"
-                            title="Ha lasciato la recensione"
-                            checked={p.recensione === 1}
-                            onChange={(e) =>
-                              void esegui(() =>
-                                window.api.followUp.setRecensione(p.id, e.target.checked)
-                              )
-                            }
-                          />
-                        </td>
-                        <td>
-                          <span className="azioni-conclusi">
-                            <button
-                              className="btn-stato"
-                              title="Riprendi: riportalo fra i pazienti in trattamento"
-                              aria-label="Riprendi: riportalo fra i pazienti in trattamento"
-                              onClick={() => void riprendi(p)}
-                            >
-                              <RotateCcw size={18} />
-                            </button>
-                            <button
-                              className="btn-stato"
-                              title="Concludi: il follow-up è finito, passa fra i conclusi"
-                              aria-label="Concludi: il follow-up è finito, passa fra i conclusi"
-                              onClick={() => void chiudiFollowUp(p)}
-                            >
-                              <CheckCircle2 size={18} />
-                            </button>
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
             </div>
-          )}
-        </section>
+          ))}
 
-        <section className="card">
-          <div className="card-header-row">
-            <h3>Conclusi</h3>
-            <span className="hint">
-              {conclusi.length === 1 ? '1 paziente' : `${conclusi.length} pazienti`}
-            </span>
-          </div>
-          {tuttiConclusi.length > 0 && conclusi.length === 0 ? (
-            <p className="hint">Nessun paziente corrisponde alla ricerca.</p>
-          ) : conclusi.length === 0 ? (
-            <p className="hint">
-              Qui finiscono i pazienti conclusi senza follow-up, o già sentiti.
-            </p>
+        {filtro === 'followup' &&
+          (inFollowUp.length === 0 ? (
+            vuoto(
+              ricerca ? 'Nessun risultato' : 'Nessun paziente in follow-up',
+              ricerca
+                ? 'Nessun paziente corrisponde alla ricerca.'
+                : 'Quando metti un paziente in follow-up dall’elenco dei pazienti, finisce qui con la data in cui risentirlo.'
+            )
           ) : (
-            <ul className="sedute-list elenco-followup">
-              {conclusi.map((p) => (
-                <li key={p.id} className="riga-trattamento">
-                  <button
-                    className="nome-cliccabile"
-                    title="Apri la scheda del paziente"
-                    onClick={() => onApriPaziente(p.id)}
-                  >
-                    {p.cognome} {p.nome}
-                  </button>
-                  <span className="colonna-patologia">{p.patologia_nome ?? '—'}</span>
-                  <span className="colonna-ultima">
-                    {p.contattato_il
-                      ? `Ultimo contatto ${formatData(p.contattato_il)}`
-                      : 'Nessun follow-up'}
+            <div className="elenco-righe">
+              {inFollowUp.map((p) => (
+                <div
+                  key={p.id}
+                  className="riga-lista riga-fu"
+                  onClick={() => onApriPaziente(p.id)}
+                >
+                  <span className="chi-testo">
+                    <b>
+                      {p.cognome} {p.nome}
+                    </b>
+                    <span className="dettaglio-riga">
+                      {p.contattato_il
+                        ? `Ultimo contatto ${formatData(p.contattato_il)}`
+                        : (p.patologia_nome ?? '')}
+                    </span>
                   </span>
-                  <span className="azioni-conclusi">
+                  <span>
+                    {p.follow_up_il == null ? (
+                      <span className="pillola ok">Sentito</span>
+                    ) : p.follow_up_il <= oggi ? (
+                      <span className="pillola att">Da risentire</span>
+                    ) : null}
+                    {p.recensione === 1 && <span className="pillola ok">Recensione</span>}
+                  </span>
+                  <span onClick={(e) => e.stopPropagation()}>
                     <input
                       type="date"
-                      title="Fissa un follow-up: il paziente passa nell’elenco qui sopra"
+                      title="Quando risentirlo"
+                      className={p.follow_up_il != null && p.follow_up_il <= oggi ? 'data-scaduta' : ''}
+                      value={p.follow_up_il ?? ''}
+                      onChange={(e) =>
+                        void esegui(() => window.api.followUp.setFollowUp(p.id, e.target.value || null))
+                      }
+                    />
+                  </span>
+                  <span className="azioni-riga" onClick={(e) => e.stopPropagation()}>
+                    {p.follow_up_il != null && (
+                      <button
+                        className="btn-piccolo"
+                        title="L’ho sentito e non ho altro in programma"
+                        onClick={() => void esegui(() => window.api.followUp.segnaContattato(p.id, true))}
+                      >
+                        ✓ Sentito
+                      </button>
+                    )}
+                    <MenuAltro voci={menuFollowUp(p)} />
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))}
+
+        {filtro === 'conclusi' &&
+          (conclusi.length === 0 ? (
+            vuoto(
+              ricerca ? 'Nessun risultato' : 'Nessun paziente concluso',
+              ricerca
+                ? 'Nessun paziente corrisponde alla ricerca.'
+                : 'Qui finiscono i pazienti conclusi senza follow-up.'
+            )
+          ) : (
+            <div className="elenco-righe">
+              {conclusi.map((p) => (
+                <div
+                  key={p.id}
+                  className="riga-lista riga-fu"
+                  onClick={() => onApriPaziente(p.id)}
+                >
+                  <span className="chi-testo">
+                    <b>
+                      {p.cognome} {p.nome}
+                    </b>
+                    <span className="dettaglio-riga">{p.patologia_nome ?? '—'}</span>
+                  </span>
+                  <span />
+                  <span className="dettaglio-riga" />
+                  <span className="azioni-riga" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="date"
+                      title="Fissa un follow-up: il paziente passa fra quelli in follow-up"
                       value=""
                       onChange={(e) =>
                         e.target.value &&
                         void esegui(() => window.api.followUp.setFollowUp(p.id, e.target.value))
                       }
                     />
-                    <button
-                      className="btn-stato"
-                      title="Riprendi: riportalo fra i pazienti in trattamento"
-                      aria-label="Riprendi: riportalo fra i pazienti in trattamento"
-                      onClick={() => void riprendi(p)}
-                    >
-                      <RotateCcw size={18} />
-                    </button>
+                    <MenuAltro
+                      voci={[
+                        {
+                          etichetta: 'Ha ripreso il trattamento',
+                          icona: RotateCcw,
+                          onClick: () => void riprendi(p)
+                        }
+                      ]}
+                    />
                   </span>
-                </li>
+                </div>
               ))}
-            </ul>
-          )}
-        </section>
+            </div>
+          ))}
       </div>
-
-      {inChiusura && (
-        <Modale className="modal-sm" onConferma={() => setInChiusura(null)}>
-          <h3>
-            {inChiusura.soloFollowUp ? 'Follow-up di' : 'Concludi'} {inChiusura.paziente.nome}{' '}
-            {inChiusura.paziente.cognome}
-          </h3>
-          <p className="modal-testo">
-            {inChiusura.soloFollowUp
-              ? 'Fra quanto vuoi risentirlo? Le sedute e la cartella restano dove sono.'
-              : 'Vuoi fare un follow-up? Se sì, fra quanto? Le sedute e la cartella restano dove sono.'}
-          </p>
-          <div className="scelta-settimane">
-            {[1, 2, 3, 4].map((n) => (
-              <button key={n} onClick={() => concludi(inChiusura.paziente, n)}>
-                <strong>{n}</strong>
-                {n === 1 ? 'settimana' : 'settimane'}
-              </button>
-            ))}
-          </div>
-          <div className="modal-actions">
-            <button onClick={() => setInChiusura(null)}>Annulla</button>
-            {!inChiusura.soloFollowUp && (
-              <button onClick={() => concludi(inChiusura.paziente, null)}>Nessun follow-up</button>
-            )}
-          </div>
-        </Modale>
-      )}
     </div>
   )
 }

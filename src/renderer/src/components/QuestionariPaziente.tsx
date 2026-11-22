@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Eye, ListChecks, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ChevronDown, ChevronRight, Eye, ListChecks, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import type {
   CategoriaQuestionario,
   CompilazioneRiepilogo,
@@ -12,6 +12,7 @@ import Modale from './Modale'
 import { errMsg, formatData } from '../lib'
 import CompilaQuestionario from './CompilaQuestionario'
 import RifarloFra from './RifarloFra'
+import { ultimoQuestionario } from '../../../shared/quadro'
 
 // Storico dei questionari compilati per il paziente, più la nuova compilazione.
 export default function QuestionariPaziente({
@@ -35,6 +36,24 @@ export default function QuestionariPaziente({
   const [catScelta, setCatScelta] = useState<number | null>(null)
   // dopo una compilazione nuova: rifarlo fra quanto?
   const [rifare, setRifare] = useState<{ id: number; nome: string } | null>(null)
+
+  // Gli storici aperti: uno per questionario.
+  const [aperti, setAperti] = useState<number[]>([])
+  const alterna = (id: number): void =>
+    setAperti((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]))
+
+  // Una voce per questionario, col suo storico dal piu' recente; il questionario
+  // compilato da ultimo sta in cima.
+  const gruppi = useMemo(() => {
+    const mappa = new Map<number, { id: number; nome: string; compilazioni: CompilazioneRiepilogo[] }>()
+    const ordinate = [...storico].sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id)
+    for (const c of ordinate) {
+      const g = mappa.get(c.questionario_id) ?? { id: c.questionario_id, nome: c.questionario_nome, compilazioni: [] }
+      g.compilazioni.push(c)
+      mappa.set(c.questionario_id, g)
+    }
+    return [...mappa.values()]
+  }, [storico])
 
   const load = useCallback(async (): Promise<void> => {
     try {
@@ -98,7 +117,7 @@ export default function QuestionariPaziente({
             disabled={disponibili.length === 0}
             onClick={() => setScelta(true)}
           >
-            <Plus size={18} />
+            <Plus size={18} /> Compila
           </button>
         </span>
       </div>
@@ -109,69 +128,147 @@ export default function QuestionariPaziente({
           &ldquo;Questionari&rdquo;.
         </p>
       ) : storico.length === 0 ? null : (
-        <ul className="sedute-list">
-          {storico.map((c) => (
-            <li key={c.id}>
-              <div className="seduta-info">
-                <span className="seduta-data">{formatData(c.data)}</span>
-                <span className="seduta-meta">{c.questionario_nome}</span>
-                {c.note && <span className="seduta-obiettivi">{c.note}</span>}
-                {c.daRicalcolare && (
-                  <span className="hint esito-attenzione">
-                    Calcolata con regole del questionario diverse da quelle di adesso.{' '}
-                    <button className="link-btn" onClick={() => void ricalcola(c)}>
-                      <RefreshCw size={13} /> Ricalcola
-                    </button>
-                  </span>
-                )}
-                {/* Quanto e' cambiato rispetto alla prima volta, e se il
-                    cambiamento e' abbastanza grande da contare: compare solo
-                    per i questionari che hanno la soglia scritta. */}
-                {c.variazione && (
-                  <span className="variazione-questionario">
-                    <span className={c.variazione.punti >= 0 ? 'meglio' : 'peggio'}>
-                      {c.variazione.punti >= 0 ? '+' : '−'}
-                      {Math.abs(c.variazione.punti).toString().replace('.', ',')} punti (
-                      {Math.abs(c.variazione.percentuale).toString().replace('.', ',')}%)
+        // Una riga per questionario: l'ultimo punteggio in grande e di quanto e'
+        // cambiato dalla prima volta. Un clic apre lo storico di quel
+        // questionario, compilazione per compilazione.
+        <div className="elenco-righe">
+          {gruppi.map((g) => {
+            const u = ultimoQuestionario(g.compilazioni)
+            const ultima = g.compilazioni[0]
+            const apertoGruppo = aperti.includes(g.id)
+            const serie = g.compilazioni
+              .slice(0, 8)
+              .reverse()
+              .map((c) => c.punteggi.find((p) => p.nome === u?.punteggioNome)?.valore)
+              .filter((v): v is number => v != null)
+            const massimo = Math.max(...serie, 1)
+            const minimo = Math.min(...serie, 0)
+            return (
+              <div key={g.id}>
+                <div
+                  className="riga-lista riga-questionario"
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={apertoGruppo}
+                  onClick={() => alterna(g.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      alterna(g.id)
+                    }
+                  }}
+                >
+                  <span className="chi-testo">
+                    <span className="nome-con-avviso">
+                      {apertoGruppo ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      <b>{g.nome}</b>
+                      {ultima.fascia && <span className="pillola att">{ultima.fascia}</span>}
                     </span>
-                    <span className="hint">dal {formatData(c.variazione.dal)}</span>
-                    {c.variazione.significativa && (
-                      <span className="badge-fascia">cambiamento che conta</span>
+                    <span className="dettaglio-riga">
+                      {g.compilazioni.length === 1 ? '1 volta' : `${g.compilazioni.length} volte`} · ultima{' '}
+                      {formatData(ultima.data)}
+                    </span>
+                  </span>
+                  <span className="serie-mini" aria-hidden="true">
+                    {serie.map((v, i) => (
+                      <i
+                        key={i}
+                        className={i === serie.length - 1 ? 'ultima' : ''}
+                        style={{ height: `${25 + (75 * (v - minimo)) / Math.max(massimo - minimo, 1)}%` }}
+                      />
+                    ))}
+                  </span>
+                  <span className="punti-questionario">
+                    {ultima.punteggi.length <= 1 ? (
+                      <b>{ultima.punteggi[0]?.valore ?? '—'}</b>
+                    ) : (
+                      <span className="punti-vari">
+                        {ultima.punteggi.map((p) => (
+                          <span key={p.nome}>
+                            <small>{p.nome}</small> <b>{p.valore}</b>
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                    {u?.cambio && (
+                      <span
+                        className={`pillola ${u.cambio.migliora === true ? 'ok' : u.cambio.migliora === false ? 'no' : 'neutra'}`}
+                        title={`Rispetto alla prima compilazione, il ${formatData(u.cambio.dal)}`}
+                      >
+                        {u.cambio.differenza > 0 ? '+' : u.cambio.differenza < 0 ? '−' : ''}
+                        {Math.abs(u.cambio.differenza).toString().replace('.', ',')} dalla prima
+                      </span>
                     )}
                   </span>
-                )}
-              </div>
-              {/* Il punteggio e' il risultato e si vede sempre; la fascia di
-                  rischio solo dove il questionario ne prevede una. */}
-              <span className="punteggi-compilazione">
-                {c.punteggi.map((p) => (
-                  <span key={p.nome} className="punteggio">
-                    <span className="etichetta">{p.nome}</span>
-                    <span className="valore">{p.valore}</span>
+                  <span className="azioni-riga" onClick={(e) => e.stopPropagation()}>
+                    <button className="btn-piccolo" title={`Compila di nuovo «${g.nome}»`} onClick={() => setAperto({ modo: 'nuovo', questionarioId: g.id })}>
+                      <Plus size={14} /> Rifai
+                    </button>
                   </span>
-                ))}
-              </span>
-              <span className="row-actions">
-                {c.fascia && <span className="badge-fascia">{c.fascia}</span>}
-                <button
-                  title="Vedi le risposte"
-                  onClick={() => setAperto({ modo: 'vedi', compilazione: c })}
-                >
-                  <Eye size={18} />
-                </button>
-                <button
-                  title="Modifica le risposte"
-                  onClick={() => setAperto({ modo: 'modifica', compilazione: c })}
-                >
-                  <Pencil size={18} />
-                </button>
-                <button className="danger" title="Elimina" onClick={() => void elimina(c)}>
-                  <Trash2 size={18} />
-                </button>
-              </span>
-            </li>
-          ))}
-        </ul>
+                </div>
+
+                {apertoGruppo &&
+                  g.compilazioni.map((c) => (
+                    <div key={c.id} className="riga-lista riga-compilazione">
+                      <span className="chi-testo">
+                        <b>{formatData(c.data)}</b>
+                        {c.note && <span className="dettaglio-riga">{c.note}</span>}
+                        {c.daRicalcolare && (
+                          <span className="dettaglio-riga esito-attenzione">
+                            Calcolata con regole del questionario diverse da quelle di adesso.{' '}
+                            <button className="link-btn" onClick={() => void ricalcola(c)}>
+                              <RefreshCw size={13} /> Ricalcola
+                            </button>
+                          </span>
+                        )}
+                      </span>
+                      <span className="punteggi-compilazione">
+                        {c.punteggi.map((p) => (
+                          <span key={p.nome} className="punteggio">
+                            <span className="etichetta">{p.nome}</span>
+                            <span className="valore">{p.valore}</span>
+                          </span>
+                        ))}
+                      </span>
+                      <span className="variazione-questionario">
+                        {c.variazione && (
+                          <>
+                            <span className={c.variazione.punti >= 0 ? 'meglio' : 'peggio'}>
+                              {c.variazione.punti >= 0 ? '+' : '−'}
+                              {Math.abs(c.variazione.punti).toString().replace('.', ',')} punti (
+                              {Math.abs(c.variazione.percentuale).toString().replace('.', ',')}%)
+                            </span>
+                            {c.variazione.significativa && (
+                              <span className="pillola ok">cambiamento che conta</span>
+                            )}
+                          </>
+                        )}
+                      </span>
+                      <span className="azioni-riga">
+                        <button
+                          className="btn-icona"
+                          title="Vedi le risposte"
+                          onClick={() => setAperto({ modo: 'vedi', compilazione: c })}
+                        >
+                          <Eye size={18} />
+                        </button>
+                        <button
+                          className="btn-icona"
+                          title="Modifica le risposte"
+                          onClick={() => setAperto({ modo: 'modifica', compilazione: c })}
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button className="btn-icona danger" title="Elimina" onClick={() => void elimina(c)}>
+                          <Trash2 size={18} />
+                        </button>
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            )
+          })}
+        </div>
       )}
 
       {scelta && (

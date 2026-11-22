@@ -64,6 +64,11 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.22
+
+- Follow-up, Valutazione, Questionari e Libreria esercizi con elenchi a righe nello stesso stile del resto
+- Nuovo menu «Altro» per le azioni meno usate
+
 ### v0.5.21
 
 **Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge il promemoria «scrivere al

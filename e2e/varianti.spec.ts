@@ -83,7 +83,7 @@ test('varianti: dalla libreria alla progressione e alla seduta', async () => {
     await vaiA(pagina, 'Configurazione')
     await pagina.locator('.config-tabs-top').getByRole('button', { name: 'Libreria esercizi' }).click()
     await pagina.getByPlaceholder('Cerca categoria, distretto o esercizio…').fill('Equilibrio')
-    await pagina.locator('.tabella-esercizi tbody tr', { hasText: 'Equilibrio monopodalico' }).getByTitle('Modifica').click()
+    await pagina.locator('.riga-esercizio', { hasText: 'Equilibrio monopodalico' }).getByTitle('Modifica').click()
     const segnaposto = pagina.getByPlaceholder("es. con conteggio all'indietro")
     await expect(segnaposto).toHaveCount(0)
     await pagina.getByRole('button', { name: 'Aggiungi una variante' }).click()
@@ -94,11 +94,11 @@ test('varianti: dalla libreria alla progressione e alla seduta', async () => {
     await pagina.getByRole('button', { name: 'Salva', exact: true }).first().click()
     await pagina.screenshot({ path: join(FOTO, '33-varianti-elenco.png') })
     // l'elenco dice quali esercizi ne hanno; quelli senza restano come prima
-    await expect(pagina.locator('.tabella-esercizi tbody tr', { hasText: 'Equilibrio monopodalico' })).toContainText(
+    await expect(pagina.locator('.riga-esercizio', { hasText: 'Equilibrio monopodalico' })).toContainText(
       '2 varianti'
     )
     await pagina.getByPlaceholder('Cerca categoria, distretto o esercizio…').fill('Plank')
-    await expect(pagina.locator('.tabella-esercizi tbody tr', { hasText: 'Plank' })).not.toContainText('variant')
+    await expect(pagina.locator('.riga-esercizio', { hasText: 'Plank' })).not.toContainText('variant')
 
     // ---- il secondo step della scala e' la variante
     await pagina.getByPlaceholder('Cerca categoria, distretto o esercizio…').fill('')

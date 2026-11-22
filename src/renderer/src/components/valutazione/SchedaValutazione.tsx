@@ -45,6 +45,7 @@ export function SchedaValutazione({
   const [dati, setDati] = useState<ValutazioneCompleta | null>(null)
   const [librerie, setLibrerie] = useState<DistrettoCompleto[]>([])
   const [modificato, setModificato] = useState(false)
+  const [voceAttiva, setVoceAttiva] = useState('ispezione')
   // Chiudendo il programma, o uscendo da questa scheda, a valutazione non
   // salvata: si salva da sola.
   const salvataggio = useSalvataggio(!soloLettura && modificato)
@@ -254,13 +255,77 @@ export function SchedaValutazione({
     }
   }
 
+  // L'indice a sinistra: una voce per ogni parte della pagina, con un cenno di
+  // quanto c'e' di segnato. Un clic porta li'.
+  const vaiA = (chiave: string): void => {
+    setVoceAttiva(chiave)
+    document.getElementById(`val-${chiave}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  }
+  const segnatiMovimenti = (lib: DistrettoCompleto): number => {
+    const ids = new Set(lib.movimenti.map((m) => m.id))
+    return dati.movimenti.filter(
+      (r) =>
+        ids.has(r.movimento_id) &&
+        (r.attivo_restrizione != null ||
+          (r.attivo_dolore ?? 0) > 0 ||
+          r.passivo_restrizione != null ||
+          (r.passivo_dolore ?? 0) > 0)
+    ).length
+  }
+  const positivi = (lib: DistrettoCompleto): number => {
+    const ids = new Set(lib.test.map((t) => t.id))
+    return dati.test.filter((r) => ids.has(r.test_id) && r.valore === 'positivo').length
+  }
+  const CARICHI = ['carico_locale', 'carico_generale', 'capacita_locale', 'capacita_generale'] as const
+  const voci: { chiave: string; titolo: string; nota: string }[] = [
+    {
+      chiave: 'ispezione',
+      titolo: 'Ispezione',
+      nota: (dati.valutazione.ispezione ?? '').trim() ? 'scritta' : 'vuota'
+    },
+    ...librerie.flatMap((lib) => {
+      const n = lib.distretto.id as number
+      const mov = segnatiMovimenti(lib)
+      const pos = positivi(lib)
+      return [
+        ...(lib.movimenti.length > 0
+          ? [
+              {
+                chiave: `mov-${n}`,
+                titolo: `${lib.distretto.nome} · movimenti`,
+                nota: mov > 0 ? `${mov} segnati` : 'niente segnato'
+              }
+            ]
+          : []),
+        ...(lib.test.length > 0
+          ? [
+              {
+                chiave: `test-${n}`,
+                titolo: `${lib.distretto.nome} · test`,
+                nota: pos > 0 ? `${pos} positivi` : `${lib.test.length} test`
+              }
+            ]
+          : []),
+        ...(lib.distretto.esame_neuro === 1 && lib.neuro.length > 0
+          ? [{ chiave: `neuro-${n}`, titolo: `${lib.distretto.nome} · neurologico`, nota: 'esame' }]
+          : [])
+      ]
+    }),
+    {
+      chiave: 'carico',
+      titolo: 'Carico',
+      nota: `${CARICHI.filter((k) => dati.valutazione[k] != null).length} su 4`
+    },
+    { chiave: 'note', titolo: 'Note', nota: (dati.valutazione.note ?? '').trim() ? 'scritte' : 'vuote' }
+  ]
+
   return (
     <div className="modal-overlay" {...sulFondo}>
-      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header-row">
+      <div className="modal val-pagina" onClick={(e) => e.stopPropagation()}>
+        <div className="val-testa">
           <h3>{soloLettura ? 'Valutazione obiettiva' : 'Valutazione obiettiva — modifica'}</h3>
-          <label className="compila-data">
-            Data
+          <label className="campo-data-pillola">
+            <small>Data</small>
             <input
               type="date"
               disabled={soloLettura}
@@ -268,129 +333,7 @@ export function SchedaValutazione({
               onChange={(e) => campoValutazione({ data: e.target.value })}
             />
           </label>
-        </div>
-
-        <label>
-          Ispezione, osservazione e palpazione
-          {/* In anteprima la casella cresce fino a mostrare tutto il testo:
-              da leggere non serve scorrerla dentro una finestra di due righe. */}
-          <textarea
-            rows={5}
-            className={soloLettura ? 'testo-adatta' : undefined}
-            disabled={soloLettura}
-            value={dati.valutazione.ispezione ?? ''}
-            onChange={(e) => campoValutazione({ ispezione: e.target.value || null })}
-          />
-        </label>
-
-        {/* Un riquadro per distretto, e dentro un riquadro per i movimenti e
-            uno per ogni gruppo di test: senza, la pagina era un seguito di
-            righe in cui non si capiva dove finiva una cosa e cominciava
-            l'altra. */}
-        {librerie.map((lib) => {
-          const lati = latiDi(lib)
-          return (
-            <div key={lib.distretto.id} className="riquadro-distretto">
-              <div className="sotto-titolo titolo-distretto">{lib.distretto.nome}</div>
-
-              {lib.movimenti.length > 0 && (
-                <TabellaMovimenti
-                  movimenti={lib.movimenti}
-                  lati={lati}
-                  latoInteressato={latoInteressato}
-                  soloLettura={soloLettura}
-                  rilievo={rilievo}
-                  onCambia={cambiaMovimento}
-                  onRestoNellaNorma={(lato, tipo) => restoNellaNorma(lib.movimenti, lato, tipo)}
-                  restoFatto={(lato, tipo) => restoFatto(lib.movimenti, lato, tipo)}
-                  note={noteDi(lib.distretto.id as number)}
-                  onNote={(patch) => cambiaNote(lib.distretto.id as number, patch)}
-                />
-              )}
-
-              {GRUPPI.map((g) => {
-                // la forza dei muscoli compare solo dove l'interruttore e' acceso
-                if (g.valore === 'forza' && lib.distretto.test_muscolari !== 1) return null
-                const test = lib.test.filter((t) => t.gruppo === g.valore)
-                if (test.length === 0) return null
-                return (
-                  <div key={g.valore} className="riquadro-test">
-                    <div className="sotto-titolo">{g.etichetta}</div>
-                    <TabellaTest
-                      test={test}
-                      lati={lati}
-                      latoInteressato={latoInteressato}
-                      soloLettura={soloLettura}
-                      risposta={rispostaTest}
-                      onCambia={cambiaTest}
-                      nota={(id) => notaTest(id, lati)}
-                      onNota={(id, nota) => cambiaNotaTest(id, lati, nota)}
-                    />
-                  </div>
-                )
-              })}
-
-              {lib.distretto.esame_neuro === 1 && (
-                <SezioneNeuro
-                  voci={lib.neuro}
-                  rilievi={dati.neuro.filter((n) => lib.neuro.some((v) => v.id === n.voce_id))}
-                  nota={noteDi(lib.distretto.id as number).neuro ?? ''}
-                  latoInteressato={latoInteressato}
-                  soloLettura={soloLettura}
-                  onCambia={cambiaNeuro}
-                  onNota={(neuro) => cambiaNote(lib.distretto.id as number, { neuro })}
-                />
-              )}
-            </div>
-          )
-        })}
-
-        <div className="sotto-titolo">Carico e capacità di carico</div>
-        <div className="griglia-carico">
-          {(
-            [
-              ['carico_locale', 'Carico locale'],
-              ['carico_generale', 'Carico generale'],
-              ['capacita_locale', 'Capacità di carico locale'],
-              ['capacita_generale', 'Capacità di carico generale']
-            ] as const
-          ).map(([chiave, etichetta]) => (
-            <div key={chiave} className="riga-sino">
-              <span>{etichetta}</span>
-              {/* Tre pulsanti invece della tendina: si sceglie con un clic, e
-                  ripremendo quello scelto si toglie. */}
-              <span className="scelta-coppia segmentata scelta-andamento">
-                {ANDAMENTI.map((a) => {
-                  const scelto = dati.valutazione[chiave] === a.valore
-                  return (
-                    <button
-                      key={a.valore}
-                      type="button"
-                      title={a.etichetta}
-                      disabled={soloLettura}
-                      className={scelto ? 'scelta-attiva' : ''}
-                      onClick={() => campoValutazione({ [chiave]: scelto ? null : a.valore })}
-                    >
-                      {a.icona}
-                    </button>
-                  )
-                })}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <label>
-          Note
-          <textarea
-            rows={2}
-            disabled={soloLettura}
-            value={dati.valutazione.note ?? ''}
-            onChange={(e) => campoValutazione({ note: e.target.value || null })}
-          />
-        </label>
-
-        <div className="modal-actions">
+          <span className="val-spazio" />
           {!soloLettura && <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />}
           <button onClick={() => void chiudi()}>{soloLettura ? 'Chiudi' : 'Annulla'}</button>
           {!soloLettura && (
@@ -402,6 +345,154 @@ export function SchedaValutazione({
               Salva
             </button>
           )}
+        </div>
+
+        <div className="val-corpo">
+          <nav className="val-indice" aria-label="Parti della valutazione">
+            {voci.map((v) => (
+              <button
+                key={v.chiave}
+                type="button"
+                className={voceAttiva === v.chiave ? 'attiva' : ''}
+                onClick={() => vaiA(v.chiave)}
+              >
+                <b>{v.titolo}</b>
+                <small>{v.nota}</small>
+              </button>
+            ))}
+          </nav>
+
+          <div className="val-colonna">
+            <section id="val-ispezione" className="riquadro-test">
+              <div className="sotto-titolo">Ispezione, osservazione e palpazione</div>
+              {/* In anteprima la casella cresce fino a mostrare tutto il testo:
+                  da leggere non serve scorrerla dentro una finestra di due righe. */}
+              <textarea
+                rows={4}
+                className={soloLettura ? 'testo-adatta' : undefined}
+                aria-label="Ispezione, osservazione e palpazione"
+                disabled={soloLettura}
+                value={dati.valutazione.ispezione ?? ''}
+                onChange={(e) => campoValutazione({ ispezione: e.target.value || null })}
+              />
+            </section>
+
+            {/* Un gruppo per distretto: i movimenti e ogni gruppo di test sono
+                riquadri a parte, cosi' si vede dove finisce una cosa e comincia
+                l'altra. */}
+            {librerie.map((lib) => {
+              const lati = latiDi(lib)
+              const n = lib.distretto.id as number
+              return (
+                <div key={n} className="riquadro-distretto">
+                  <h4 className="titolo-distretto">{lib.distretto.nome}</h4>
+
+                  {lib.movimenti.length > 0 && (
+                    <div id={`val-mov-${n}`}>
+                      <TabellaMovimenti
+                        movimenti={lib.movimenti}
+                        lati={lati}
+                        latoInteressato={latoInteressato}
+                        soloLettura={soloLettura}
+                        rilievo={rilievo}
+                        onCambia={cambiaMovimento}
+                        onRestoNellaNorma={(lato, tipo) => restoNellaNorma(lib.movimenti, lato, tipo)}
+                        restoFatto={(lato, tipo) => restoFatto(lib.movimenti, lato, tipo)}
+                        note={noteDi(n)}
+                        onNote={(patch) => cambiaNote(n, patch)}
+                      />
+                    </div>
+                  )}
+
+                  <div id={`val-test-${n}`}>
+                    {GRUPPI.map((g) => {
+                      // la forza dei muscoli compare solo dove l'interruttore e' acceso
+                      if (g.valore === 'forza' && lib.distretto.test_muscolari !== 1) return null
+                      const test = lib.test.filter((t) => t.gruppo === g.valore)
+                      if (test.length === 0) return null
+                      return (
+                        <div key={g.valore} className="riquadro-test">
+                          <div className="sotto-titolo">{g.etichetta}</div>
+                          <TabellaTest
+                            test={test}
+                            lati={lati}
+                            latoInteressato={latoInteressato}
+                            soloLettura={soloLettura}
+                            risposta={rispostaTest}
+                            onCambia={cambiaTest}
+                            nota={(id) => notaTest(id, lati)}
+                            onNota={(id, nota) => cambiaNotaTest(id, lati, nota)}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {lib.distretto.esame_neuro === 1 && (
+                    <div id={`val-neuro-${n}`}>
+                      <SezioneNeuro
+                        voci={lib.neuro}
+                        rilievi={dati.neuro.filter((x) => lib.neuro.some((v) => v.id === x.voce_id))}
+                        nota={noteDi(n).neuro ?? ''}
+                        latoInteressato={latoInteressato}
+                        soloLettura={soloLettura}
+                        onCambia={cambiaNeuro}
+                        onNota={(neuro) => cambiaNote(n, { neuro })}
+                      />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+
+            <section id="val-carico" className="riquadro-test">
+              <div className="sotto-titolo">Carico e capacità di carico</div>
+              <div className="griglia-carico">
+                {(
+                  [
+                    ['carico_locale', 'Carico locale'],
+                    ['carico_generale', 'Carico generale'],
+                    ['capacita_locale', 'Capacità di carico locale'],
+                    ['capacita_generale', 'Capacità di carico generale']
+                  ] as const
+                ).map(([chiave, etichetta]) => (
+                  <div key={chiave} className="riga-sino">
+                    <span>{etichetta}</span>
+                    {/* Tre pulsanti invece della tendina: si sceglie con un clic, e
+                        ripremendo quello scelto si toglie. */}
+                    <span className="scelta-coppia segmentata scelta-andamento">
+                      {ANDAMENTI.map((a) => {
+                        const scelto = dati.valutazione[chiave] === a.valore
+                        return (
+                          <button
+                            key={a.valore}
+                            type="button"
+                            title={a.etichetta}
+                            disabled={soloLettura}
+                            className={scelto ? 'scelta-attiva' : ''}
+                            onClick={() => campoValutazione({ [chiave]: scelto ? null : a.valore })}
+                          >
+                            {a.icona}
+                          </button>
+                        )
+                      })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section id="val-note" className="riquadro-test">
+              <div className="sotto-titolo">Note</div>
+              <textarea
+                rows={2}
+                aria-label="Note"
+                disabled={soloLettura}
+                value={dati.valutazione.note ?? ''}
+                onChange={(e) => campoValutazione({ note: e.target.value || null })}
+              />
+            </section>
+          </div>
         </div>
       </div>
     </div>

@@ -57,26 +57,26 @@ test('libreria: schede delle categorie, esercizi dentro, ricerca da fuori', asyn
     // cercando un esercizio per nome si trova, senza aprire la categoria
     await pagina.getByPlaceholder('Cerca categoria, distretto o esercizio…').fill('nordic')
     await expect(pagina.locator('.tabella-esercizi').getByText('Nordic')).toBeVisible()
-    await expect(pagina.locator('.tabella-esercizi tbody tr')).toHaveCount(1)
+    await expect(pagina.locator('.riga-esercizio')).toHaveCount(1)
     await pagina.getByPlaceholder('Cerca categoria, distretto o esercizio…').fill('')
 
     // dentro la categoria: gli esercizi di tutti i suoi distretti, con la
     // colonna che dice di quale distretto sono
     await rinforzo.click()
-    await expect(pagina.locator('.tabella-esercizi tbody tr')).toHaveCount(3)
+    await expect(pagina.locator('.riga-esercizio')).toHaveCount(3)
     await expect(pagina.locator('.tabella-esercizi').getByText('Gatto-cammello')).toHaveCount(0)
-    await expect(pagina.locator('.tabella-esercizi th.col-categoria')).toHaveCount(1)
+    await expect(pagina.locator('.tabella-esercizi.con-categoria')).toHaveCount(1)
     // i comandi dei distretti restano chiusi finche' non servono
     await expect(pagina.locator('.pannello-distretti')).toHaveCount(0)
 
     // un distretto restringe l'elenco (e la colonna non serve piu'), «Tutti» lo riallarga
     const pillola = (nome: string) => pagina.locator('.pillola-distretto', { hasText: nome })
     await pillola('Quadricipite').click()
-    await expect(pagina.locator('.tabella-esercizi tbody tr')).toHaveCount(2)
-    await expect(pagina.locator('.tabella-esercizi th.col-categoria')).toHaveCount(0)
+    await expect(pagina.locator('.riga-esercizio')).toHaveCount(2)
+    await expect(pagina.locator('.tabella-esercizi.con-categoria')).toHaveCount(0)
     await pagina.screenshot({ path: join(FOTO, '23-libreria-dentro-categoria.png'), fullPage: true })
     await pillola('Tutti').click()
-    await expect(pagina.locator('.tabella-esercizi tbody tr')).toHaveCount(3)
+    await expect(pagina.locator('.riga-esercizio')).toHaveCount(3)
 
     await pagina.getByRole('button', { name: 'Gestisci distretti' }).click()
     await expect(pagina.locator('.pannello-distretti .elenco-categorie li')).toHaveCount(2)
@@ -88,13 +88,13 @@ test('libreria: schede delle categorie, esercizi dentro, ricerca da fuori', asyn
     await pagina.getByRole('button', { name: 'Nuovo esercizio' }).click()
     await pagina.getByLabel('Nome *').fill('Ponte monopodalico')
     await pagina.getByRole('button', { name: 'Salva', exact: true }).first().click()
-    await expect(pagina.locator('.tabella-esercizi tbody tr')).toHaveCount(2)
+    await expect(pagina.locator('.riga-esercizio')).toHaveCount(2)
     await expect(pagina.locator('.tabella-esercizi').getByText('Ponte monopodalico')).toBeVisible()
 
     // senza distretti gli esercizi stanno direttamente nella categoria
     await pagina.getByRole('button', { name: 'Categorie', exact: true }).click()
     await pagina.locator('.scelta-tile', { hasText: 'Mobilità' }).click()
-    await expect(pagina.locator('.tabella-esercizi tbody tr')).toHaveCount(1)
+    await expect(pagina.locator('.riga-esercizio')).toHaveCount(1)
 
     // premere «Esercizi» da dentro una categoria riporta alle schede
     await pagina.locator('.config-tabs').getByRole('button', { name: 'Esercizi', exact: true }).click()

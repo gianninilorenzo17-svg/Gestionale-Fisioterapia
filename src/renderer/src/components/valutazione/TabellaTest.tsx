@@ -37,7 +37,9 @@ export function TabellaTest({
               key={v}
               type="button"
               disabled={soloLettura}
-              className={r.valore === v ? 'scelta-attiva' : ''}
+              className={
+                r.valore === v ? `scelta-attiva ${v === 'positivo' ? 'esito-pos' : 'esito-neg'}` : ''
+              }
               onClick={() => onCambia(id, lato, { valore: r.valore === v ? null : v })}
             >
               {v === 'positivo' ? 'Positivo' : 'Negativo'}
