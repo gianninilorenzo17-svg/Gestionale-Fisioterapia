@@ -125,7 +125,7 @@ function RigaSeduta({
       {/* La dose accanto al nome, ogni casella con la sua etichetta sopra: si
           legge cosa e' cosa anche a riga piena. La nota sta su una riga sua,
           larga quanto tutta la riga (in fondo). */}
-      <div className="riga-params">
+      <div className={`riga-params${cluster ? ' con-cluster' : ''}`}>
         <label className="campo-dose" title="Serie">
           <span>Serie</span>
           <input value={r.serie ?? ''} onChange={cambia('serie')} />

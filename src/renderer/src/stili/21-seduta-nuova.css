@@ -664,3 +664,13 @@
 .fine-seduta .modal-actions { margin-top: 12px; justify-content: flex-end; }
 
 .fine-colonne { align-items: stretch; }
+
+/* Con i cluster le caselle sono sette: piu' strette, cosi' al nome resta posto */
+.righe-seduta .riga-esercizio .riga-params.con-cluster { gap: 5px; }
+.righe-seduta .riga-esercizio .con-cluster .campo-dose input { width: 48px; }
+.righe-seduta .riga-esercizio .con-cluster .campo-medio input { width: 60px; }
+.righe-seduta .riga-esercizio .con-cluster .campo-largo input { width: 84px; }
+
+/* Testata della seduta: nome e cognome piu' grandi, la fase resta sotto */
+.builder-col > .builder-header.testata-fissa h2 { font-size: 30px; line-height: 1.1; }
+.testata-fissa .testata-sep { display: none; }

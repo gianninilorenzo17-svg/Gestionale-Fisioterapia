@@ -121,7 +121,8 @@ export default function QuadroPaziente({
   const raggiunti = dati.obiettivi.filter((o) => o.raggiunto).length
   const frazione = dati.obiettivi.length > 0 ? raggiunti / dati.obiettivi.length : 0
   const CIRC = 2 * Math.PI * 19
-  const mostraObiettivi = dati.obiettivi.slice(0, 6)
+  const mancanti = dati.obiettivi.filter((o) => !o.raggiunto)
+  const mostraObiettivi = mancanti.slice(0, 6)
 
   const tempi: { valore: string; etichetta: string }[] = []
   if (dalleFase) tempi.push({ valore: dalleFase, etichetta: 'In questa fase' })
@@ -226,13 +227,13 @@ export default function QuadroPaziente({
             </div>
             <ul className="q-obiettivi-lista">
               {mostraObiettivi.map((o) => (
-                <li key={o.nome} className={o.raggiunto ? 'fatto' : ''}>
-                  <span className="q-spunta">{o.raggiunto && <Check size={11} aria-hidden="true" />}</span>
+                <li key={o.nome}>
+                  <span className="q-spunta" />
                   {o.nome}
                 </li>
               ))}
-              {dati.obiettivi.length > mostraObiettivi.length && (
-                <li className="altri">+{dati.obiettivi.length - mostraObiettivi.length} altri</li>
+              {mancanti.length > mostraObiettivi.length && (
+                <li className="altri">+{mancanti.length - mostraObiettivi.length} altri</li>
               )}
             </ul>
           </div>

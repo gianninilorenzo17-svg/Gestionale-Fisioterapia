@@ -792,3 +792,39 @@
 .sezione-scheda:not([hidden]) {
   display: contents;
 }
+
+/* Linguette e pulsanti dei gesti quotidiani stanno nello stesso riquadro:
+   la barra e' la "pillola", le linguette dentro non ne hanno una loro. */
+.barra-scheda {
+  padding: 4px;
+  background: var(--intestazione);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.barra-scheda .config-tabs {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+.barra-scheda .row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.barra-scheda .row-actions button:not(.primary) {
+  border: none;
+  background: none;
+  color: var(--intestazione-testo);
+  padding: 7px 11px;
+  border-radius: var(--radius-sm);
+}
+.barra-scheda .row-actions button:not(.primary):hover:not(:disabled) {
+  background: var(--intestazione-hover);
+  color: var(--intestazione-testo-forte);
+}
+.barra-scheda .row-actions button.primary {
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+}
+.barra-scheda .row-actions button { font-size: inherit; }
