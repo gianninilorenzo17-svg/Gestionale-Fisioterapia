@@ -77,6 +77,15 @@
   animation: compare-piano 0.2s ease-out 0.5s forwards;
 }
 
+/* Una finestra che si apre e poi legge i suoi dati (anamnesi, questionari, scheda
+   illustrata...) resta invisibile finche' dentro c'e' il "Caricamento…": compare
+   quando e' gia' piena, con la sua dissolvenza. Se la lettura dura piu' di mezzo
+   secondo compare comunque, con la scritta, cosi' non sembra che il clic sia andato perso. */
+.modal-overlay:has(.caricamento-ritardato) {
+  opacity: 0;
+  animation: compare-piano 0.2s ease-out 0.5s forwards;
+}
+
 @keyframes compare-piano {
   to {
     opacity: 1;

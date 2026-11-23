@@ -643,12 +643,12 @@
 .riga-esercizio > .riga-principale {
   flex: 1 1 100%;
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 8px;
   min-width: 0;
 }
-.riga-principale > .riga-testata { flex: 1 1 140px; min-width: 90px; align-self: flex-end; min-height: 36px; }
+.riga-principale > .riga-testata { flex: 1 1 260px; min-width: 200px; align-self: flex-end; min-height: 36px; }
 .riga-principale > .riga-params { flex: none; }
 .riga-principale > .riga-nota { flex: 1 1 150px; min-width: 60px; max-width: 220px; width: auto; }
 .riga-principale > .btn-togli { position: static; flex: none; height: 36px; width: 36px; padding: 0; opacity: 0; }
@@ -690,3 +690,11 @@
 
 /* Patologia e fase staccate dal nome */
 .testata-fissa .testata-chi .testata-fase { margin-left: 0.6em; }
+
+/* Nome lungo con tendina della variante o bottone mono/bipodalico: il nome non si
+   spezza mai a meta' parola (andava a una lettera per riga) e prende almeno
+   140 px; a restringersi e' la variante, che si abbrevia con i puntini. Il
+   bottone mono/bipodalico resta intero. */
+.righe-seduta .riga-esercizio .riga-testata { flex-wrap: nowrap; overflow-wrap: break-word; }
+.righe-seduta .riga-esercizio .riga-testata > .item-nome { flex: 1 0 140px; min-width: 140px; overflow-wrap: break-word; word-break: normal; }
+.righe-seduta .riga-esercizio .riga-testata > .select-variante { flex: 0 1 auto; min-width: 90px; max-width: 220px; }
