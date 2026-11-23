@@ -50,10 +50,19 @@ async function installaOsservatore(pagina: Page): Promise<void> {
         if (dove?.closest('.titolo-barra')) continue
         // la scritta «Caricamento…» che compare solo dopo mezzo secondo
         if (dove?.closest('.caricamento-ritardato')) continue
-        if (r.type === 'characterData') w.__cambi.push({ t, cosa: descrivi(r.target) })
-        else
+        // una finestra che sta ancora leggendo i suoi dati e' invisibile (vedi
+        // «.modal-overlay:has(.caricamento-ritardato)» in 04-finestre.css): quello che
+        // cambia li' dentro non si vede, compare tutto insieme quando e' piena
+        const nascosta = (n: Node): boolean => {
+          const el = n.nodeType === 1 ? (n as Element) : n.parentElement
+          const ov = el?.closest('.modal-overlay')
+          return !!ov && !!ov.querySelector('.caricamento-ritardato')
+        }
+        if (r.type === 'characterData') {
+          if (!nascosta(r.target)) w.__cambi.push({ t, cosa: descrivi(r.target) })
+        } else
           for (const n of [...Array.from(r.addedNodes), ...Array.from(r.removedNodes)])
-            w.__cambi.push({ t, cosa: descrivi(n) })
+            if (!nascosta(n)) w.__cambi.push({ t, cosa: descrivi(n) })
       }
     }).observe(document.body, { childList: true, subtree: true, characterData: true })
   })

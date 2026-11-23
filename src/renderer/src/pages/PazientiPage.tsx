@@ -1,3 +1,4 @@
+import { daPrecarico, haPrecarico, ricorda } from '../precarico'
 import { useEffect, useRef, useState } from 'react'
 import { ChevronRight, Filter, Plus, Upload, Users } from 'lucide-react'
 import StatoVuoto from '../components/StatoVuoto'
@@ -96,11 +97,11 @@ export default function PazientiPage({
   // Salvata una seduta si torna alla settimana, da qualunque parte si sia partiti.
   onSedutaSalvata?: () => void
 }): React.JSX.Element {
-  const [pazienti, setPazienti] = useState<PazienteDettaglio[]>([])
+  const [pazienti, setPazienti] = useState<PazienteDettaglio[]>(() => daPrecarico('pazienti', []))
   // L'elenco e' arrivato almeno una volta. Prima di allora e' vuoto per forza, e
   // mostrarlo vorrebbe dire far lampeggiare "Ancora nessun paziente" (o l'elenco)
   // prima di aprire la seduta chiesta dalla settimana.
-  const [elencoLetto, setElencoLetto] = useState(false)
+  const [elencoLetto, setElencoLetto] = useState(() => haPrecarico('pazienti'))
   // Con una richiesta di apertura la pagina nasce gia' sul paziente: se si
   // aspettasse l'effect qui sotto, per un istante si vedrebbe l'elenco.
   const [selId, setSelId] = useState<number | null>(apriPaziente?.id ?? null)
@@ -126,7 +127,7 @@ export default function PazientiPage({
   )
 
   const load = async (): Promise<PazienteDettaglio[]> => {
-    const lista = await window.api.pazienti.list()
+    const lista = ricorda<PazienteDettaglio[]>('pazienti')(await window.api.pazienti.list())
     setPazienti(lista)
     setElencoLetto(true)
     return lista

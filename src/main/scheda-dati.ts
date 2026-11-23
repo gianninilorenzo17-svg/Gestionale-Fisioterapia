@@ -20,6 +20,7 @@ export interface EsercizioScheda {
   nota: string | null
   variante: string | null
   monopodalico: 0 | 1
+  gambe?: string | null
 }
 
 export interface SchedaPaziente {
@@ -54,7 +55,7 @@ export function datiScheda(sedutaId: number): SchedaPaziente {
   const esercizi = db
     .prepare(
       `SELECT COALESCE(e.nome, se.nome_libero) AS nome, c.nome AS categoria_nome,
-              e.unita_carico,
+              e.unita_carico, e.gambe,
               se.serie, se.cluster, se.ripetizioni, se.carico, se.recupero_cluster,
               se.recupero, se.nota, se.variante, se.monopodalico, se.seduta_sezione_id
        FROM seduta_esercizi se

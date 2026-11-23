@@ -1054,6 +1054,8 @@ export interface EsercizioScheda {
   variante: string | null
   // 1 = a una gamba: "Squat monopodalico".
   monopodalico: 0 | 1
+  // Come si fa in libreria (due / scelta / una): dove si sceglie, la scheda scrive anche «Bipodalico».
+  gambe?: string | null
 }
 
 export interface SchedaPaziente {

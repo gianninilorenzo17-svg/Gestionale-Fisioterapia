@@ -2,6 +2,7 @@
 // Nessuna dipendenza da Electron: testabile con Node (vedi test/export-seduta.test.ts).
 import { coloriTema } from '../shared/temi'
 import { coloreSezione } from '../shared/colore-sezione'
+import { fraseDose, gambeTesto } from '../shared/scheda-riga'
 import { esc } from './html'
 import { leggiProfilo, righeProfilo, testoIscrizione } from './profilo'
 import { LINK_WEB } from './validazione'
@@ -56,6 +57,8 @@ export interface DatiSedutaExport {
       variante?: string | null
       // 1 = fatto a una gamba: "Squat monopodalico".
       monopodalico?: 0 | 1 | null
+      // Come si fa in libreria (due / scelta / una): dove si sceglie, la scheda scrive anche «Bipodalico».
+      gambe?: string | null
       // Solo per la scheda illustrata: la spiegazione dell'esercizio, il video
       // e la foto (data URL). Nella scheda normale restano a null, cosi' le
       // immagini non vengono nemmeno lette dal database.
@@ -144,29 +147,47 @@ export function generaHtml(
   const comeScritto = (testo: string): string => esc(testo.replace(/\r\n?/g, '\n'))
   const variante = (e: { variante?: string | null }): string =>
     e.variante?.trim() ? `<span class="variante">${esc(e.variante.trim())}</span>` : ''
-  // Una carta per esercizio, come nella finestra: il nome a sinistra, la dose in
-  // grande a destra e sotto, piccoli, carico e recupero. Dove un dato manca non
-  // si scrive niente. E' una tabella a due celle e non un blocco flessibile
-  // perche' la stampa rispetta "non spezzare" sulle tabelle in modo affidabile.
+  // Una carta per esercizio, come nella finestra e tutta su una riga: il nome con
+  // le gambe (mono/bipodalico) e la variante accanto, la dose come frase, carico e
+  // recupero in due bolle di colore diverso. Sotto al nome c'e' solo la nota,
+  // quando c'e'. Dove un dato manca non si scrive niente.
   const carte = (esercizi: DatiSedutaExport['sezioni'][number]['esercizi']): string =>
     esercizi
       .map((e) => {
-        const volume = volumeTesto(e)
+        const frase = fraseDose(e)
         const carico = intensitaTesto(e)
         const recupero = recuperoTesto(e)
-        const dose =
-          volume || carico || recupero
-            ? `<div class="dose-scheda">${volume ? `<strong>${esc(volume)}</strong>` : ''}${
-                carico ? `<span><em>Carico</em> ${esc(carico)}</span>` : ''
-              }${recupero ? `<span><em>Recupero</em> ${esc(recupero)}</span>` : ''}</div>`
-            : ''
+        const gambe = gambeTesto(e)
+        const v = e.variante?.trim()
         return `<div class="esercizio-scheda">
-          <div class="col-esercizio"><span class="nome">${esc(
-            nomeConMonopodalico(e.nome, e.monopodalico)
-          )}</span>${variante(e)}${
-            e.nota ? `<span class="nota-es">${comeScritto(e.nota)}</span>` : ''
-          }</div>
-          ${dose}
+          <div class="testa-es">
+            <div class="titolo-es"><span class="nome">${esc(e.nome)}</span>${
+              gambe
+                ? `<span class="gambe-es"><span class="pieno">${gambe.pieno}</span><span class="ab">${gambe.corto}</span></span>`
+                : ''
+            }${v ? `<span class="variante-es">${esc(v)}</span>` : ''}</div>
+            ${e.nota ? `<span class="nota-es">${comeScritto(e.nota)}</span>` : ''}
+          </div>
+          ${
+            frase
+              ? `<div class="frase-scheda"><span class="lunga">${frase.lunga
+                  .map((x) => (x.forte ? `<b>${esc(x.testo)}</b>` : esc(x.testo)))
+                  .join('')}</span><span class="corta"><b>${esc(frase.corta)}</b></span></div>`
+              : ''
+          }
+          ${
+            carico || recupero
+              ? `<div class="bolle-scheda">${
+                  carico
+                    ? `<span class="bolla carico"><small>carico</small><b>${esc(carico)}</b></span>`
+                    : ''
+                }${
+                  recupero
+                    ? `<span class="bolla recupero"><small>recupero</small><b>${esc(recupero)}</b></span>`
+                    : ''
+                }</div>`
+              : ''
+          }
         </div>`
       })
       .join('')
@@ -293,7 +314,7 @@ export function generaHtml(
   /* Ogni sezione e' un riquadro del suo colore (riscaldamento ambra, pliometria
      blu, forza verde...) con dentro una carta bianca per esercizio: la stessa
      scheda che il paziente vede a schermo. */
-  .sezione-scheda { --c: ${accento}; margin: 0 0 12px; padding: 9px 10px 2px; border-radius: 10px;
+  .sezione-scheda { container-type: inline-size; --c: ${accento}; margin: 0 0 12px; padding: 9px 10px 2px; border-radius: 10px;
                     background: color-mix(in srgb, var(--c) 12%, #fff);
                     -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .sezione-scheda.colore-ambra { --c: #b7791f; }
@@ -305,22 +326,37 @@ export function generaHtml(
                                  color: var(--c); font-weight: 700; font-size: 11px; }
   .sezione-scheda h3 .fascetta::before { content: ''; display: inline-block; width: 8px; height: 8px;
                                          border-radius: 2px; background: var(--c); margin-right: 6px; }
-  .esercizio-scheda { display: table; width: 100%; box-sizing: border-box; background: #fff;
+  .esercizio-scheda { display: flex; align-items: center; gap: 10px; background: #fff;
                       border-radius: 7px; padding: 8px 11px; margin-bottom: 6px;
                       break-inside: avoid; page-break-inside: avoid; }
-  .esercizio-scheda .col-esercizio { display: table-cell; vertical-align: middle; width: auto; }
-  .esercizio-scheda .dose-scheda { display: table-cell; vertical-align: middle; text-align: right;
-                                   width: 1%; min-width: 130px; padding-left: 14px; }
-  .esercizio-scheda .nome { display: block; font-weight: 600; font-size: 12.5px; }
-  .esercizio-scheda .variante { display: block; margin-top: 1px; color: ${accento};
-                                font-size: 11.5px; font-weight: 600; }
+  .esercizio-scheda .testa-es { flex: 1 1 0; min-width: 0; }
+  .esercizio-scheda .titolo-es { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+  .esercizio-scheda .nome { flex: 0 1 auto; min-width: 4ch; font-weight: 600; font-size: 12.5px;
+                            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .esercizio-scheda .gambe-es { flex: none; font-size: 10.5px; font-weight: 700; color: #8a4fa0;
+                                white-space: nowrap; }
+  .esercizio-scheda .gambe-es .ab { display: none; }
+  .esercizio-scheda .variante-es { flex: 0 8 auto; min-width: 8ch; font-size: 10.5px; font-weight: 700;
+                                   color: #c0502f; overflow: hidden; text-overflow: ellipsis;
+                                   white-space: nowrap; }
   .esercizio-scheda .nota-es { display: block; margin-top: 2px; color: #555b66;
                                font-size: 11px; font-style: italic; white-space: pre-wrap; }
-  .esercizio-scheda .dose-scheda strong { display: block; font-size: 15px; line-height: 1.15;
-                                          color: var(--c); }
-  .esercizio-scheda .dose-scheda span { display: block; margin-top: 1px; font-size: 10.5px;
-                                        white-space: normal; max-width: 200px; margin-left: auto; }
-  .esercizio-scheda .dose-scheda em { font-style: normal; color: #6b7280; }
+  .esercizio-scheda .frase-scheda { flex: none; font-size: 11.5px; white-space: nowrap; text-align: right; }
+  .esercizio-scheda .frase-scheda b { color: var(--c); font-size: 13.5px; font-weight: 700; }
+  .esercizio-scheda .frase-scheda .corta { display: none; }
+  .bolle-scheda { flex: none; display: flex; gap: 5px; }
+  .bolla { display: inline-flex; align-items: baseline; gap: 4px; padding: 3px 9px; border-radius: 999px;
+           font-size: 11px; white-space: nowrap;
+           -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .bolla small { font-size: 10px; opacity: 0.8; }
+  .bolla b { font-size: 11.5px; font-weight: 700; }
+  .bolla.carico { background: #e1ecf7; color: #2f6a9a; }
+  .bolla.recupero { background: #f6e8c8; color: #8a5f12; }
+  @container (max-width: 520px) {
+    .esercizio-scheda .gambe-es .pieno { display: none; }
+    .esercizio-scheda .gambe-es .ab { display: inline; }
+    .esercizio-scheda .variante-es { max-width: 16ch; }
+  }
   table { width: 100%; border-collapse: collapse; }
   th, td { border: 1px solid #ccd2da; padding: 6px 8px; text-align: left; vertical-align: top; }
   th { background: ${intestazione}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }

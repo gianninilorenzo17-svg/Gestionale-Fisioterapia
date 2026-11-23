@@ -13,7 +13,7 @@ test('La scheda della seduta: tabella, dosaggi, escaping', () => {
   assert.ok(html.includes('Riscaldamento'))
   assert.ok(html.includes('class="fascetta"'), 'fascetta della sezione')
   assert.ok(html.includes('esercizio-scheda'), 'carte come quelle a schermo')
-  assert.ok(html.includes('<em>Recupero</em>'), 'etichetta del recupero')
+  assert.ok(html.includes('<small>recupero</small>'), 'recupero in una bolla')
   // nella sua colonna il recupero si scrive corto: "rec." lo dice gia'
   // l'intestazione
   assert.ok(html.includes('1 min'))
@@ -41,9 +41,9 @@ test("La variante dell'esercizio si legge sulla scheda, e l'esercizio normale no
     }
   ]
   const html = generaHtml(pazExport, sedute)
-  assert.ok(html.includes('<span class="variante">con luci &lt;reattive&gt;</span>'), 'la variante sta sotto al nome')
-  assert.equal(html.split('<span class="variante">').length - 1, 1, 'solo l\'esercizio che ce l\'ha')
-  assert.ok(!generaHtml(pazExport, seduteExport).includes('<span class="variante">'), 'nessuna se non c\'e\'')
+  assert.ok(html.includes('<span class="variante-es">con luci &lt;reattive&gt;</span>'), 'la variante sta accanto al nome')
+  assert.equal(html.split('<span class="variante-es">').length - 1, 1, 'solo l\'esercizio che ce l\'ha')
+  assert.ok(!generaHtml(pazExport, seduteExport).includes('<span class="variante-es">'), 'nessuna se non c\'e\'')
   // anche nella scheda illustrata
   assert.ok(generaHtml(pazExport, sedute, true).includes('<span class="variante">con luci'))
   // e nel Word
@@ -61,8 +61,9 @@ test('Il monopodalico si legge accanto al nome, solo dove e\' segnato', async ()
       sezioni: [{ nome: 'Forza', esercizi: [{ ...prima, nome: 'Squat', monopodalico: 1 as const }, ...altri] }]
     }
   ]
-  assert.ok(generaHtml(pazExport, sedute).includes('<span class="nome">Squat monopodalico</span>'))
-  assert.equal(generaHtml(pazExport, sedute).split('monopodalico').length - 1, 1, 'solo l\'esercizio segnato')
+  // accanto al nome, in un colore suo, abbreviabile
+  assert.ok(generaHtml(pazExport, sedute).includes('<span class="nome">Squat</span><span class="gambe-es"><span class="pieno">Monopodalico</span><span class="ab">Mono</span></span>'))
+  assert.equal(generaHtml(pazExport, sedute).split('class="gambe-es"').length - 1, 1, 'solo l\'esercizio segnato')
   assert.ok(generaHtml(pazExport, sedute, true).includes('<div class="nome">Squat monopodalico</div>'))
   const { default: JSZip } = await import('jszip')
   const zip = await JSZip.loadAsync(await generaDocx(pazExport, sedute))
@@ -204,4 +205,31 @@ test('Le note della seduta mantengono gli a capo, nel PDF e nel Word', async () 
   const xml = await zip.file('word/document.xml')!.async('string')
   assert.equal(xml.split('<w:br/>').length - 1, 3, 'una dopo l etichetta e due fra le righe')
   assert.ok(xml.includes('xml:space="preserve">   Terza riga rientrata'), 'gli spazi restano')
+})
+
+// «Bipodalico» si scrive solo dove l'esercizio si fa in tutti e due i modi e si e'
+// scelto a due gambe; un esercizio sempre a due gambe, o sempre a una, non scrive niente.
+test('Il bipodalico compare solo sugli esercizi a scelta', () => {
+  const [prima, ...altri] = seduteExport[0].sezioni[0].esercizi
+  const con = (gambe: string | null) => [
+    { ...seduteExport[0], sezioni: [{ nome: 'Forza', esercizi: [{ ...prima, nome: 'Squat', monopodalico: 0 as const, gambe }, ...altri] }] }
+  ]
+  assert.ok(generaHtml(pazExport, con('scelta')).includes('<span class="pieno">Bipodalico</span>'))
+  assert.ok(!generaHtml(pazExport, con('due')).includes('podalico'))
+  assert.ok(!generaHtml(pazExport, con('una')).includes('podalico'))
+  assert.ok(!generaHtml(pazExport, con(null)).includes('podalico'))
+})
+
+// La dose come frase: «3 serie da 5 rip.», senza «rip.» dopo un tempo.
+test('La dose si scrive come frase', async () => {
+  const { fraseDose } = await import('../src/shared/scheda-riga')
+  const lunga = (d: object): string => fraseDose(d)!.lunga.map((x) => x.testo).join('')
+  assert.equal(lunga({ serie: '3', ripetizioni: '5' }), '3 serie da 5 rip.')
+  assert.equal(lunga({ serie: '5', ripetizioni: '30-40"' }), '5 serie da 30-40"')
+  assert.equal(lunga({ serie: '3' }), '3 serie')
+  assert.equal(lunga({ ripetizioni: "5-10'" }), "5-10'")
+  assert.equal(lunga({ ripetizioni: '8' }), '8 rip.')
+  assert.equal(lunga({ serie: '4', cluster: '3', ripetizioni: '2' }), '4 × (3 × 2)')
+  assert.equal(fraseDose({ serie: '3', ripetizioni: '5' })!.corta, '3 × 5')
+  assert.equal(fraseDose({}), null)
 })

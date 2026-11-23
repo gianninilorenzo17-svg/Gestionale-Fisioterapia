@@ -35,7 +35,7 @@ import type { Tema } from '../../shared/temi'
 import type { StatoAggiornamento } from '../../shared/types'
 import { chiedi } from './components/Conferma'
 import LogoApp from './components/LogoApp'
-import { precaricaConfigurazione, precaricaImpostazioni } from './precarico'
+import { precaricaConfigurazione, precaricaImpostazioni, preparaSezione } from './precarico'
 
 type Sezione =
   | 'settimana'
@@ -306,6 +306,8 @@ export default function App(): React.JSX.Element {
   // eri, e cambiando sezione ci si ritrovava dentro a quello che si era lasciato
   // aperto la volta prima.
   const vaiA = (s: Sezione): void => {
+    // La sezione nuova si apre quando ha letto quello che mostra (vedi preparaSezione).
+    void preparaSezione(s).then(() => {
     setSezione(s)
     setTornaAllElenco((n) => n + 1)
     // Si dimentica anche il paziente che si era chiesto di aprire da un'altra
@@ -318,6 +320,7 @@ export default function App(): React.JSX.Element {
     // la ricerca copre solo il contenuto, non il menu: scegliendo un'altra
     // sezione si chiude, altrimenti restava aperta sopra la pagina nuova
     setCercando(false)
+    })
   }
   // Richiesta di aprire la scheda di un paziente da un'altra sezione. Il numero
   // progressivo serve a far scattare l'apertura anche se si richiede due volte
@@ -466,13 +469,18 @@ export default function App(): React.JSX.Element {
             tornaAllElenco={tornaAllElenco}
             apriPaziente={apriPaziente}
             onEsciDallaSeduta={() => {
-              if (tornaA) setSezione(tornaA)
-              setTornaA(null)
+              const da = tornaA
+              void preparaSezione(da ?? '').then(() => {
+                if (da) setSezione(da)
+                setTornaA(null)
+              })
             }}
             onSedutaSalvata={() => {
-              setSezione('settimana')
-              setTornaA(null)
-              setApriPaziente(null)
+              void preparaSezione('settimana').then(() => {
+                setSezione('settimana')
+                setTornaA(null)
+                setApriPaziente(null)
+              })
             }}
           />
         )}

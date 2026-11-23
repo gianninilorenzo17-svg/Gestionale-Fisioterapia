@@ -64,6 +64,12 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.25
+
+- Scheda del paziente: ogni esercizio su una riga, con «Monopodalico»/«Bipodalico» e variante accanto al nome, la dose a frase («3 serie da 5 rip.») e carico e recupero in due bolle colorate; stessa grafica nel PDF
+- Corretti i riquadri colorati della scheda a schermo, che non si vedevano
+- «Pazienti» e «La settimana» si aprono già piene, senza vedere il caricamento
+
 ### v0.5.24
 
 - Scheda del paziente rinnovata: sezioni colorate, una carta per esercizio e dose in grande; la stessa grafica nel PDF e nella scheda con le immagini

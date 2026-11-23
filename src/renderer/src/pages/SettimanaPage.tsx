@@ -1,3 +1,5 @@
+import { chiaveSettimana, iso, lunediDi } from '../dateSettimana'
+import { daPrecarico, haPrecarico, ricorda } from '../precarico'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   CalendarDays,
@@ -39,18 +41,6 @@ const MESI = [
   'dicembre'
 ]
 
-const iso = (d: Date): string =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-
-// Il lunedi' della settimana in cui cade una data. getDay() da' 0 alla
-// domenica: qui la settimana comincia di lunedi', come l'agenda.
-function lunediDi(d: Date): Date {
-  const l = new Date(d)
-  l.setHours(0, 0, 0, 0)
-  l.setDate(l.getDate() - ((l.getDay() + 6) % 7))
-  return l
-}
-
 function intestazioneSettimana(lunedi: Date): string {
   const domenica = new Date(lunedi)
   domenica.setDate(lunedi.getDate() + 6)
@@ -85,7 +75,9 @@ export default function SettimanaPage({
   tornaAllElenco: number
 }): React.JSX.Element {
   const [lunedi, setLunedi] = useState<Date>(() => lunediDi(new Date()))
-  const [sedute, setSedute] = useState<SedutaSettimana[]>([])
+  const [sedute, setSedute] = useState<SedutaSettimana[]>(() =>
+    daPrecarico(chiaveSettimana(lunediDi(new Date())), [])
+  )
   // Il giorno a cui si sta aggiungendo una seduta, se la finestrella e' aperta.
   const [giornoAperto, setGiornoAperto] = useState<string | null>(null)
   // La seduta che si sta copiando, mentre si sceglie il giorno.
@@ -97,7 +89,7 @@ export default function SettimanaPage({
   const [altraData, setAltraData] = useState('')
   // La ricerca del paziente in cima: si apre la sua scheda o gli si aggiunge
   // una seduta scegliendo il giorno.
-  const [pazienti, setPazienti] = useState<PazienteDettaglio[]>([])
+  const [pazienti, setPazienti] = useState<PazienteDettaglio[]>(() => daPrecarico('pazienti', []))
   const [cerca, setCerca] = useState('')
   const [elencoAperto, setElencoAperto] = useState(false)
   const [perSeduta, setPerSeduta] = useState<PazienteDettaglio | null>(null)
@@ -106,6 +98,7 @@ export default function SettimanaPage({
   useEffect(() => {
     window.api.pazienti
       .list()
+      .then(ricorda<PazienteDettaglio[]>('pazienti'))
       .then(setPazienti)
       .catch(() => undefined)
   }, [])
@@ -118,7 +111,9 @@ export default function SettimanaPage({
 
   // Quale settimana ha gia' le sue sedute: prima di allora i giorni sono
   // vuoti e piu' bassi, e scorrere adesso sbaglierebbe la posizione.
-  const [caricataPer, setCaricataPer] = useState<string | null>(null)
+  const [caricataPer, setCaricataPer] = useState<string | null>(() =>
+    haPrecarico(chiaveSettimana(lunediDi(new Date()))) ? iso(lunediDi(new Date())) : null
+  )
 
   const carica = useCallback((): void => {
     const domenica = new Date(lunedi)
@@ -126,6 +121,7 @@ export default function SettimanaPage({
     window.api.sedute
       .settimana(iso(lunedi), iso(domenica))
       .then((r) => {
+        ricorda<SedutaSettimana[]>(chiaveSettimana(lunedi))(r)
         setSedute(r)
         setCaricataPer(iso(lunedi))
       })

@@ -87,7 +87,7 @@ function leggiSeduta(id: number, illustrata = false): DatiSedutaExport & { pazie
   const esercizi = db
     .prepare(
       `SELECT COALESCE(e.nome, se.nome_libero) AS nome, c.nome AS categoria_nome,
-              e.unita_carico,
+              e.unita_carico, e.gambe,
               se.serie, se.cluster, se.ripetizioni,
               se.carico, se.recupero_cluster, se.recupero,
               se.nota, se.variante, se.monopodalico, se.seduta_sezione_id${

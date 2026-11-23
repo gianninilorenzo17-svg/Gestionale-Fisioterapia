@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { RotateCw } from 'lucide-react'
 import type { SchedaPaziente as Dati } from '../../shared/types'
 import { errMsg, formatData } from './lib'
-import { intensitaTesto, recuperoTesto, volumeTesto } from '../../shared/dosaggio'
-import { nomeConMonopodalico } from '../../shared/varianti'
+import { intensitaTesto, recuperoTesto } from '../../shared/dosaggio'
+import { fraseDose, gambeTesto } from '../../shared/scheda-riga'
 import { coloreSezione } from '../../shared/colore-sezione'
 import BarraFinestra from './components/BarraFinestra'
 
@@ -75,33 +75,60 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
         <p className="hint">Questa seduta non ha ancora esercizi.</p>
       ) : (
         dati.sezioni.map((sez, i) => (
-          <section key={i} className={`sezione-scheda colore-${coloreSezione(sez.nome, i)}`}>
+          <section key={i} className={`sezione-programma colore-${coloreSezione(sez.nome, i)}`}>
             <h2>{sez.nome}</h2>
-            {/* Una carta per esercizio: il nome a sinistra, a destra la dose in
-                grande e sotto, piccoli, carico e recupero. Dove un dato manca
-                non si scrive niente (niente piu' trattini). */}
+            {/* Una carta per esercizio, tutta su una riga: il nome con le gambe (mono/
+                bipodalico) e la variante accanto, la dose come frase, e carico e
+                recupero in due bolle di colore diverso. Sotto al nome c'e' solo la
+                nota, quando c'e'. Dove un dato manca non si scrive niente. */}
             {sez.esercizi.map((e, j) => {
-              const volume = volumeTesto(e)
+              const frase = fraseDose(e)
               const carico = intensitaTesto(e)
               const recupero = recuperoTesto(e)
+              const gambe = gambeTesto(e)
               return (
                 <div className="esercizio-scheda" key={j}>
-                  <div className="col-esercizio">
-                    <span className="nome">{nomeConMonopodalico(e.nome, e.monopodalico)}</span>
-                    {e.variante && <span className="variante">{e.variante}</span>}
+                  <div className="testa-es">
+                    <div className="titolo-es">
+                      <span className="nome" title={e.nome}>
+                        {e.nome}
+                      </span>
+                      {gambe && (
+                        <span className="gambe-es" title={gambe.pieno}>
+                          <span className="pieno">{gambe.pieno}</span>
+                          <span className="ab">{gambe.corto}</span>
+                        </span>
+                      )}
+                      {e.variante && (
+                        <span className="variante-es" title={e.variante}>
+                          {e.variante}
+                        </span>
+                      )}
+                    </div>
                     {e.nota && <span className="nota-es">{e.nota}</span>}
                   </div>
-                  {(volume || carico || recupero) && (
-                    <div className="dose-scheda">
-                      {volume && <strong>{volume}</strong>}
+                  {frase && (
+                    <div className="frase-scheda">
+                      <span className="lunga">
+                        {frase.lunga.map((p, k) => (p.forte ? <b key={k}>{p.testo}</b> : p.testo))}
+                      </span>
+                      <span className="corta">
+                        <b>{frase.corta}</b>
+                      </span>
+                    </div>
+                  )}
+                  {(carico || recupero) && (
+                    <div className="bolle-scheda">
                       {carico && (
-                        <span>
-                          <em>Carico</em> {carico}
+                        <span className="bolla carico">
+                          <small>carico</small>
+                          <b>{carico}</b>
                         </span>
                       )}
                       {recupero && (
-                        <span>
-                          <em>Recupero</em> {recupero}
+                        <span className="bolla recupero">
+                          <small>recupero</small>
+                          <b>{recupero}</b>
                         </span>
                       )}
                     </div>

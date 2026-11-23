@@ -342,7 +342,7 @@
 }
 
 .scheda-paziente {
-  max-width: 760px;
+  max-width: 900px;
   margin: 22px auto;
   padding: 26px 30px 34px;
   background: var(--surface);
@@ -389,18 +389,19 @@
    blu, forza verde...) con dentro una carta bianca per esercizio. Il colore
    orienta da lontano; le tinte sono mescolate con il fondo del tema, cosi' la
    scheda resta leggibile in tutti i temi. */
-.sezione-scheda {
+.sezione-programma {
   --c: var(--accent);
   margin-top: 16px;
   padding: 12px 12px 4px;
   border-radius: 14px;
   background: color-mix(in srgb, var(--c) 12%, var(--surface));
+  container-type: inline-size;
 }
 
-.sezione-scheda.colore-ambra { --c: #b7791f; }
-.sezione-scheda.colore-blu { --c: #2f6690; }
-.sezione-scheda.colore-verde { --c: var(--accent); }
-.sezione-scheda.colore-viola { --c: #7a5a9a; }
+.sezione-programma.colore-ambra { --c: #b7791f; }
+.sezione-programma.colore-blu { --c: #2f6690; }
+.sezione-programma.colore-verde { --c: var(--accent); }
+.sezione-programma.colore-viola { --c: #7a5a9a; }
 
 .scheda-paziente h2 {
   display: flex;
@@ -424,77 +425,157 @@
 
 .esercizio-scheda {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 8px;
-  padding: 12px 14px;
+  padding: 11px 14px;
   background: var(--surface);
   border-radius: 10px;
 }
 
-.esercizio-scheda .col-esercizio {
+.esercizio-scheda .testa-es {
+  flex: 1 1 0;
   min-width: 0;
-  flex: 1 1 auto;
+}
+
+/* Il nome con le gambe e la variante accanto, sulla stessa riga. Se manca
+   spazio si accorcia prima la variante (puntini), poi «Monopodalico» diventa
+   «Mono» (vedi le soglie sotto), e per ultimo il nome. Non va mai a capo. */
+.esercizio-scheda .titolo-es {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
 }
 
 .esercizio-scheda .nome {
-  display: block;
+  flex: 0 1 auto;
+  min-width: 4ch;
   font-size: 16.5px;
   font-weight: 600;
   line-height: 1.25;
-  overflow-wrap: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* La variante sta sotto al nome, nel colore dell'app: il paziente deve vedere
-   a colpo d'occhio se l'esercizio e' quello normale o con qualcosa in piu'. */
-.esercizio-scheda .variante {
-  display: block;
-  margin-top: 2px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--accent);
+/* Mono/bipodalico e variante hanno colori loro, diversi fra loro e dal nome. */
+.esercizio-scheda .gambe-es {
+  flex: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8a4fa0;
+  white-space: nowrap;
 }
 
-/* La nota sta sotto al nome e in corsivo: e' un'indicazione, non un dato. */
+.esercizio-scheda .gambe-es .ab {
+  display: none;
+}
+
+.esercizio-scheda .variante-es {
+  flex: 0 8 auto;
+  min-width: 8ch;
+  font-size: 13px;
+  font-weight: 700;
+  color: #c0502f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* La nota sta sotto al nome, in corsivo, solo quando e' stata scritta. */
 .esercizio-scheda .nota-es {
   display: block;
-  margin-top: 3px;
+  margin-top: 2px;
   font-size: 13.5px;
   font-style: italic;
   color: var(--text-dim);
 }
 
-/* La dose in grande nel colore della sezione, carico e recupero piccoli sotto.
-   Carico e recupero sono testi liberi e possono essere lunghi: vanno a capo
-   dentro la loro colonna, che non supera la meta' della carta. */
-.dose-scheda {
+/* La dose come frase: «3 serie da 5 rip.», con i numeri in grande nel colore
+   della sezione. Nelle finestre strette diventa «3 × 5». */
+.esercizio-scheda .frase-scheda {
   flex: none;
-  max-width: 45%;
+  font-size: 15px;
+  white-space: nowrap;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-.dose-scheda strong {
-  display: block;
-  font-size: 21px;
-  line-height: 1.15;
+.esercizio-scheda .frase-scheda b {
   color: var(--c);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.esercizio-scheda .frase-scheda .corta {
+  display: none;
+}
+
+/* Carico e recupero: due bolle, azzurra e sabbia, sempre riconoscibili. */
+.bolle-scheda {
+  flex: none;
+  display: flex;
+  gap: 6px;
+}
+
+.bolla {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 14px;
   white-space: nowrap;
 }
 
-.dose-scheda span {
-  display: block;
-  margin-top: 2px;
-  font-size: 13px;
-  color: var(--text);
-  overflow-wrap: anywhere;
+.bolla small {
+  font-size: 12.5px;
+  opacity: 0.8;
 }
 
-.dose-scheda em {
-  font-style: normal;
-  color: var(--text-dim);
-  margin-right: 2px;
+.bolla b {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.bolla.carico {
+  background: #e1ecf7;
+  color: #2f6a9a;
+}
+
+.bolla.recupero {
+  background: #f6e8c8;
+  color: #8a5f12;
+}
+
+/* Meno spazio: mono/bipodalico si abbrevia, la variante si accorcia. */
+@container (max-width: 620px) {
+  .esercizio-scheda .gambe-es .pieno {
+    display: none;
+  }
+  .esercizio-scheda .gambe-es .ab {
+    display: inline;
+  }
+  .esercizio-scheda .variante-es {
+    max-width: 16ch;
+  }
+}
+
+/* Poco spazio: la frase diventa «3 × 5» e le bolle perdono la parola, restano i colori. */
+@container (max-width: 440px) {
+  .esercizio-scheda .frase-scheda .lunga {
+    display: none;
+  }
+  .esercizio-scheda .frase-scheda .corta {
+    display: inline;
+  }
+  .bolla small {
+    display: none;
+  }
+  .esercizio-scheda .variante-es {
+    max-width: 9ch;
+  }
 }
 
 .nota-seduta {

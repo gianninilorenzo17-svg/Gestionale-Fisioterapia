@@ -7,11 +7,16 @@
 // schede ci sono gia' al primo disegno. `precaricaConfigurazione` li legge tutti
 // appena il programma e' sbloccato, e di nuovo ogni volta che si entra in
 // Configurazione, cosi' anche la prima visita trova gli elenchi pronti.
+import { chiaveSettimana, iso, lunediDi } from './dateSettimana'
+
 const elenchi = new Map<string, unknown>()
 
 // L'ultimo elenco letto con questo nome, o `vuoto` se non ce n'e' ancora.
 export const daPrecarico = <T,>(chiave: string, vuoto: T): T =>
   elenchi.has(chiave) ? (elenchi.get(chiave) as T) : vuoto
+
+// C'e' gia' qualcosa da parte con questo nome?
+export const haPrecarico = (chiave: string): boolean => elenchi.has(chiave)
 
 // Da mettere nella catena della lettura: tiene da parte l'elenco e lo lascia passare.
 export const ricorda =
@@ -56,4 +61,29 @@ export async function precaricaConfigurazione(): Promise<void> {
     leggi('test', api.testValutazione.list(false)),
     leggi('protocolli', api.screening.list(null))
   ])
+}
+
+// Prima di aprire una sezione (Pazienti, Settimana) si legge quello che mostra al
+// primo disegno: finche' non e' arrivato resta in vista la pagina di prima, e la
+// nuova compare gia' piena invece di vuotarsi e riempirsi. Non blocca mai: se la
+// lettura fallisce la pagina si apre comunque e legge da sola.
+export async function preparaSezione(sezione: string): Promise<void> {
+  const api = window.api
+  try {
+    if (sezione === 'pazienti') {
+      ricorda<unknown>('pazienti')(await api.pazienti.list())
+    } else if (sezione === 'settimana') {
+      const lunedi = lunediDi(new Date())
+      const domenica = new Date(lunedi)
+      domenica.setDate(lunedi.getDate() + 6)
+      const [sedute, pazienti] = await Promise.all([
+        api.sedute.settimana(iso(lunedi), iso(domenica)),
+        api.pazienti.list()
+      ])
+      ricorda<unknown>(chiaveSettimana(lunedi))(sedute)
+      ricorda<unknown>('pazienti')(pazienti)
+    }
+  } catch {
+    // la pagina si apre lo stesso e rilegge da sola
+  }
 }
