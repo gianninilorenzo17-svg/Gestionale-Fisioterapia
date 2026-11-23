@@ -353,17 +353,16 @@
 
 .scheda-paziente header {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 3px solid var(--accent);
-  padding-bottom: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
 }
 
 .scheda-paziente header h1 {
   margin: 0;
-  font-size: 21px;
+  font-size: 24px;
+  letter-spacing: -0.01em;
 }
 
 .scheda-paziente header p {
@@ -372,80 +371,84 @@
   font-size: 14px;
 }
 
-/* Il nome della sezione e' una fascetta piena, non una scritta colorata: sotto
-   ci sono subito le intestazioni delle colonne, e due righe di testo una
-   sull'altra si confondevano. Cosi' si vede a colpo d'occhio dove comincia un
-   blocco di esercizi. */
+/* Aggiorna e' solo l'icona: tonda, discreta (il nome si legge al passaggio). */
+.scheda-paziente .aggiorna-scheda {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border-forte);
+}
+
+/* Ogni sezione e' un riquadro del suo colore (riscaldamento ambra, pliometria
+   blu, forza verde...) con dentro una carta bianca per esercizio. Il colore
+   orienta da lontano; le tinte sono mescolate con il fondo del tema, cosi' la
+   scheda resta leggibile in tutti i temi. */
+.sezione-scheda {
+  --c: var(--accent);
+  margin-top: 16px;
+  padding: 12px 12px 4px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--c) 12%, var(--surface));
+}
+
+.sezione-scheda.colore-ambra { --c: #b7791f; }
+.sezione-scheda.colore-blu { --c: #2f6690; }
+.sezione-scheda.colore-verde { --c: var(--accent); }
+.sezione-scheda.colore-viola { --c: #7a5a9a; }
+
 .scheda-paziente h2 {
-  display: inline-block;
-  /* Piccola: dice dove comincia un blocco, non e' la cosa principale del
-     foglio. Quella sono i nomi degli esercizi. */
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 22px 0 8px;
-  padding: 4px 11px;
-  border-radius: 999px;
-  /* Fondo del colore secondario del tema (beige nel verde, sabbia nel
-     terracotta, azzurrino nel blu) e scritta del colore principale: pieno era
-     troppo forte per un foglio che deve restare sobrio. */
-  background: var(--intestazione);
-  color: var(--accent);
-}
-
-/* Il programma del paziente: una tabella con quattro colonne sempre nello
-   stesso posto. Si legge in piedi, da lontano, quindi i caratteri sono grandi
-   e le righe alte; i numeri stanno al centro delle loro colonne, che restano
-   strette, e tutto lo spazio che avanza va al nome dell'esercizio. */
-.tabella-scheda {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 6px;
-}
-
-.tabella-scheda th {
-  /* "SERIE × RIP." su due righe faceva sembrare storta la tabella quando la
-     colonna era stretta. */
-  white-space: nowrap;
-  font-size: 11.5px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-dim);
-  text-align: center;
-  padding: 0 10px 6px;
-  border-bottom: 2px solid var(--border-forte);
+  margin: 0 0 10px;
+  color: var(--c);
 }
 
-.tabella-scheda th:first-child {
-  text-align: left;
+.scheda-paziente h2::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--c);
 }
 
-.tabella-scheda td {
-  padding: 10px 10px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
+.esercizio-scheda {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border-radius: 10px;
 }
 
-.tabella-scheda tr:last-child td {
-  border-bottom: none;
+.esercizio-scheda .col-esercizio {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
-.tabella-scheda .col-esercizio {
-  width: auto;
-}
-
-.tabella-scheda .nome {
+.esercizio-scheda .nome {
   display: block;
   font-size: 16.5px;
   font-weight: 600;
   line-height: 1.25;
+  overflow-wrap: break-word;
 }
 
 /* La variante sta sotto al nome, nel colore dell'app: il paziente deve vedere
    a colpo d'occhio se l'esercizio e' quello normale o con qualcosa in piu'. */
-.tabella-scheda .variante {
+.esercizio-scheda .variante {
   display: block;
   margin-top: 2px;
   font-size: 14px;
@@ -453,9 +456,8 @@
   color: var(--accent);
 }
 
-/* La nota sta sotto al nome e in corsivo: e' un'indicazione, non un dato da
-   incolonnare, e nessuno la cerca in una colonna. */
-.tabella-scheda .nota-es {
+/* La nota sta sotto al nome e in corsivo: e' un'indicazione, non un dato. */
+.esercizio-scheda .nota-es {
   display: block;
   margin-top: 3px;
   font-size: 13.5px;
@@ -463,37 +465,36 @@
   color: var(--text-dim);
 }
 
-/* Le tre colonne dei numeri: strette quanto basta al loro contenuto, cosi' il
-   nome dell'esercizio si prende il resto. */
-.tabella-scheda .col-dose {
-  width: 1%;
-  white-space: nowrap;
-  text-align: center;
-  font-size: 16.5px;
+/* La dose in grande nel colore della sezione, carico e recupero piccoli sotto.
+   Carico e recupero sono testi liberi e possono essere lunghi: vanno a capo
+   dentro la loro colonna, che non supera la meta' della carta. */
+.dose-scheda {
+  flex: none;
+  max-width: 45%;
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-/* Carico e recupero sono testi liberi e possono essere lunghi ("Spinta con le
-   mani o circa 10 kg, tieni circa 10"): vanno a capo dentro la loro colonna
-   invece di allargare la tabella oltre la finestra. Serie × rip. resta stretta. */
-.tabella-scheda .col-testo {
-  white-space: normal;
+.dose-scheda strong {
+  display: block;
+  font-size: 21px;
+  line-height: 1.15;
+  color: var(--c);
+  white-space: nowrap;
+}
+
+.dose-scheda span {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text);
   overflow-wrap: anywhere;
-  font-variant-numeric: normal;
 }
 
-.tabella-scheda .col-carico {
-  width: 30%;
-  min-width: 110px;
-}
-
-.tabella-scheda .col-recupero {
-  width: 17%;
-  min-width: 90px;
-}
-
-.tabella-scheda .col-esercizio .nome {
-  overflow-wrap: anywhere;
+.dose-scheda em {
+  font-style: normal;
+  color: var(--text-dim);
+  margin-right: 2px;
 }
 
 .nota-seduta {

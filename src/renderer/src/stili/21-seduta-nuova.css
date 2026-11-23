@@ -651,6 +651,8 @@
 .riga-principale > .riga-testata { flex: 1 1 260px; min-width: 200px; align-self: flex-end; min-height: 36px; }
 .riga-principale > .riga-params { flex: none; }
 .riga-principale > .riga-nota { flex: 1 1 150px; min-width: 60px; max-width: 220px; width: auto; }
+/* La nota e' alta come le caselle della dose (la regola di sopra vale solo per i figli diretti della riga). */
+.righe-seduta .riga-principale > .riga-nota { height: 36px; padding: 0 8px; font-size: 14px; font-weight: 400; box-sizing: border-box; }
 .riga-principale > .btn-togli { position: static; flex: none; height: 36px; width: 36px; padding: 0; opacity: 0; }
 .righe-seduta li:hover .riga-principale > .btn-togli,
 .righe-seduta li:focus-within .riga-principale > .btn-togli { opacity: 1; }

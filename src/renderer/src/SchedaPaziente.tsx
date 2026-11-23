@@ -4,15 +4,15 @@ import type { SchedaPaziente as Dati } from '../../shared/types'
 import { errMsg, formatData } from './lib'
 import { intensitaTesto, recuperoTesto, volumeTesto } from '../../shared/dosaggio'
 import { nomeConMonopodalico } from '../../shared/varianti'
+import { coloreSezione } from '../../shared/colore-sezione'
 import BarraFinestra from './components/BarraFinestra'
 
 // Quello che vede il paziente mentre si allena: solo il suo programma. Ne
 // stanno aperte piu' d'una insieme, una per paziente.
 //
-// E' una tabella, non un elenco: si legge in piedi, spesso da un metro di
-// distanza, e quello che serve sapere sono quattro cose sempre nello stesso
-// posto — cosa fare, quanto, con che carico, quanto riposare. Incolonnate si
-// trovano con un colpo d'occhio; di seguito sulla stessa riga, no.
+// Una carta per esercizio dentro a una sezione colorata: si legge in piedi,
+// spesso da un metro di distanza, quindi il nome a sinistra e la dose in grande
+// a destra, sempre nello stesso posto; carico e recupero, piccoli, sotto la dose.
 export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): React.JSX.Element {
   const [dati, setDati] = useState<Dati | null>(null)
   const [errore, setErrore] = useState('')
@@ -66,8 +66,8 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
               programma da fare, e la fase non gli serve. */}
           <p>{formatData(dati.data)}</p>
         </div>
-        <button title="Ricarica il programma" onClick={carica}>
-          <RotateCw size={18} /> Aggiorna
+        <button className="aggiorna-scheda" title="Aggiorna: ricarica il programma" aria-label="Aggiorna" onClick={carica}>
+          <RotateCw size={18} />
         </button>
       </header>
 
@@ -75,37 +75,40 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
         <p className="hint">Questa seduta non ha ancora esercizi.</p>
       ) : (
         dati.sezioni.map((sez, i) => (
-          <section key={i}>
+          <section key={i} className={`sezione-scheda colore-${coloreSezione(sez.nome, i)}`}>
             <h2>{sez.nome}</h2>
-            <table className="tabella-scheda">
-              {/* Le intestazioni si ripetono a ogni sezione: sono corte e
-                  chiare, e cosi' una sezione si legge anche se l'altra e'
-                  scorsa fuori dallo schermo. */}
-              <thead>
-                <tr>
-                  <th>Esercizio</th>
-                  <th>Serie × rip.</th>
-                  <th>Carico</th>
-                  <th>Recupero</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sez.esercizi.map((e, j) => (
-                  <tr key={j}>
-                    <td className="col-esercizio">
-                      <span className="nome">{nomeConMonopodalico(e.nome, e.monopodalico)}</span>
-                      {e.variante && <span className="variante">{e.variante}</span>}
-                      {/* La nota sta sotto al nome, non in una riga sua: e'
-                          quella l'unica colonna che puo' allungarsi. */}
-                      {e.nota && <span className="nota-es">{e.nota}</span>}
-                    </td>
-                    <td className="col-dose">{volumeTesto(e) ?? '—'}</td>
-                    <td className="col-dose col-testo col-carico">{intensitaTesto(e) ?? '—'}</td>
-                    <td className="col-dose col-testo col-recupero">{recuperoTesto(e) ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {/* Una carta per esercizio: il nome a sinistra, a destra la dose in
+                grande e sotto, piccoli, carico e recupero. Dove un dato manca
+                non si scrive niente (niente piu' trattini). */}
+            {sez.esercizi.map((e, j) => {
+              const volume = volumeTesto(e)
+              const carico = intensitaTesto(e)
+              const recupero = recuperoTesto(e)
+              return (
+                <div className="esercizio-scheda" key={j}>
+                  <div className="col-esercizio">
+                    <span className="nome">{nomeConMonopodalico(e.nome, e.monopodalico)}</span>
+                    {e.variante && <span className="variante">{e.variante}</span>}
+                    {e.nota && <span className="nota-es">{e.nota}</span>}
+                  </div>
+                  {(volume || carico || recupero) && (
+                    <div className="dose-scheda">
+                      {volume && <strong>{volume}</strong>}
+                      {carico && (
+                        <span>
+                          <em>Carico</em> {carico}
+                        </span>
+                      )}
+                      {recupero && (
+                        <span>
+                          <em>Recupero</em> {recupero}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </section>
         ))
       )}

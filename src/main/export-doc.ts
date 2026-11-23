@@ -1,6 +1,7 @@
 // Generazione documenti (HTML per il PDF, docx per Word) da dati già letti.
 // Nessuna dipendenza da Electron: testabile con Node (vedi test/export-seduta.test.ts).
 import { coloriTema } from '../shared/temi'
+import { coloreSezione } from '../shared/colore-sezione'
 import { esc } from './html'
 import { leggiProfilo, righeProfilo, testoIscrizione } from './profilo'
 import { LINK_WEB } from './validazione'
@@ -143,28 +144,32 @@ export function generaHtml(
   const comeScritto = (testo: string): string => esc(testo.replace(/\r\n?/g, '\n'))
   const variante = (e: { variante?: string | null }): string =>
     e.variante?.trim() ? `<span class="variante">${esc(e.variante.trim())}</span>` : ''
-  const tabella = (esercizi: DatiSedutaExport['sezioni'][number]['esercizi']): string =>
-    `<table class="tabella-scheda">
-      <thead><tr>
-        <th>Esercizio</th><th>Serie &times; rip.</th><th>Carico</th><th>Recupero</th>
-      </tr></thead>
-      <tbody>
-      ${esercizi
-        .map(
-          (e) => `<tr>
-            <td class="col-esercizio"><span class="nome">${esc(
-              nomeConMonopodalico(e.nome, e.monopodalico)
-            )}</span>${variante(e)}${
-              e.nota ? `<span class="nota-es">${comeScritto(e.nota)}</span>` : ''
-            }</td>
-            <td class="col-dose">${esc(volumeTesto(e) ?? '—')}</td>
-            <td class="col-dose">${esc(intensitaTesto(e) ?? '—')}</td>
-            <td class="col-dose">${esc(recuperoTesto(e) ?? '—')}</td>
-          </tr>`
-        )
-        .join('')}
-      </tbody>
-    </table>`
+  // Una carta per esercizio, come nella finestra: il nome a sinistra, la dose in
+  // grande a destra e sotto, piccoli, carico e recupero. Dove un dato manca non
+  // si scrive niente. E' una tabella a due celle e non un blocco flessibile
+  // perche' la stampa rispetta "non spezzare" sulle tabelle in modo affidabile.
+  const carte = (esercizi: DatiSedutaExport['sezioni'][number]['esercizi']): string =>
+    esercizi
+      .map((e) => {
+        const volume = volumeTesto(e)
+        const carico = intensitaTesto(e)
+        const recupero = recuperoTesto(e)
+        const dose =
+          volume || carico || recupero
+            ? `<div class="dose-scheda">${volume ? `<strong>${esc(volume)}</strong>` : ''}${
+                carico ? `<span><em>Carico</em> ${esc(carico)}</span>` : ''
+              }${recupero ? `<span><em>Recupero</em> ${esc(recupero)}</span>` : ''}</div>`
+            : ''
+        return `<div class="esercizio-scheda">
+          <div class="col-esercizio"><span class="nome">${esc(
+            nomeConMonopodalico(e.nome, e.monopodalico)
+          )}</span>${variante(e)}${
+            e.nota ? `<span class="nota-es">${comeScritto(e.nota)}</span>` : ''
+          }</div>
+          ${dose}
+        </div>`
+      })
+      .join('')
 
   // Un esercizio per riga: foto a sinistra, testo a destra, numerati come in un
   // programma da portare a casa. Il paziente inesperto legge una cosa per volta,
@@ -239,9 +244,11 @@ export function generaHtml(
       <h2>Seduta del ${formatData(s.data)}</h2>
       ${s.sezioni
         .map(
-          (sez) => `
+          (sez, k) => `
+      <div class="sezione-scheda colore-${coloreSezione(sez.nome ?? '', k)}">
       ${sez.nome ? `<h3><span class="fascetta">${esc(sez.nome)}</span></h3>` : ''}
-      ${illustrata ? schede(sez.esercizi) : tabella(sez.esercizi)}`
+      ${illustrata ? schede(sez.esercizi) : carte(sez.esercizi)}
+      </div>`
         )
         .join('')}
       ${s.note ? `<p class="note"><strong>Note della seduta:</strong><br>${comeScritto(s.note)}</p>` : ''}
@@ -283,26 +290,37 @@ export function generaHtml(
   .gruppo-esercizi { margin: 0 0 8px; page-break-inside: avoid; }
   .gruppo-esercizi .cat { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
                           color: ${accento}; margin-bottom: 2px; }
-  /* La tabella della seduta: la stessa che il paziente vede a schermo. Niente
-     griglia di bordi, solo una riga sottile fra un esercizio e l'altro. */
-  table.tabella-scheda { width: 100%; border-collapse: collapse; page-break-inside: auto; }
-  /* La riga dei titoli non ha sfondo: colorata come la fascetta della sezione
-     le due cose si confondevano. Restano il maiuscolo e il colore chiaro. */
-  table.tabella-scheda th { background: none; border: none;
-                            border-bottom: 1.5px solid #ccd2da; padding: 0 8px 4px;
-                            font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
-                            color: #6b7280; text-align: center; white-space: nowrap; }
-  table.tabella-scheda th:first-child { text-align: left; }
-  table.tabella-scheda td { border: none; border-bottom: 1px solid #e6eaef; padding: 6px 8px;
-                            vertical-align: top; }
-  table.tabella-scheda tr { page-break-inside: avoid; }
-  table.tabella-scheda .col-esercizio { width: auto; }
-  table.tabella-scheda .nome { display: block; font-weight: 600; font-size: 12.5px; }
-  table.tabella-scheda .variante { display: block; margin-top: 1px; color: ${accento};
-                                   font-size: 11.5px; font-weight: 600; }
-  table.tabella-scheda .nota-es { display: block; margin-top: 2px; color: #555b66;
-                                  font-size: 11px; font-style: italic; white-space: pre-wrap; }
-  table.tabella-scheda .col-dose { width: 1%; white-space: nowrap; text-align: center; }
+  /* Ogni sezione e' un riquadro del suo colore (riscaldamento ambra, pliometria
+     blu, forza verde...) con dentro una carta bianca per esercizio: la stessa
+     scheda che il paziente vede a schermo. */
+  .sezione-scheda { --c: ${accento}; margin: 0 0 12px; padding: 9px 10px 2px; border-radius: 10px;
+                    background: color-mix(in srgb, var(--c) 12%, #fff);
+                    -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sezione-scheda.colore-ambra { --c: #b7791f; }
+  .sezione-scheda.colore-blu { --c: #2f6690; }
+  .sezione-scheda.colore-viola { --c: #7a5a9a; }
+  .sezione-scheda h3 { margin: 0 0 7px; font-size: 11px; text-transform: uppercase;
+                       letter-spacing: 0.06em; color: var(--c); }
+  .sezione-scheda h3 .fascetta { background: none; padding: 0; border-radius: 0;
+                                 color: var(--c); font-weight: 700; font-size: 11px; }
+  .sezione-scheda h3 .fascetta::before { content: ''; display: inline-block; width: 8px; height: 8px;
+                                         border-radius: 2px; background: var(--c); margin-right: 6px; }
+  .esercizio-scheda { display: table; width: 100%; box-sizing: border-box; background: #fff;
+                      border-radius: 7px; padding: 8px 11px; margin-bottom: 6px;
+                      break-inside: avoid; page-break-inside: avoid; }
+  .esercizio-scheda .col-esercizio { display: table-cell; vertical-align: middle; width: auto; }
+  .esercizio-scheda .dose-scheda { display: table-cell; vertical-align: middle; text-align: right;
+                                   width: 1%; min-width: 130px; padding-left: 14px; }
+  .esercizio-scheda .nome { display: block; font-weight: 600; font-size: 12.5px; }
+  .esercizio-scheda .variante { display: block; margin-top: 1px; color: ${accento};
+                                font-size: 11.5px; font-weight: 600; }
+  .esercizio-scheda .nota-es { display: block; margin-top: 2px; color: #555b66;
+                               font-size: 11px; font-style: italic; white-space: pre-wrap; }
+  .esercizio-scheda .dose-scheda strong { display: block; font-size: 15px; line-height: 1.15;
+                                          color: var(--c); }
+  .esercizio-scheda .dose-scheda span { display: block; margin-top: 1px; font-size: 10.5px;
+                                        white-space: normal; max-width: 200px; margin-left: auto; }
+  .esercizio-scheda .dose-scheda em { font-style: normal; color: #6b7280; }
   table { width: 100%; border-collapse: collapse; }
   th, td { border: 1px solid #ccd2da; padding: 6px 8px; text-align: left; vertical-align: top; }
   th { background: ${intestazione}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
@@ -322,7 +340,7 @@ export function generaHtml(
      tabella e non come riga flessibile perche' la stampa rispetta "non
      spezzare" sulle tabelle in modo affidabile, sulle righe flessibili no. */
   .scheda-es { display: table; width: 100%; box-sizing: border-box; border-collapse: separate;
-               border-spacing: 0; border: 1px solid #dfe4ea; border-radius: 5px;
+               border-spacing: 0; background: #fff; border-radius: 7px;
                padding: 9px 11px; margin-bottom: 8px;
                break-inside: avoid; page-break-inside: avoid; }
   .scheda-es .foto { display: table-cell; width: 130px; height: 130px; vertical-align: top;
@@ -337,7 +355,7 @@ export function generaHtml(
   .scheda-es .nome { font-weight: 600; font-size: 13.5px; }
   .scheda-es .variante { display: block; color: ${accento}; font-weight: 600; font-size: 12px; }
   .scheda-es .num { position: absolute; left: 0; top: 1px; width: 17px; height: 17px;
-                    border-radius: 50%; background: ${accento}; color: #fff; font-size: 10px;
+                    border-radius: 50%; background: var(--c); color: #fff; font-size: 10px;
                     text-align: center; line-height: 17px; }
   /* I numeri come le colonne della tabella: etichetta piccola in maiuscolo e
      sotto il valore. */
@@ -345,7 +363,7 @@ export function generaHtml(
   .scheda-es .numero { display: flex; flex-direction: column; }
   .scheda-es .numero .et { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;
                            color: #6b7280; }
-  .scheda-es .numero .val { font-size: 13px; }
+  .scheda-es .numero .val { font-size: 14px; font-weight: 700; color: var(--c); }
   /* La spiegazione e la nota si leggono come le ha scritte il fisioterapista:
      a capo, righe vuote e rientri restano. */
   .scheda-es .come { color: #555b66; margin-top: 4px; white-space: pre-wrap; }

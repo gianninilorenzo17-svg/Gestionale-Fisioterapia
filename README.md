@@ -64,6 +64,12 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.24
+
+- Scheda del paziente rinnovata: sezioni colorate, una carta per esercizio e dose in grande; la stessa grafica nel PDF e nella scheda con le immagini
+- Le finestre si aprono già piene, senza vederle caricare
+- Riga esercizio della seduta: il nome non si spezza più a metà parola, la variante si abbrevia con i puntini, la nota è alta come le caselle della dose
+
 ### v0.5.23
 
 - Testata della seduta più ordinata: niente scritte se manca patologia o fase, campi sotto il nome, Salva a destra

@@ -9,11 +9,11 @@ test('La scheda della seduta: tabella, dosaggi, escaping', () => {
   assert.ok(html.includes('Rossi') && html.includes('Seduta del 10/08/2026'))
   assert.ok(html.includes('Mobilizzazione &amp; scivolamenti rotulei')) // escaping HTML
   // La seduta si stampa con la stessa tabella della finestra che si mostra al
-  // paziente: fascetta della sezione, e quattro colonne incolonnate.
+  // paziente: fascetta della sezione, e carte con la dose in grande.
   assert.ok(html.includes('Riscaldamento'))
   assert.ok(html.includes('class="fascetta"'), 'fascetta della sezione')
-  assert.ok(html.includes('tabella-scheda'), 'tabella come quella a schermo')
-  assert.ok(html.includes('<th>Recupero</th>'), 'intestazioni delle colonne')
+  assert.ok(html.includes('esercizio-scheda'), 'carte come quelle a schermo')
+  assert.ok(html.includes('<em>Recupero</em>'), 'etichetta del recupero')
   // nella sua colonna il recupero si scrive corto: "rec." lo dice gia'
   // l'intestazione
   assert.ok(html.includes('1 min'))
@@ -185,7 +185,7 @@ test('Spiegazione e nota dell\'esercizio mantengono gli a capo, nel PDF e nel Wo
   // anche nella tabella della scheda normale
   const tabella = generaHtml(pazExport, sedute)
   assert.ok(tabella.includes('>Prima\nSeconda<'))
-  assert.match(tabella, /table\.tabella-scheda \.nota-es \{[^}]*white-space: pre-wrap/)
+  assert.match(tabella, /\.esercizio-scheda \.nota-es \{[^}]*white-space: pre-wrap/)
 
   const { default: JSZip } = await import('jszip')
   const zip = await JSZip.loadAsync(await generaDocx(pazExport, sedute))
