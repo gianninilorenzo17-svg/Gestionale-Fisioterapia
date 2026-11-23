@@ -128,42 +128,42 @@ function RigaSeduta({
       <div className={`riga-params${cluster ? ' con-cluster' : ''}`}>
         <label className="campo-dose" title="Serie">
           <span>Serie</span>
-          <input value={r.serie ?? ''} onChange={cambia('serie')} />
+          <input value={r.serie ?? ''} title={r.serie || undefined} onChange={cambia('serie')} />
         </label>
         {cluster && (
           <label className="campo-dose" title="Cluster per serie">
             <span>Cluster</span>
-            <input value={r.cluster ?? ''} onChange={cambia('cluster')} />
+            <input value={r.cluster ?? ''} title={r.cluster || undefined} onChange={cambia('cluster')} />
           </label>
         )}
         <label className="campo-dose campo-medio" title={cluster ? 'Ripetizioni per cluster' : 'Ripetizioni'}>
           <span>Rip.</span>
-          <input value={r.ripetizioni ?? ''} onChange={cambia('ripetizioni')} />
+          <input value={r.ripetizioni ?? ''} title={r.ripetizioni || undefined} onChange={cambia('ripetizioni')} />
         </label>
         {rir && (
           <label className="campo-dose" title="Ripetizioni di riserva">
             <span>RIR</span>
-            <input value={r.rir ?? ''} onChange={cambia('rir')} />
+            <input value={r.rir ?? ''} title={r.rir || undefined} onChange={cambia('rir')} />
           </label>
         )}
         <label className="campo-dose campo-largo" title="Carico">
           <span>Carico</span>
-          <input value={r.carico ?? ''} onChange={cambia('carico')} />
+          <input value={r.carico ?? ''} title={r.carico || undefined} onChange={cambia('carico')} />
         </label>
         {cluster && (
           <label className="campo-dose campo-medio" title="Recupero tra i cluster">
             <span>Rec. cl.</span>
-            <input value={r.recupero_cluster ?? ''} onChange={cambia('recupero_cluster')} />
+            <input value={r.recupero_cluster ?? ''} title={r.recupero_cluster || undefined} onChange={cambia('recupero_cluster')} />
           </label>
         )}
         <label className="campo-dose campo-medio" title={cluster ? 'Recupero tra le serie' : 'Recupero'}>
           <span>Rec.</span>
-          <input value={r.recupero ?? ''} onChange={cambia('recupero')} />
+          <input value={r.recupero ?? ''} title={r.recupero || undefined} onChange={cambia('recupero')} />
         </label>
       </div>
       <input
         className="riga-nota"
-        title="Nota"
+        title={r.nota || 'Nota'}
         aria-label={`Nota su ${r.nome}`}
         placeholder="Nota…"
         value={r.nota ?? ''}

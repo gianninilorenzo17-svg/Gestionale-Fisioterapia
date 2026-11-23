@@ -674,3 +674,19 @@
 /* Testata della seduta: nome e cognome piu' grandi, la fase resta sotto */
 .builder-col > .builder-header.testata-fissa h2 { font-size: 30px; line-height: 1.1; }
 .testata-fissa .testata-sep { display: none; }
+
+/* Correzioni 23 nov: riga dei campi sotto il nome, focus piu' corto, Salva a destra */
+.testata-fissa .builder-header-actions { justify-content: flex-start; }
+.testata-fissa .focus-field { flex: 0 1 200px; max-width: 200px; }
+.testata-fissa .builder-header-actions > button.primary { margin-left: auto; }
+
+/* Nome lungo con i puntini: l'icona della foto resta sulla stessa riga */
+.item-nome-corto { display: inline-flex; align-items: center; flex-wrap: nowrap; white-space: nowrap; }
+.item-nome-corto .item-nome-testo { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.item-nome-corto .icona-esercizio { flex: none; }
+
+/* Trattamenti: solo la pillola tonda, senza il rettangolo intorno */
+.come-va .tecnica:not(.in-modifica) { border: 0; background: none; border-radius: 0; overflow: visible; }
+
+/* Patologia e fase staccate dal nome */
+.testata-fissa .testata-chi .testata-fase { margin-left: 0.6em; }

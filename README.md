@@ -64,6 +64,14 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.23
+
+- Testata della seduta più ordinata: niente scritte se manca patologia o fase, campi sotto il nome, Salva a destra
+- Nomi lunghi degli esercizi abbreviati con i puntini, con l'icona della foto sempre accanto
+- Trattamenti senza il rettangolo intorno alle pillole
+- Nei file inviati le note della seduta partono sotto il titolo, con gli a capo come scritti
+- Passando il cursore sulle caselle della dose si legge il testo completo
+
 ### v0.5.22
 
 - Follow-up, Valutazione, Questionari e Libreria esercizi con elenchi a righe nello stesso stile del resto

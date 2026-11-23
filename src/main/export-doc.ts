@@ -244,7 +244,7 @@ export function generaHtml(
       ${illustrata ? schede(sez.esercizi) : tabella(sez.esercizi)}`
         )
         .join('')}
-      ${s.note ? `<p class="note"><strong>Note della seduta:</strong> ${comeScritto(s.note)}</p>` : ''}
+      ${s.note ? `<p class="note"><strong>Note della seduta:</strong><br>${comeScritto(s.note)}</p>` : ''}
     </section>`
     })
     .join('')
@@ -461,7 +461,9 @@ export async function generaDocx(
       children.push(
         new Paragraph({
           children: [
-            new TextRun({ text: 'Note della seduta: ', bold: true }),
+            new TextRun({ text: 'Note della seduta:', bold: true }),
+            // le note partono sulla riga sotto l'etichetta
+            new TextRun({ text: '', break: 1 }),
             ...conACapo(s.note)
           ],
           spacing: { before: 200 }

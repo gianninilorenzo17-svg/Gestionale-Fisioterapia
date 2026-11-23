@@ -46,6 +46,14 @@ export default function TestataSeduta({
         : st === 'salvo'
           ? 'Salvataggio…'
           : 'Tutto salvato'
+  // Patologia e fase si scrivono solo se ci sono: niente "nessuna fase impostata".
+  const testoFase = [
+    paziente.patologia_nome,
+    campi.faseNome ? `(${/^fase/i.test(campi.faseNome) ? campi.faseNome : `fase ${campi.faseNome}`})` : ''
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const nota = [testoFase, copiata ? 'contenuti copiati da una seduta precedente' : ''].filter(Boolean).join(' · ')
   return (
     <header className="page-header builder-header testata-fissa">
       <div className="testata-chi">
@@ -57,14 +65,9 @@ export default function TestataSeduta({
           <button className="briciola nome-nel-titolo" title="Torna alla scheda del paziente" onClick={onAnnulla}>
             {paziente.nome} {paziente.cognome}
           </button>
-          <span className="testata-sep">–</span>
+          {nota && <span className="testata-sep">–</span>}
         </h2>
-        <p className="testata-fase">
-          {[paziente.patologia_nome, campi.faseNome ? `(${/^fase/i.test(campi.faseNome) ? campi.faseNome : `fase ${campi.faseNome}`})` : '(nessuna fase impostata)']
-            .filter(Boolean)
-            .join(' ')}
-          {copiata && ' · contenuti copiati da una seduta precedente'}
-        </p>
+        {nota && <p className="testata-fase">{nota}</p>}
         {/* Il pallino in alto a destra: giallo = c'e' qualcosa da salvare,
             verde = tutto salvato, rosso = il salvataggio non e' riuscito. */}
         <span

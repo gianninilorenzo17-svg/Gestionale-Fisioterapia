@@ -294,8 +294,10 @@ function ElencoProposte({
           <button className="btn-aggiungi-riga" title={`Aggiungi ${e.nome}`} onClick={() => onAggiungi(e)}>
             <Plus size={16} />
           </button>
-          <span className="item-nome">
-            {e.nome}
+          <span className="item-nome item-nome-corto">
+            <span className="item-nome-testo" title={e.nome.length > 38 ? e.nome : undefined}>
+              {e.nome.length > 38 ? `${e.nome.slice(0, 37).trimEnd()}…` : e.nome}
+            </span>
             {e.link && (
               <button
                 className="icona-esercizio"

@@ -190,7 +190,7 @@ test('Spiegazione e nota dell\'esercizio mantengono gli a capo, nel PDF e nel Wo
   const { default: JSZip } = await import('jszip')
   const zip = await JSZip.loadAsync(await generaDocx(pazExport, sedute))
   const xml = await zip.file('word/document.xml')!.async('string')
-  assert.equal(xml.split('<w:br/>').length - 1, 1, 'la nota in tabella ha il suo a capo')
+  assert.equal(xml.split('<w:br/>').length - 1, 2, 'a capo della nota in tabella, più quello sotto "Note della seduta:"')
 })
 
 test('Le note della seduta mantengono gli a capo, nel PDF e nel Word', async () => {
@@ -202,6 +202,6 @@ test('Le note della seduta mantengono gli a capo, nel PDF e nel Word', async () 
   const { default: JSZip } = await import('jszip')
   const zip = await JSZip.loadAsync(await generaDocx(pazExport, sedute))
   const xml = await zip.file('word/document.xml')!.async('string')
-  assert.equal(xml.split('<w:br/>').length - 1, 2, 'due interruzioni di riga')
+  assert.equal(xml.split('<w:br/>').length - 1, 3, 'una dopo l etichetta e due fra le righe')
   assert.ok(xml.includes('xml:space="preserve">   Terza riga rientrata'), 'gli spazi restano')
 })
