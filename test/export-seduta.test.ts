@@ -45,7 +45,7 @@ test("La variante dell'esercizio si legge sulla scheda, e l'esercizio normale no
   assert.equal(html.split('<span class="variante-es">').length - 1, 1, 'solo l\'esercizio che ce l\'ha')
   assert.ok(!generaHtml(pazExport, seduteExport).includes('<span class="variante-es">'), 'nessuna se non c\'e\'')
   // anche nella scheda illustrata
-  assert.ok(generaHtml(pazExport, sedute, true).includes('<span class="variante">con luci'))
+  assert.ok(generaHtml(pazExport, sedute, true).includes('<span class="variante-es">con luci'))
   // e nel Word
   const docx = await generaDocx(pazExport, sedute)
   assert.ok(docx.length > 1000)
@@ -64,7 +64,7 @@ test('Il monopodalico si legge accanto al nome, solo dove e\' segnato', async ()
   // accanto al nome, in un colore suo, abbreviabile
   assert.ok(generaHtml(pazExport, sedute).includes('<span class="nome">Squat</span><span class="gambe-es"><span class="pieno">Monopodalico</span><span class="ab">Mono</span></span>'))
   assert.equal(generaHtml(pazExport, sedute).split('class="gambe-es"').length - 1, 1, 'solo l\'esercizio segnato')
-  assert.ok(generaHtml(pazExport, sedute, true).includes('<div class="nome">Squat monopodalico</div>'))
+  assert.ok(generaHtml(pazExport, sedute, true).includes('<span class="nome">Squat</span><span class="gambe-es">'))
   const { default: JSZip } = await import('jszip')
   const zip = await JSZip.loadAsync(await generaDocx(pazExport, sedute))
   assert.ok((await zip.file('word/document.xml')!.async('string')).includes('Squat monopodalico'))
@@ -110,14 +110,10 @@ test('La scheda illustrata: foto, come si esegue, link', () => {
   const illustrata = generaHtml(pazExport, conFoto, true)
   assert.ok(illustrata.includes('data:image/png;base64,iVBORw0KGgo='))
   assert.ok(illustrata.includes('Scendi lentamente'))
-  // anche nella scheda illustrata i numeri si leggono come le colonne della
-  // tabella: etichetta sopra, valore sotto
-  assert.ok(illustrata.includes('class="numeri"'), 'numeri incolonnati')
-  assert.ok(illustrata.includes('Serie × rip.'), 'etichette dei numeri')
+  // la dose si legge come nella scheda senza immagini: frase e bolle
+  assert.ok(illustrata.includes('class="frase-scheda"'), 'dose a frase')
+  assert.ok(illustrata.includes('<small>recupero</small>'), 'recupero in una bolla')
   assert.ok(illustrata.includes('1 min'), 'il valore del recupero')
-  // gli esercizi sono numerati, come in un programma da portare a casa
-  assert.ok(illustrata.includes('<span class="num">1</span>'))
-  assert.ok(illustrata.includes('<span class="num">2</span>'))
   assert.ok(illustrata.includes('href="https://www.youtube.com/watch?v=abc"'))
   // il riquadro della foto resta anche dove la foto manca: i cartelli della
   // stessa riga devono restare allineati
@@ -125,7 +121,7 @@ test('La scheda illustrata: foto, come si esegue, link', () => {
   // ma se nella sezione non c'e' nessuna foto, i riquadri vuoti spariscono
   const senzaFoto = generaHtml(pazExport, [seduteExport[0]], true)
   assert.ok(
-    senzaFoto.includes('<div class="scheda-es">') && !senzaFoto.includes('<div class="foto">')
+    senzaFoto.includes('class="scheda-es esercizio-scheda con-foto"') && !senzaFoto.includes('<div class="foto">')
   )
 })
 
@@ -232,4 +228,41 @@ test('La dose si scrive come frase', async () => {
   assert.equal(lunga({ serie: '4', cluster: '3', ripetizioni: '2' }), '4 × (3 × 2)')
   assert.equal(fraseDose({ serie: '3', ripetizioni: '5' })!.corta, '3 × 5')
   assert.equal(fraseDose({}), null)
+})
+
+// Lo stile della dose (bolle colorate o caselle bianche) si sceglie a parte per la
+// scheda senza immagini e per quella con le immagini.
+test('Lo stile della dose e\' indipendente fra scheda senza e con immagini', async () => {
+  const { impostaStileCorrente } = await import('../src/shared/stile-scheda')
+  try {
+    impostaStileCorrente('senza', 'caselle')
+    impostaStileCorrente('con', 'bolle')
+    const senza = generaHtml(pazExport, conFoto)
+    assert.ok(senza.includes('class="caselle-scheda"') && !senza.includes('class="frase-scheda"'))
+    assert.ok(senza.includes('<small>Serie</small>') && senza.includes('<small>Recupero</small>'))
+    const con = generaHtml(pazExport, conFoto, true)
+    assert.ok(con.includes('class="frase-scheda"') && !con.includes('class="caselle-scheda"'))
+    impostaStileCorrente('senza', 'bolle')
+    impostaStileCorrente('con', 'caselle')
+    assert.ok(generaHtml(pazExport, conFoto).includes('class="frase-scheda"'))
+    assert.ok(generaHtml(pazExport, conFoto, true).includes('class="caselle-scheda"'))
+    // un valore sconosciuto torna alle bolle
+    impostaStileCorrente('con', 'altro')
+    assert.ok(generaHtml(pazExport, conFoto, true).includes('class="frase-scheda"'))
+  } finally {
+    impostaStileCorrente('senza', 'bolle')
+    impostaStileCorrente('con', 'bolle')
+  }
+})
+
+test('Le caselle della dose: serie, rip., carico e recupero, con il vuoto dove manca', async () => {
+  const { caselleDose } = await import('../src/shared/scheda-riga')
+  assert.deepEqual(caselleDose({ serie: '3', ripetizioni: '5', carico: '20', unita_carico: 'kg', recupero: '90"' }), {
+    serie: '3',
+    rip: '5',
+    carico: '20 kg',
+    recupero: '90"'
+  })
+  assert.deepEqual(caselleDose({ serie: '3' }), { serie: '3', rip: null, carico: null, recupero: null })
+  assert.equal(caselleDose({ serie: '4', cluster: '3', ripetizioni: '2' }).rip, '3 × 2')
 })

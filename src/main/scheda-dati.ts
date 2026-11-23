@@ -4,6 +4,7 @@
 // eseguire davvero queste query invece di limitarsi a compilarle: un nome di
 // colonna sbagliato qui si vedrebbe solo al primo clic del fisioterapista.
 import { getDb } from './db'
+import { stileScheda, type StileScheda } from '../shared/stile-scheda'
 
 export interface EsercizioScheda {
   nome: string
@@ -29,6 +30,8 @@ export interface SchedaPaziente {
   fase_nome: string | null
   note: string | null
   sezioni: { nome: string; esercizi: EsercizioScheda[] }[]
+  // Come si scrive la dose nella scheda senza immagini (Impostazioni > Accesso e aspetto).
+  stile?: StileScheda
 }
 
 // Tutto quello che serve alla finestra, in una volta sola: cosi' quella finestra
@@ -86,6 +89,7 @@ export function datiScheda(sedutaId: number): SchedaPaziente {
     data: s.data,
     fase_nome: s.fase_nome,
     note: s.note,
-    sezioni
+    sezioni,
+    stile: stileScheda('senza')
   }
 }

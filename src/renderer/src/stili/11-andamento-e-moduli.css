@@ -549,6 +549,45 @@
   color: #8a5f12;
 }
 
+/* Le quattro caselle bianche (stile «Caselle bianche»): Serie, Rip., Carico e
+   Recupero sempre nello stesso posto; la casella senza dato resta grigia. */
+.caselle-scheda {
+  flex: none;
+  display: flex;
+  gap: 5px;
+}
+
+.casella {
+  min-width: 50px;
+  padding: 4px 7px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border-forte);
+  border-radius: 8px;
+}
+
+.casella small {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.casella b {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--c);
+  font-variant-numeric: tabular-nums;
+}
+
+.casella.vuota b {
+  color: var(--border-forte);
+  font-weight: 400;
+}
+
 /* Meno spazio: mono/bipodalico si abbrevia, la variante si accorcia. */
 @container (max-width: 620px) {
   .esercizio-scheda .gambe-es .pieno {
@@ -572,6 +611,19 @@
   }
   .bolla small {
     display: none;
+  }
+  /* Con le caselle la riga e' troppo larga: vanno sotto al nome. */
+  .esercizio-scheda:has(.caselle-scheda) {
+    flex-wrap: wrap;
+  }
+  .esercizio-scheda:has(.caselle-scheda) .testa-es {
+    flex-basis: 100%;
+  }
+  .esercizio-scheda .caselle-scheda {
+    width: 100%;
+  }
+  .esercizio-scheda .casella {
+    flex: 1 1 0;
   }
   .esercizio-scheda .variante-es {
     max-width: 9ch;

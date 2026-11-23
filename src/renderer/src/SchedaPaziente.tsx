@@ -3,7 +3,7 @@ import { RotateCw } from 'lucide-react'
 import type { SchedaPaziente as Dati } from '../../shared/types'
 import { errMsg, formatData } from './lib'
 import { intensitaTesto, recuperoTesto } from '../../shared/dosaggio'
-import { fraseDose, gambeTesto } from '../../shared/scheda-riga'
+import { caselleDose, fraseDose, gambeTesto } from '../../shared/scheda-riga'
 import { coloreSezione } from '../../shared/colore-sezione'
 import BarraFinestra from './components/BarraFinestra'
 
@@ -86,6 +86,7 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
               const carico = intensitaTesto(e)
               const recupero = recuperoTesto(e)
               const gambe = gambeTesto(e)
+              const caselle = dati.stile === 'caselle' ? caselleDose(e) : null
               return (
                 <div className="esercizio-scheda" key={j}>
                   <div className="testa-es">
@@ -107,31 +108,51 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
                     </div>
                     {e.nota && <span className="nota-es">{e.nota}</span>}
                   </div>
-                  {frase && (
-                    <div className="frase-scheda">
-                      <span className="lunga">
-                        {frase.lunga.map((p, k) => (p.forte ? <b key={k}>{p.testo}</b> : p.testo))}
-                      </span>
-                      <span className="corta">
-                        <b>{frase.corta}</b>
-                      </span>
+                  {caselle ? (
+                    <div className="caselle-scheda">
+                      {(
+                        [
+                          ['Serie', caselle.serie],
+                          ['Rip.', caselle.rip],
+                          ['Carico', caselle.carico],
+                          ['Recupero', caselle.recupero]
+                        ] as const
+                      ).map(([et, v]) => (
+                        <div key={et} className={`casella${v ? '' : ' vuota'}`}>
+                          <small>{et}</small>
+                          <b>{v ?? '–'}</b>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                  {(carico || recupero) && (
-                    <div className="bolle-scheda">
-                      {carico && (
-                        <span className="bolla carico">
-                          <small>carico</small>
-                          <b>{carico}</b>
-                        </span>
+                  ) : (
+                    <>
+                      {frase && (
+                        <div className="frase-scheda">
+                          <span className="lunga">
+                            {frase.lunga.map((p, k) => (p.forte ? <b key={k}>{p.testo}</b> : p.testo))}
+                          </span>
+                          <span className="corta">
+                            <b>{frase.corta}</b>
+                          </span>
+                        </div>
                       )}
-                      {recupero && (
-                        <span className="bolla recupero">
-                          <small>recupero</small>
-                          <b>{recupero}</b>
-                        </span>
+                      {(carico || recupero) && (
+                        <div className="bolle-scheda">
+                          {carico && (
+                            <span className="bolla carico">
+                              <small>carico</small>
+                              <b>{carico}</b>
+                            </span>
+                          )}
+                          {recupero && (
+                            <span className="bolla recupero">
+                              <small>recupero</small>
+                              <b>{recupero}</b>
+                            </span>
+                          )}
+                        </div>
                       )}
-                    </div>
+                    </>
                   )}
                 </div>
               )

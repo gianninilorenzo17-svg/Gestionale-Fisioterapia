@@ -15,12 +15,21 @@ import { spostaFileDati } from './file-dati'
 import { leggiJsonPerScrivere, scriviAtomico } from './scrittura'
 import { registraErrore } from './registro'
 import { nellaFascia } from '../shared/orari'
+import {
+  impostaStileCorrente,
+  stileValido,
+  type QualeScheda,
+  type StileScheda
+} from '../shared/stile-scheda'
 
 interface Impostazioni {
   cartellaDati?: string
   cartellaExport?: string
   cartellaBackup?: string
   tema?: string
+  // Come si scrive la dose nella scheda del paziente, senza e con immagini (vedi stile-scheda.ts).
+  stileSchedaSenza?: string
+  stileSchedaCon?: string
   scuro?: boolean
   // modalita' scura a orari fissi: se vero, "scuro" non conta
   scuroAutomatico?: boolean
@@ -87,6 +96,8 @@ const nomeCartellaDati = (): string =>
 // All'avvio il tema salvato diventa quello corrente: da qui lo leggono i
 // generatori dei documenti, che non possono aprire questo file da soli.
 impostaTemaCorrente(temaValido(leggi().tema))
+impostaStileCorrente('senza', leggi().stileSchedaSenza)
+impostaStileCorrente('con', leggi().stileSchedaCon)
 
 // Dove dovrebbero stare i dati, senza creare niente: serve prima
 // dell'accesso, per capire se l'archivio c'e'.
@@ -160,6 +171,19 @@ export function tema(): Tema {
 export function impostaTema(t: Tema): void {
   salva({ tema: temaValido(t) })
   impostaTemaCorrente(t)
+}
+
+// Lo stile della dose nella scheda del paziente: uno per la scheda senza
+// immagini e uno, indipendente, per quella con le immagini.
+export function stiliScheda(): Record<QualeScheda, StileScheda> {
+  const i = leggi()
+  return { senza: stileValido(i.stileSchedaSenza), con: stileValido(i.stileSchedaCon) }
+}
+
+export function impostaStileScheda(quale: QualeScheda, stile: StileScheda): void {
+  const valido = stileValido(stile)
+  salva(quale === 'con' ? { stileSchedaCon: valido } : { stileSchedaSenza: valido })
+  impostaStileCorrente(quale, valido)
 }
 
 // Dov'era la finestra l'ultima volta. Se la lasci su un secondo schermo o non

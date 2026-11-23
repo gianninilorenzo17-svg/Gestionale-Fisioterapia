@@ -1,8 +1,67 @@
+import { useEffect, useState } from 'react'
 import Aiuto from '../../components/Aiuto'
+import { toastErrore } from '../../components/Toast'
+import { errMsg } from '../../lib'
+import { STILI_SCHEDA, type QualeScheda, type StileScheda } from '../../../../shared/stile-scheda'
 import type { Tema } from '../../../../shared/temi'
 import { TEMI } from '../../../../shared/temi'
 
 export type ModoScuro = 'chiaro' | 'scuro' | 'orari'
+
+// Come si scrive la dose nella scheda che si mostra al paziente. Due scelte
+// indipendenti: la scheda senza immagini (finestra e PDF) e quella con le immagini.
+function StileSchedaPaziente(): React.JSX.Element | null {
+  const [stili, setStili] = useState<Record<QualeScheda, StileScheda> | null>(null)
+  useEffect(() => {
+    window.api.impostazioni
+      .stiliScheda()
+      .then(setStili)
+      .catch((e) => toastErrore(errMsg(e)))
+  }, [])
+  if (!stili) return null
+  const scegli = (quale: QualeScheda, stile: StileScheda): void => {
+    const prima = stili
+    setStili({ ...stili, [quale]: stile })
+    window.api.impostazioni.setStileScheda(quale, stile).catch((e) => {
+      setStili(prima)
+      toastErrore(errMsg(e))
+    })
+  }
+  const riga = (quale: QualeScheda, nome: string, aiuto: string): React.JSX.Element => (
+    <div className="riga-interruttore riga-luce">
+      <span className="nome-interruttore">
+        {nome}
+        <Aiuto testo={aiuto} />
+      </span>
+      <span className="scelta-coppia segmentata">
+        {STILI_SCHEDA.map((st) => (
+          <button
+            key={st.valore}
+            type="button"
+            className={stili[quale] === st.valore ? 'scelta-attiva' : ''}
+            onClick={() => scegli(quale, st.valore)}
+          >
+            {st.etichetta}
+          </button>
+        ))}
+      </span>
+    </div>
+  )
+  return (
+    <>
+      <div className="sotto-titolo riga-staccata">
+        Scheda del paziente
+        <Aiuto testo="Come si legge la dose di ogni esercizio. Bolle colorate: «3 serie da 5 rip.» con carico e recupero in due bolle. Caselle bianche: quattro caselle fisse (Serie, Rip., Carico, Recupero). Si sceglie per la scheda senza immagini e, a parte, per quella con le immagini. Vale per la finestra che mostri al paziente e per i PDF." />
+      </div>
+      {riga(
+        'senza',
+        'Senza immagini',
+        'La finestra che mostri al paziente durante la seduta e il PDF senza immagini.'
+      )}
+      {riga('con', 'Con immagini', 'La scheda illustrata (foto e spiegazioni) e il suo PDF.')}
+    </>
+  )
+}
 
 export function SchedaAspetto({
   tema,
@@ -105,6 +164,7 @@ export function SchedaAspetto({
           />
         </div>
       )}
+      <StileSchedaPaziente />
     </section>
   )
 }

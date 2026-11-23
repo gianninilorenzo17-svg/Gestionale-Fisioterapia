@@ -99,6 +99,7 @@ import type {
 import type {
   Tema,
 } from './temi'
+import type { QualeScheda, StileScheda } from './stile-scheda'
 import type { DoseFase, DoseSettimana, TipoLavoro } from './dose'
 import type { CaricoPaziente } from './carico-settimane'
 import type {
@@ -571,6 +572,9 @@ export interface Canali {
   'tecniche:crea': (nome: string) => number
   'tecniche:setArchiviata': (id: number, archiviata: boolean) => void
   'impostazioni:setTema': (t: Tema) => void
+  // Lo stile della dose nella scheda del paziente, senza e con immagini.
+  'impostazioni:stiliScheda': () => Record<QualeScheda, StileScheda>
+  'impostazioni:setStileScheda': (quale: QualeScheda, stile: StileScheda) => void
   'impostazioni:setScuro': (valore: boolean) => void
   // scura dalle ... alle ..., ogni giorno
   'impostazioni:setScuroAutomatico': (dalle: string, alle: string) => void
@@ -991,6 +995,8 @@ export const MAPPA_API = {
   },
   impostazioni: {
     setTema: 'impostazioni:setTema',
+    stiliScheda: 'impostazioni:stiliScheda',
+    setStileScheda: 'impostazioni:setStileScheda',
     setScuro: 'impostazioni:setScuro',
     setScuroAutomatico: 'impostazioni:setScuroAutomatico',
     setBarraScura: 'impostazioni:setBarraScura',

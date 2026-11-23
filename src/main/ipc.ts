@@ -37,10 +37,13 @@ import {
   orariScuro,
   scuroAdesso,
   impostaTema,
+  impostaStileScheda,
+  stiliScheda,
   scuro,
   tema
 } from './impostazioni'
 import { spostaFileDati } from './file-dati'
+import type { QualeScheda, StileScheda } from '../shared/stile-scheda'
 import { entraNelRiquadro } from './immagini'
 import { eliminaTemporaneo, eliminaTemporaneoPresto, scriviTemporaneo } from './temporanei'
 import { apriScheda } from './scheda'
@@ -610,6 +613,10 @@ export function registerIpc(): void {
     impostaScuroAutomatico(dalle, alle)
   )
   handle('impostazioni:setTema', (t: Tema) => impostaTema(t))
+  handle('impostazioni:stiliScheda', () => stiliScheda())
+  handle('impostazioni:setStileScheda', (quale: QualeScheda, stile: StileScheda) =>
+    impostaStileScheda(quale, stile)
+  )
   // Il tema serve al preload prima ancora che la pagina si disegni, percio' e'
   // l'unica risposta immediata: chiesta dopo, si vedrebbe un lampo dei colori
   // di partenza a ogni avvio.

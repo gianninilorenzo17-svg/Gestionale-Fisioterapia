@@ -1,7 +1,14 @@
 // Come si scrive una riga della scheda del paziente (a schermo e nel PDF): la
 // dose come frase e le gambe accanto al nome. Sta in `shared` perche' la usano
 // la finestra e i documenti (che girano nel processo principale).
-import { aCluster, volumeTesto, type Dosaggio } from './dosaggio'
+import {
+  aCluster,
+  intensitaTesto,
+  recuperoTesto,
+  ripetizioniTesto,
+  volumeTesto,
+  type Dosaggio
+} from './dosaggio'
 
 export interface Segmento {
   testo: string
@@ -64,4 +71,20 @@ export function gambeTesto(e: {
   if (e.monopodalico === 1) return { pieno: 'Monopodalico', corto: 'Mono' }
   if (e.gambe === 'scelta') return { pieno: 'Bipodalico', corto: 'Bi' }
   return null
+}
+
+// Le quattro caselle bianche: serie, ripetizioni, carico e recupero, ognuna al
+// suo posto. Un dato che manca e' null (la casella resta, vuota e grigia).
+export function caselleDose(d: Partial<Dosaggio> & { carico?: string | null; unita_carico?: string | null }): {
+  serie: string | null
+  rip: string | null
+  carico: string | null
+  recupero: string | null
+} {
+  return {
+    serie: pieno(d.serie),
+    rip: ripetizioniTesto(d),
+    carico: intensitaTesto(d),
+    recupero: recuperoTesto(d)
+  }
 }

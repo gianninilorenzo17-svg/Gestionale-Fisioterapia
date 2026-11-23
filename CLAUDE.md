@@ -78,7 +78,11 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   nella scheda del paziente a schermo e nel PDF normale si legge accanto al nome, in viola, «Monopodalico»
   o «Bipodalico» (`gambeTesto` in `shared/scheda-riga.ts`: «Bipodalico» solo sugli esercizi «a scelta» a due
   gambe; abbreviati «Mono»/«Bi» quando manca spazio) e la variante accanto, in terracotta; la dose è una frase
-  (`fraseDose`: «3 serie da 5 rip.») con carico e recupero in due bolle (azzurra e sabbia). Nella scheda
+  (`fraseDose`: «3 serie da 5 rip.») con carico e recupero in due bolle (azzurra e sabbia), oppure, a scelta
+  in Impostazioni › Accesso e aspetto, quattro caselle bianche (`caselleDose`: Serie, Rip., Carico, Recupero). Lo
+  stile si sceglie a parte per la scheda senza immagini (finestra e PDF) e per quella con immagini (scheda
+  illustrata e PDF): `shared/stile-scheda.ts`, salvato in impostazioni.json come il tema; la scheda con immagini
+  è la stessa carta con la foto a sinistra. Nella scheda
   illustrata e nel Word resta «Squat monopodalico» (`nomeConMonopodalico` in `shared/varianti.ts`). Gli
   esercizi «sempre una» o «sempre due» non scrivono niente: lo dice già il nome.
 - I test con la pedana di forza (file `*.pedana.json` della Balance Squat App, contratto in

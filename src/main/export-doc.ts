@@ -2,7 +2,8 @@
 // Nessuna dipendenza da Electron: testabile con Node (vedi test/export-seduta.test.ts).
 import { coloriTema } from '../shared/temi'
 import { coloreSezione } from '../shared/colore-sezione'
-import { fraseDose, gambeTesto } from '../shared/scheda-riga'
+import { caselleDose, fraseDose, gambeTesto } from '../shared/scheda-riga'
+import { stileScheda, type StileScheda } from '../shared/stile-scheda'
 import { esc } from './html'
 import { leggiProfilo, righeProfilo, testoIscrizione } from './profilo'
 import { LINK_WEB } from './validazione'
@@ -147,119 +148,105 @@ export function generaHtml(
   const comeScritto = (testo: string): string => esc(testo.replace(/\r\n?/g, '\n'))
   const variante = (e: { variante?: string | null }): string =>
     e.variante?.trim() ? `<span class="variante">${esc(e.variante.trim())}</span>` : ''
-  // Una carta per esercizio, come nella finestra e tutta su una riga: il nome con
-  // le gambe (mono/bipodalico) e la variante accanto, la dose come frase, carico e
-  // recupero in due bolle di colore diverso. Sotto al nome c'e' solo la nota,
-  // quando c'e'. Dove un dato manca non si scrive niente.
-  const carte = (esercizi: DatiSedutaExport['sezioni'][number]['esercizi']): string =>
-    esercizi
-      .map((e) => {
-        const frase = fraseDose(e)
-        const carico = intensitaTesto(e)
-        const recupero = recuperoTesto(e)
-        const gambe = gambeTesto(e)
-        const v = e.variante?.trim()
-        return `<div class="esercizio-scheda">
-          <div class="testa-es">
-            <div class="titolo-es"><span class="nome">${esc(e.nome)}</span>${
-              gambe
-                ? `<span class="gambe-es"><span class="pieno">${gambe.pieno}</span><span class="ab">${gambe.corto}</span></span>`
-                : ''
-            }${v ? `<span class="variante-es">${esc(v)}</span>` : ''}</div>
-            ${e.nota ? `<span class="nota-es">${comeScritto(e.nota)}</span>` : ''}
-          </div>
-          ${
-            frase
-              ? `<div class="frase-scheda"><span class="lunga">${frase.lunga
-                  .map((x) => (x.forte ? `<b>${esc(x.testo)}</b>` : esc(x.testo)))
-                  .join('')}</span><span class="corta"><b>${esc(frase.corta)}</b></span></div>`
-              : ''
-          }
-          ${
-            carico || recupero
-              ? `<div class="bolle-scheda">${
-                  carico
-                    ? `<span class="bolla carico"><small>carico</small><b>${esc(carico)}</b></span>`
-                    : ''
-                }${
-                  recupero
-                    ? `<span class="bolla recupero"><small>recupero</small><b>${esc(recupero)}</b></span>`
-                    : ''
-                }</div>`
-              : ''
-          }
-        </div>`
-      })
-      .join('')
+  type RigaEs = DatiSedutaExport['sezioni'][number]['esercizi'][number]
 
-  // Un esercizio per riga: foto a sinistra, testo a destra, numerati come in un
-  // programma da portare a casa. Il paziente inesperto legge una cosa per volta,
-  // e la foto e la spiegazione stanno vicine.
-  let numero = 0
-  // I tre numeri come nella tabella: etichetta piccola sopra, valore sotto.
-  // Cosi' anche con la foto accanto si leggono nello stesso modo del resto.
-  const numeri = (e: DatiSedutaExport['sezioni'][number]['esercizi'][number]): string => {
-    const voci: [string, string | null][] = [
-      ['Serie × rip.', volumeTesto(e)],
-      ['Carico', caricoTesto(e.carico, e.unita_carico)],
-      ['RIR', rirTesto(e) === null ? null : String(e.rir).trim()],
-      ['Recupero', recuperoTesto(e)]
-    ]
-    const presenti = voci.filter(([, v]) => v)
-    if (presenti.length === 0) return ''
-    return `<div class="numeri">${presenti
-      .map(
-        ([et, v]) =>
-          `<div class="numero"><span class="et">${esc(et)}</span><span class="val">${esc(
-            String(v)
-          )}</span></div>`
-      )
-      .join('')}</div>`
+  // La dose, scritta nello stile scelto in Impostazioni > Accesso e aspetto:
+  // «bolle» (frase + due bolle colorate) o «caselle» (quattro caselle bianche).
+  const doseHtml = (e: RigaEs, stile: StileScheda): string => {
+    if (stile === 'caselle') {
+      const c = caselleDose(e)
+      const caselle: [string, string | null][] = [
+        ['Serie', c.serie],
+        ['Rip.', c.rip],
+        ['Carico', c.carico],
+        ['Recupero', c.recupero]
+      ]
+      return `<div class="caselle-scheda">${caselle
+        .map(
+          ([et, v]) =>
+            `<div class="casella${v ? '' : ' vuota'}"><small>${et}</small><b>${v ? esc(v) : '–'}</b></div>`
+        )
+        .join('')}</div>`
+    }
+    const frase = fraseDose(e)
+    const carico = intensitaTesto(e)
+    const recupero = recuperoTesto(e)
+    return `${
+      frase
+        ? `<div class="frase-scheda"><span class="lunga">${frase.lunga
+            .map((x) => (x.forte ? `<b>${esc(x.testo)}</b>` : esc(x.testo)))
+            .join('')}</span><span class="corta"><b>${esc(frase.corta)}</b></span></div>`
+        : ''
+    }${
+      carico || recupero
+        ? `<div class="bolle-scheda">${
+            carico ? `<span class="bolla carico"><small>carico</small><b>${esc(carico)}</b></span>` : ''
+          }${
+            recupero
+              ? `<span class="bolla recupero"><small>recupero</small><b>${esc(recupero)}</b></span>`
+              : ''
+          }</div>`
+        : ''
+    }`
   }
 
-  const schede = (esercizi: DatiSedutaExport['sezioni'][number]['esercizi']): string => {
+  // Il nome con le gambe (mono/bipodalico) e la variante accanto, sulla stessa riga.
+  const titolo = (e: RigaEs): string => {
+    const gambe = gambeTesto(e)
+    const v = e.variante?.trim()
+    return `<div class="titolo-es"><span class="nome">${esc(e.nome)}</span>${
+      gambe
+        ? `<span class="gambe-es"><span class="pieno">${gambe.pieno}</span><span class="ab">${gambe.corto}</span></span>`
+        : ''
+    }${v ? `<span class="variante-es">${esc(v)}</span>` : ''}</div>`
+  }
+
+  // Una carta per esercizio, come nella finestra e tutta su una riga: il nome con
+  // le gambe e la variante accanto, la dose nello stile scelto per la scheda senza
+  // immagini. Sotto al nome c'e' solo la nota, quando c'e'. Dove un dato manca non
+  // si scrive niente.
+  const carte = (esercizi: RigaEs[]): string =>
+    esercizi
+      .map(
+        (e) => `<div class="esercizio-scheda">
+          <div class="testa-es">${titolo(e)}${
+            e.nota ? `<span class="nota-es">${comeScritto(e.nota)}</span>` : ''
+          }</div>
+          ${doseHtml(e, stileScheda('senza'))}
+        </div>`
+      )
+      .join('')
+
+  // La scheda con le immagini e' la stessa carta con la foto a sinistra: nome e
+  // dose sulla prima riga, sotto la spiegazione, la nota e il video. La dose segue
+  // lo stile scelto per la scheda con immagini.
+  const schede = (esercizi: RigaEs[]): string => {
     // Il riquadro della foto si tiene anche dove la foto manca, cosi' le righe
     // restano allineate. Ma se in tutta la sezione non ce n'e' nessuna, sarebbe
     // solo una colonna di rettangoli grigi: allora si toglie.
     const conFoto = esercizi.some((e) => e.immagine)
-    return `<div class="schede">
-      ${esercizi
-        .map((e) => {
-          numero += 1
-          return `<div class="scheda-es">
-            ${
-              conFoto
-                ? `<div class="foto">${
-                    e.immagine ? `<img src="${esc(e.immagine)}" alt="">` : ''
-                  }</div>`
-                : ''
-            }
-            <div class="testo">
-              <span class="num">${numero}</span>
-              <div class="corpo">
-                <div class="nome">${esc(nomeConMonopodalico(e.nome, e.monopodalico))}</div>
-                ${variante(e)}
-                ${numeri(e)}
-                ${
-                  e.nota_tecnica
-                    ? `<div class="come">${comeScritto(e.nota_tecnica)}</div>`
-                    : ''
-                }
-                ${e.nota ? `<div class="nota-es">${comeScritto(e.nota)}</div>` : ''}
-                ${e.link && LINK_WEB.test(e.link) ? `<a class="video" href="${esc(e.link)}">Guarda il video</a>` : ''}
-              </div>
-            </div>
-          </div>`
-        })
-        .join('')}
-    </div>`
+    const stile = stileScheda('con')
+    return esercizi
+      .map(
+        (e) => `<div class="scheda-es esercizio-scheda con-foto">
+          ${
+            conFoto
+              ? `<div class="foto">${e.immagine ? `<img src="${esc(e.immagine)}" alt="">` : ''}</div>`
+              : ''
+          }
+          <div class="corpo-es">
+            <div class="riga-es"><div class="testa-es">${titolo(e)}</div>${doseHtml(e, stile)}</div>
+            ${e.nota_tecnica ? `<div class="come">${comeScritto(e.nota_tecnica)}</div>` : ''}
+            ${e.nota ? `<div class="nota-es">${comeScritto(e.nota)}</div>` : ''}
+            ${e.link && LINK_WEB.test(e.link) ? `<a class="video" href="${esc(e.link)}">Guarda il video</a>` : ''}
+          </div>
+        </div>`
+      )
+      .join('')
   }
 
   const sedHtml = sedute
     .map((s, i) => {
-      // La numerazione riparte da 1 a ogni seduta: chi la legge ha in mano un
-      // programma per volta.
-      numero = 0
       return `
     <section class="seduta${i > 0 ? ' nuova-pagina' : ''}">
       <h2>Seduta del ${formatData(s.data)}</h2>
@@ -352,6 +339,13 @@ export function generaHtml(
   .bolla b { font-size: 11.5px; font-weight: 700; }
   .bolla.carico { background: #e1ecf7; color: #2f6a9a; }
   .bolla.recupero { background: #f6e8c8; color: #8a5f12; }
+  .caselle-scheda { flex: none; display: flex; gap: 4px; }
+  .casella { min-width: 44px; padding: 3px 6px; text-align: center; background: #fff;
+             border: 1px solid #d5dae1; border-radius: 6px; }
+  .casella small { display: block; font-size: 8px; letter-spacing: 0.05em; text-transform: uppercase;
+                   color: #6b7280; }
+  .casella b { display: block; font-size: 12.5px; font-weight: 700; white-space: nowrap; color: var(--c); }
+  .casella.vuota b { color: #c4c8ce; font-weight: 400; }
   @container (max-width: 520px) {
     .esercizio-scheda .gambe-es .pieno { display: none; }
     .esercizio-scheda .gambe-es .ab { display: inline; }
@@ -365,44 +359,19 @@ export function generaHtml(
   /* Le note si scrivono come le ha scritte il fisioterapista: a capo e spazi restano. */
   .note { margin: 10px 0 0; background: #f5f6f8; padding: 8px 10px; border-radius: 4px;
           white-space: pre-wrap; }
-  /* Scheda illustrata: un esercizio per riga, foto a sinistra. Il riquadro e'
-     sempre della stessa misura, cosi' le righe non si sfalsano, ma la foto ci
-     sta dentro intera: ritagliata al centro perdeva pezzi di esercizio, e in
-     una foto verticale spariva mezza persona. Lo spazio che avanza resta del
-     colore del fondo. */
-  .schede { margin-bottom: 10px; }
-  /* Ogni esercizio e' un blocco che deve stare tutto su una pagina: il nome
-     non deve restare in fondo a una e la foto in cima alla seguente. Come
-     tabella e non come riga flessibile perche' la stampa rispetta "non
-     spezzare" sulle tabelle in modo affidabile, sulle righe flessibili no. */
-  .scheda-es { display: table; width: 100%; box-sizing: border-box; border-collapse: separate;
-               border-spacing: 0; background: #fff; border-radius: 7px;
-               padding: 9px 11px; margin-bottom: 8px;
-               break-inside: avoid; page-break-inside: avoid; }
-  .scheda-es .foto { display: table-cell; width: 130px; height: 130px; vertical-align: top;
-                     background: #fff; border-radius: 4px; overflow: hidden; }
-  .scheda-es .foto img { width: 130px; height: 130px; object-fit: contain; display: block; }
-  /* Il numero sta in una colonna sua: dentro la riga del nome, tutto quello che
-     segue (dosaggio, spiegazione) partiva dal bordo del pallino e non dal nome. */
-  .scheda-es .testo { display: table-cell; vertical-align: top; position: relative; }
-  .scheda-es .foto + .testo { padding-left: 12px; }
-  .scheda-es .foto + .testo .num { left: 12px; }
-  .scheda-es .corpo { padding-left: 24px; min-width: 0; }
-  .scheda-es .nome { font-weight: 600; font-size: 13.5px; }
-  .scheda-es .variante { display: block; color: ${accento}; font-weight: 600; font-size: 12px; }
-  .scheda-es .num { position: absolute; left: 0; top: 1px; width: 17px; height: 17px;
-                    border-radius: 50%; background: var(--c); color: #fff; font-size: 10px;
-                    text-align: center; line-height: 17px; }
-  /* I numeri come le colonne della tabella: etichetta piccola in maiuscolo e
-     sotto il valore. */
-  .scheda-es .numeri { display: flex; gap: 18px; margin-top: 5px; }
-  .scheda-es .numero { display: flex; flex-direction: column; }
-  .scheda-es .numero .et { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;
-                           color: #6b7280; }
-  .scheda-es .numero .val { font-size: 14px; font-weight: 700; color: var(--c); }
+  /* Scheda con le immagini: la stessa carta della scheda normale, con la foto a
+     sinistra. Il riquadro e' sempre della stessa misura, cosi' le righe non si
+     sfalsano, ma la foto ci sta dentro intera (ritagliata perdeva pezzi di
+     esercizio). Ogni esercizio e' un blocco che non si spezza fra due pagine. */
+  .esercizio-scheda.con-foto { align-items: flex-start; gap: 12px; }
+  .con-foto .foto { flex: none; width: 110px; height: 110px; background: #fff; border-radius: 6px;
+                    overflow: hidden; }
+  .con-foto .foto img { width: 110px; height: 110px; object-fit: contain; display: block; }
+  .con-foto .corpo-es { flex: 1 1 0; min-width: 0; }
+  .con-foto .riga-es { display: flex; align-items: center; gap: 10px; }
   /* La spiegazione e la nota si leggono come le ha scritte il fisioterapista:
      a capo, righe vuote e rientri restano. */
-  .scheda-es .come { color: #555b66; margin-top: 4px; white-space: pre-wrap; }
+  .scheda-es .come { color: #555b66; margin-top: 5px; font-size: 11.5px; white-space: pre-wrap; }
   .scheda-es .nota-es { color: #555b66; margin-top: 4px; font-style: italic; white-space: pre-wrap; }
   .scheda-es .video { display: inline-block; margin-top: 6px; color: ${accento}; font-weight: 600; }
   /* Le indicazioni per casa: un riquadro chiaro in fondo, staccato dal
