@@ -18,12 +18,12 @@ import { ModoScuro, SchedaAspetto } from './impostazioni/SchedaAspetto'
 // programma per me", "chi puo' entrare", "dove stanno le mie cose e come sono al
 // sicuro" e "come si faceva quella cosa". Il cestino sta con i dati perche' e'
 // l'ultima rete prima di perderli davvero.
-type Scheda = 'profilo' | 'aspetto' | 'sicurezza' | 'dati' | 'guida'
+export type SchedaImpostazioni = 'profilo' | 'aspetto' | 'sicurezza' | 'dati' | 'guida'
 
 // Dall'alto in basso come si scende dal proprio nome all'archivio: prima chi
 // sei, poi l'aspetto, poi l'accesso, poi dove stanno le cose, e in fondo la
 // guida, che si apre solo quando serve.
-const SCHEDE: { key: Scheda; label: string }[] = [
+const SCHEDE: { key: SchedaImpostazioni; label: string }[] = [
   { key: 'profilo', label: 'Profilo' },
   { key: 'aspetto', label: 'Aspetto' },
   { key: 'sicurezza', label: 'Sicurezza' },
@@ -42,7 +42,8 @@ export default function ImpostazioniPage({
   barraScura,
   onBarraScura,
   ingrandimento,
-  onIngrandimento
+  onIngrandimento,
+  schedaRichiesta
 }: {
   tornaAllInizio: number
   tema: Tema
@@ -55,9 +56,12 @@ export default function ImpostazioniPage({
   onBarraScura: (valore: boolean) => void
   ingrandimento: number
   onIngrandimento: (valore: number) => void
+  // una scheda da aprire subito (per esempio dall'avviso sulle copie); il numero
+  // fa scattare l'apertura anche chiedendo due volte la stessa
+  schedaRichiesta?: { scheda: SchedaImpostazioni; n: number } | null
 }): React.JSX.Element {
   // Aprendo Impostazioni si arriva sulla prima scheda, come in configurazione.
-  const [scheda, setScheda] = useState<Scheda>('profilo')
+  const [scheda, setScheda] = useState<SchedaImpostazioni>('profilo')
 
   // Entrando si rileggono i dati di «Dati e backup»: la scheda li trova gia' pronti.
   useEffect(() => {
@@ -68,6 +72,11 @@ export default function ImpostazioniPage({
     if (tornaAllInizio === 0) return
     setScheda('profilo')
   }, [tornaAllInizio])
+
+  // Dopo quello di sopra: se qualcuno ha chiesto una scheda precisa vince lei.
+  useEffect(() => {
+    if (schedaRichiesta) setScheda(schedaRichiesta.scheda)
+  }, [schedaRichiesta])
 
   return (
     <div className="page">

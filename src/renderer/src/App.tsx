@@ -20,7 +20,7 @@ import DistrettiPage from './pages/DistrettiPage'
 import PazientiPage from './pages/PazientiPage'
 import FollowUpPage from './pages/FollowUpPage'
 import SettimanaPage from './pages/SettimanaPage'
-import ImpostazioniPage from './pages/ImpostazioniPage'
+import ImpostazioniPage, { type SchedaImpostazioni } from './pages/ImpostazioniPage'
 import AuthGate from './components/AuthGate'
 import SchermoBloccato from './components/SchermoBloccato'
 import ToastHost, { toast, toastConAzione, toastErrore } from './components/Toast'
@@ -65,6 +65,25 @@ const TAB_CONFIG: { key: TabConfig; label: string }[] = [
   { key: 'gruppi', label: 'Gruppi' },
   { key: 'farmaci', label: 'Farmaci' }
 ]
+
+// L'avviso sulla copia fuori dal computer si dice una volta al giorno, non a
+// ogni avvio: il giorno dell'ultimo avviso si ricorda qui.
+const CHIAVE_AVVISO_COPIA = 'avvisoCopiaFuori'
+const oggiLocale = (): string => new Date().toLocaleDateString('sv-SE')
+function giaAvvisatoOggi(): boolean {
+  try {
+    return localStorage.getItem(CHIAVE_AVVISO_COPIA) === oggiLocale()
+  } catch {
+    return false
+  }
+}
+function segnaAvvisatoOggi(): void {
+  try {
+    localStorage.setItem(CHIAVE_AVVISO_COPIA, oggiLocale())
+  } catch {
+    // niente: si avvisera' di nuovo al prossimo avvio
+  }
+}
 
 export default function App(): React.JSX.Element {
   const [sbloccata, setSbloccata] = useState(false)
@@ -255,15 +274,18 @@ export default function App(): React.JSX.Element {
     window.api.backup
       .info()
       .then((info) => {
+        const vaiAiBackup = { etichetta: 'Vai ai backup', fn: apriBackup }
         if (info.copiaFallita) {
-          toastErrore(
-            "L'ultima copia di sicurezza automatica non è riuscita. Trovi cosa è successo in Impostazioni › Dati e backup."
-          )
+          toastErrore("L'ultima copia di sicurezza automatica non è riuscita.", vaiAiBackup)
           return
         }
-        // Un avviso solo, e non rosso: e' un promemoria, non un guasto.
+        // Un avviso solo, e non rosso: e' un promemoria, non un guasto. Una volta
+        // al giorno, non a ogni avvio: chi riapre il programma tre volte lo
+        // legge tre volte per niente.
         const promemoria = avvisoCopiaFuori(info)
-        if (promemoria) toast(`${promemoria} Si fa da Impostazioni › Dati e backup.`)
+        if (!promemoria || giaAvvisatoOggi()) return
+        segnaAvvisatoOggi()
+        toastConAzione(promemoria, vaiAiBackup.etichetta, vaiAiBackup.fn)
       })
       .catch(() => undefined)
   }, [sbloccata])
@@ -321,6 +343,12 @@ export default function App(): React.JSX.Element {
     // sezione si chiude, altrimenti restava aperta sopra la pagina nuova
     setCercando(false)
     })
+  }
+  // Dall'avviso sulle copie si arriva dritti a Impostazioni › Dati e backup.
+  const [schedaImp, setSchedaImp] = useState<{ scheda: SchedaImpostazioni; n: number } | null>(null)
+  const apriBackup = (): void => {
+    setSchedaImp((p) => ({ scheda: 'dati', n: (p?.n ?? 0) + 1 }))
+    vaiA('impostazioni')
   }
   // Richiesta di aprire la scheda di un paziente da un'altra sezione. Il numero
   // progressivo serve a far scattare l'apertura anche se si richiede due volte
@@ -506,6 +534,7 @@ export default function App(): React.JSX.Element {
             onBarraScura={scegliBarraScura}
             ingrandimento={ingrandimento}
             onIngrandimento={scegliIngrandimento}
+            schedaRichiesta={schedaImp}
           />
         )}
         </div>

@@ -64,6 +64,16 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.27
+
+- Impostazioni a cinque schede: Profilo, Aspetto, Sicurezza, Dati e backup, Guida. Una riga per scelta con la sua spiegazione, anteprima del colore e dello stile della dose, la dimensione dei caratteri spostata in Aspetto
+- Dati e backup: in cima tre caselle dicono se i dati sono al sicuro (ultima copia, copie nella cartella, copia fuori dal computer)
+- Sicurezza: password, chiave e domanda di recupero e blocco automatico insieme; i moduli si aprono solo dal pulsante
+- Profilo: campi in tre gruppi e, di fianco, il foglio come uscirà in cima ai documenti
+- Compilazione dello screening: testata fissa con Salva e Report, indice delle sezioni con quanti test mancano, una riga per misura con l'LSI colorato e il valore della volta prima
+- La linguetta «Screening» della Configurazione si chiama «Protocolli di screening»
+- L'avviso sulla copia fuori dal computer ha il pulsante «Vai ai backup» e compare una volta al giorno, non a ogni avvio
+
 ### v0.5.26
 
 - Scheda con le immagini rifatta come quella senza: foto a sinistra, nome con gambe e variante accanto, dose nello stesso stile

@@ -35,9 +35,9 @@ export function ascoltaErrori(fn: (testo: string) => void): () => void {
   }
 }
 
-export function toastErrore(testo: string): void {
+export function toastErrore(testo: string, azione?: { etichetta: string; fn: () => void }): void {
   for (const fn of ascoltatoriErrori) fn(testo)
-  listener?.({ id: prossimoId++, tipo: 'errore', testo })
+  listener?.({ id: prossimoId++, tipo: 'errore', testo, azione })
 }
 
 export default function ToastHost(): React.JSX.Element {
@@ -48,7 +48,7 @@ export default function ToastHost(): React.JSX.Element {
       setToasts((prev) => [...prev, t])
       setTimeout(
         () => setToasts((prev) => prev.filter((x) => x.id !== t.id)),
-        t.tipo === 'errore' ? 6000 : t.azione ? 9000 : 3500
+        t.azione ? 9000 : t.tipo === 'errore' ? 6000 : 3500
       )
     }
     return () => {
