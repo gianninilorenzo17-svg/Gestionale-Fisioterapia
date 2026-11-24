@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import Aiuto from '../../components/Aiuto'
 import type { EsitoArchivio } from '../../../../shared/types'
 import PannelloBackup from '../../components/PannelloBackup'
 import { FolderOpen, ShieldCheck } from 'lucide-react'
 import { toast, toastErrore } from '../../components/Toast'
 import { errMsg } from '../../lib'
 import { SchedaCestino } from './SchedaCestino'
+import { CardImp, RigaImp } from './Riga'
 import { daPrecarico, ricorda } from '../../precarico'
 
 export function SchedaDati(): React.JSX.Element {
@@ -57,78 +57,82 @@ export function SchedaDati(): React.JSX.Element {
   }
 
   return (
-    <section className="card">
-      {/* Prima le copie di sicurezza: sono la cosa che conta, e prima stavano
-          in mezzo. Poi dove vivono i file, e in fondo le cose che si toccano
-          solo quando qualcosa non va. */}
+    <div className="imp-colonna">
+      {/* Prima le copie di sicurezza: sono la cosa che conta. Poi dove vivono i
+          file, e in fondo le cose che si toccano solo quando qualcosa non va. */}
       <PannelloBackup />
 
-      <div className="griglia-impostazioni stacco-blocco">
-      <div className="blocco-impostazione">
-        <div className="sotto-titolo">
-          Cartella dei dati
-          <Aiuto testo="Tutti i tuoi dati vivono qui: riabilitazione.db (il database cifrato) e auth.json (le chiavi di accesso). Servono entrambi: senza auth.json il database non è apribile." />
-        </div>
-        <div className="cartella-path">{cartella}</div>
-        <div className="modal-actions">
-          <button onClick={() => void window.api.impostazioni.apriCartella()}>Apri cartella</button>
-          <button onClick={() => void cambiaDati()}>Cambia cartella…</button>
-        </div>
-      </div>
+      <CardImp titolo="Dove stanno i file">
+        <RigaImp
+          nome="Cartella dei dati"
+          descrizione={
+            <>
+              Tutti i tuoi dati vivono qui: riabilitazione.db (il database cifrato) e auth.json
+              (le chiavi di accesso). Servono entrambi.
+              <br />
+              <span className="cartella-path">{cartella}</span>
+            </>
+          }
+          larga
+        >
+          <span className="imp-azioni">
+            <button onClick={() => void window.api.impostazioni.apriCartella()}>Apri cartella</button>
+            <button onClick={() => void cambiaDati()}>Cambia cartella…</button>
+          </span>
+        </RigaImp>
+        <RigaImp
+          nome="Cartella per gli export"
+          descrizione={
+            <>
+              Dove il programma propone di salvare quando esporti una seduta o uno storico: l&apos;ultima
+              cartella usata viene ricordata.
+              <br />
+              <span className="cartella-path">{cartellaExport}</span>
+            </>
+          }
+          larga
+        >
+          <span className="imp-azioni">
+            <button onClick={() => void cambiaExport()}>Cambia cartella…</button>
+          </span>
+        </RigaImp>
+      </CardImp>
 
-      <div className="blocco-impostazione">
-        <div className="sotto-titolo">
-          Cartella per gli export
-          <Aiuto testo="Dove l'app propone di salvare quando esporti una seduta o uno storico. Puoi cambiarla di volta in volta nella finestra di salvataggio: l'ultima cartella usata viene ricordata." />
-        </div>
-        <div className="cartella-path">{cartellaExport}</div>
-        <div className="modal-actions">
-          <button onClick={() => void cambiaExport()}>Cambia cartella…</button>
-        </div>
-      </div>
-      </div>
-
-      <div className="stacco-blocco">
+      <section className="imp-card imp-cestino">
         <SchedaCestino />
-      </div>
+      </section>
 
-      {/* Le due cose che si toccano solo quando qualcosa non torna, insieme in
-          un riquadro solo: il controllo dell'archivio e il registro. */}
-      <div className="blocco-impostazione stacco-blocco">
-        <div className="sotto-titolo">Quando qualcosa non va</div>
-        <div className="riga-interruttore">
-          <span className="nome-interruttore">
-            Controllo dell&apos;archivio
-            <Aiuto testo="Controlla che il file dell'archivio non si sia rovinato e che i collegamenti fra le schede siano interi. È il controllo da fare dopo uno spegnimento brutto del computer, o quando qualcosa non torna." />
-          </span>
-          <span className="regola-ingrandimento">
-            <button disabled={inCorso} onClick={() => void controlla()}>
-              <ShieldCheck size={16} /> {inCorso ? 'Controllo…' : 'Controlla'}
-            </button>
-          </span>
-        </div>
-        {esitoArchivio && (
-          <span
-            className={esitoArchivio.ok ? 'esito-copia esito-buono' : 'esito-copia esito-guasto'}
-          >
-            {esitoArchivio.ok
-              ? `Tutto in ordine — ${esitoArchivio.pazienti} pazienti, ${esitoArchivio.sedute} sedute.`
-              : esitoArchivio.messaggio}
-          </span>
-        )}
-
-        <div className="riga-interruttore riga-staccata">
-          <span className="nome-interruttore">
-            Registro degli errori
-            <Aiuto testo="Ogni errore dell'app lascia una riga in un file di testo, con la data e il punto in cui è successo. Contiene solo messaggi tecnici, nessun dato dei pazienti: serve a capire cosa si è rotto anche a giorni di distanza." />
-          </span>
-          <span className="regola-ingrandimento">
-            <button onClick={() => void window.api.registro.apri()}>
-              <FolderOpen size={16} /> Apri il registro
-            </button>
-          </span>
-        </div>
-      </div>
-    </section>
+      <CardImp titolo="Quando qualcosa non va">
+        <RigaImp
+          nome="Controllo dell'archivio"
+          descrizione="Controlla che il file dell'archivio non si sia rovinato e che i collegamenti fra le schede siano interi. Da fare dopo uno spegnimento brutto del computer."
+          sotto={
+            esitoArchivio ? (
+              <span
+                className={
+                  esitoArchivio.ok ? 'esito-copia esito-buono' : 'esito-copia esito-guasto'
+                }
+              >
+                {esitoArchivio.ok
+                  ? `Tutto in ordine — ${esitoArchivio.pazienti} pazienti, ${esitoArchivio.sedute} sedute.`
+                  : esitoArchivio.messaggio}
+              </span>
+            ) : undefined
+          }
+        >
+          <button disabled={inCorso} onClick={() => void controlla()}>
+            <ShieldCheck size={16} /> {inCorso ? 'Controllo…' : 'Controlla'}
+          </button>
+        </RigaImp>
+        <RigaImp
+          nome="Registro degli errori"
+          descrizione="Ogni errore del programma lascia una riga in un file di testo, con la data e il punto in cui è successo. Solo messaggi tecnici, nessun dato dei pazienti."
+        >
+          <button onClick={() => void window.api.registro.apri()}>
+            <FolderOpen size={16} /> Apri il registro
+          </button>
+        </RigaImp>
+      </CardImp>
+    </div>
   )
 }

@@ -256,7 +256,7 @@ test('transizioni: le schermate compaiono gia\' piene', async () => {
     // ---- configurazione ----
     await vaiA(pagina, 'Configurazione')
     await pagina.waitForTimeout(500)
-    for (const t of ['Gruppi', 'Farmaci', 'Distretti', 'Libreria esercizi', 'Questionari', 'Test di valutazione', 'Screening', 'Patologie']) {
+    for (const t of ['Gruppi', 'Farmaci', 'Distretti', 'Libreria esercizi', 'Questionari', 'Test di valutazione', 'Protocolli di screening', 'Patologie']) {
       const b = pagina.locator('.config-tabs-top button').filter({ hasText: t }).first()
       if ((await b.count()) > 0) await m(`config: ${t}`, () => b.click())
     }
@@ -265,7 +265,7 @@ test('transizioni: le schermate compaiono gia\' piene', async () => {
     // ---- impostazioni ----
     await vaiA(pagina, 'Impostazioni')
     await pagina.waitForTimeout(300)
-    for (const t of ['Profilo', 'Accesso e aspetto', 'Dati e backup', 'Guida']) {
+    for (const t of ['Profilo', 'Aspetto', 'Sicurezza', 'Dati e backup', 'Guida']) {
       await m(`impostazioni: ${t}`, () => pagina.getByRole('button', { name: t, exact: true }).click())
     }
 

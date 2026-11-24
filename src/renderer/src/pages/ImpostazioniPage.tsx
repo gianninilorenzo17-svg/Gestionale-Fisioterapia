@@ -4,10 +4,8 @@ import type { Profilo } from '../../../shared/types'
 import { precaricaImpostazioni } from '../precarico'
 import { SchedaDati } from './impostazioni/SchedaDati'
 import { SchedaProfilo } from './impostazioni/SchedaProfilo'
-import { SchedaRecupero } from './impostazioni/SchedaRecupero'
 import { SchedaGuida } from './impostazioni/SchedaGuida'
-import { SchedaPassword } from './impostazioni/SchedaPassword'
-import { SchedaBlocco } from './impostazioni/SchedaBlocco'
+import { SchedaSicurezza } from './impostazioni/SchedaSicurezza'
 import { ModoScuro, SchedaAspetto } from './impostazioni/SchedaAspetto'
 
 // Impostazioni dell'app: dove stanno i dati e le copie, la password, il colore.
@@ -16,19 +14,19 @@ import { ModoScuro, SchedaAspetto } from './impostazioni/SchedaAspetto'
 // c'era. Sono cose che si toccano di rado ma che vanno trovate subito, percio'
 // stanno in una sezione sola, a schede, come la configurazione.
 
-// Quattro schede, divise per domanda: "chi sono io", "come si comporta l'app
-// con me", "dove stanno le mie cose e come sono al sicuro" e "come si faceva
-// quella cosa". Il cestino sta con i dati perche' e' l'ultima rete prima di
-// perderli davvero; il colore sta con la password perche' sono tutte e due
-// preferenze tue, non dell'archivio.
-type Scheda = 'profilo' | 'app' | 'dati' | 'guida'
+// Cinque schede, divise per domanda: "chi sono io", "che aspetto ha il
+// programma per me", "chi puo' entrare", "dove stanno le mie cose e come sono al
+// sicuro" e "come si faceva quella cosa". Il cestino sta con i dati perche' e'
+// l'ultima rete prima di perderli davvero.
+type Scheda = 'profilo' | 'aspetto' | 'sicurezza' | 'dati' | 'guida'
 
 // Dall'alto in basso come si scende dal proprio nome all'archivio: prima chi
-// sei, poi come si comporta l'app con te, poi dove stanno le cose e come sono
-// al sicuro, e in fondo la guida, che si apre solo quando serve.
+// sei, poi l'aspetto, poi l'accesso, poi dove stanno le cose, e in fondo la
+// guida, che si apre solo quando serve.
 const SCHEDE: { key: Scheda; label: string }[] = [
   { key: 'profilo', label: 'Profilo' },
-  { key: 'app', label: 'Accesso e aspetto' },
+  { key: 'aspetto', label: 'Aspetto' },
+  { key: 'sicurezza', label: 'Sicurezza' },
   { key: 'dati', label: 'Dati e backup' },
   { key: 'guida', label: 'Guida' }
 ]
@@ -87,35 +85,31 @@ export default function ImpostazioniPage({
           </button>
         ))}
       </div>
-      {/* .scheda da' il riquadro bianco alle sezioni, come nella scheda del
-          paziente: qui dentro ogni pannello e' una card. */}
-      <div className="scheda">
+      {/* Ogni scheda e' una colonna di riquadri con righe dentro (vedi Riga.tsx).
+          La larghezza la decide il contenitore, non lo schermo: con il menu a
+          sinistra lo spazio e' meno di quello che sembra. */}
+      <div className="imp-pagina">
         {scheda === 'dati' && <SchedaDati />}
         {scheda === 'profilo' && <SchedaProfilo />}
-        {scheda === 'guida' && <SchedaGuida />}
-        {scheda === 'app' && (
-          <>
-            {/* L'aspetto a sinistra e la password a destra, alti uguale: sono
-                le due cose che si vengono a cercare qui, e due riquadri
-                affiancati di altezza diversa sembrano uno sbaglio. Il blocco e
-                la dimensione dei caratteri stanno sotto, nella stessa griglia:
-                cosi' il riquadro e' largo esattamente come gli altri due. */}
-            <div className="griglia-impostazioni griglia-pari griglia-due">
-              <SchedaAspetto
-                tema={tema}
-                onTema={onTema}
-                scuro={scuro}
-                modoScuro={modoScuro}
-                orariScuro={orariScuro}
-                onScuro={onScuro}
-                barraScura={barraScura}
-                onBarraScura={onBarraScura}
-              />
-              <SchedaPassword />
-              <SchedaBlocco ingrandimento={ingrandimento} onIngrandimento={onIngrandimento} />
-              <SchedaRecupero />
-            </div>
-          </>
+        {scheda === 'guida' && (
+          <div className="scheda">
+            <SchedaGuida />
+          </div>
+        )}
+        {scheda === 'sicurezza' && <SchedaSicurezza />}
+        {scheda === 'aspetto' && (
+          <SchedaAspetto
+            tema={tema}
+            onTema={onTema}
+            scuro={scuro}
+            modoScuro={modoScuro}
+            orariScuro={orariScuro}
+            onScuro={onScuro}
+            barraScura={barraScura}
+            onBarraScura={onBarraScura}
+            ingrandimento={ingrandimento}
+            onIngrandimento={onIngrandimento}
+          />
         )}
       </div>
     </div>

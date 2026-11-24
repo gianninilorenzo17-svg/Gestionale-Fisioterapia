@@ -1,0 +1,506 @@
+/* ---- Impostazioni: riquadri con una riga per scelta ----
+   Lo spazio qui e' meno di quello dello schermo (c'e' il menu a sinistra, e i
+   caratteri si possono ingrandire): ogni riquadro e' un contenitore e decide da
+   solo, in base alla sua larghezza, se il controllo sta a destra del testo o
+   sotto. Niente larghezze fisse che sbordano. */
+
+.imp-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 1100px;
+}
+
+.imp-colonna {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.imp-card {
+  container-type: inline-size;
+  container-name: imp;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.imp-card-titolo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0;
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: 650;
+  border-bottom: 1px solid var(--border);
+}
+
+.imp-card-titolo small {
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.imp-card-azioni {
+  position: relative;
+  display: inline-flex;
+  gap: 8px;
+}
+
+/* una riga = una scelta */
+.imp-riga {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 24px;
+  padding: 13px 18px;
+}
+
+.imp-riga + .imp-riga,
+.imp-riga + .imp-avvisi {
+  border-top: 1px solid var(--border);
+}
+
+.imp-riga-testo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.imp-riga-testo b {
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.imp-d {
+  max-width: 70ch;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.imp-d .cartella-path {
+  display: inline-block;
+  max-width: 100%;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.imp-riga-controllo {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.imp-riga-larga {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.imp-riga-larga .imp-riga-controllo {
+  justify-content: flex-start;
+}
+
+.imp-riga-sotto {
+  grid-column: 1 / -1;
+}
+
+.imp-azioni {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.imp-minuti {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.imp-minuti input,
+.imp-numero {
+  width: 72px;
+  text-align: center;
+}
+
+/* il modulo che si apre dentro una riga (cambia password, domanda) */
+.imp-modulo {
+  display: grid;
+  gap: 10px;
+  max-width: 520px;
+  padding-top: 4px;
+}
+
+.imp-modulo .modal-actions {
+  margin-top: 4px;
+}
+
+.imp-avvisi {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 18px 14px;
+}
+
+.imp-vuoto {
+  margin: 0;
+  padding: 14px 18px;
+}
+
+.imp-copie {
+  margin: 0;
+  padding: 4px 8px 8px;
+}
+
+.imp-cestino {
+  overflow: hidden;
+}
+
+.imp-cestino .blocco-apribile {
+  margin: 0;
+  border: none;
+  box-shadow: none;
+  background: none;
+}
+
+.imp-cestino .blocco-apribile > summary {
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.imp-cestino .contenuto-apribile {
+  padding: 0 18px 14px;
+}
+
+/* ---- colori e schermo ---- */
+
+.imp-colori {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+}
+
+.imp-anteprima-app {
+  flex: none;
+  display: flex;
+  width: 132px;
+  height: 56px;
+  overflow: hidden;
+  border: 1px solid var(--border-forte);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.imp-anteprima-app .lat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 30px;
+  padding: 6px 5px;
+  background: #e9dfcb;
+}
+
+.imp-anteprima-app .lat.scura {
+  background: #2b2724;
+}
+
+.imp-anteprima-app .lat i {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: #00000022;
+}
+
+.imp-anteprima-app .lat.scura i {
+  background: #ffffff33;
+}
+
+.imp-anteprima-app .lat i.s {
+  background: var(--prev);
+}
+
+.imp-anteprima-app .cor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  background: #f4efe5;
+}
+
+.imp-anteprima-app.scuro .cor {
+  background: #1f1c19;
+}
+
+.imp-anteprima-app .cor i {
+  display: block;
+  height: 8px;
+  border-radius: 3px;
+  background: #fff;
+  border: 1px solid #00000018;
+}
+
+.imp-anteprima-app.scuro .cor i {
+  background: #38332e;
+  border-color: #ffffff18;
+}
+
+.imp-anteprima-app .cor i.b {
+  width: 40%;
+  border-color: var(--prev);
+  background: var(--prev);
+}
+
+/* ---- stile della dose: si sceglie guardandolo ---- */
+
+.imp-stili {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.imp-stile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 190px;
+  padding: 10px 12px;
+  font-weight: 400;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-forte);
+  border-radius: 10px;
+}
+
+.imp-stile b {
+  font-size: 13.5px;
+}
+
+.imp-stile.scelta-attiva {
+  color: var(--text);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.imp-stile-prev {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+}
+
+.imp-stile-nome {
+  font-weight: 600;
+}
+
+.imp-stile-bolle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.imp-stile-bolle i {
+  padding: 1px 8px;
+  font-style: normal;
+  font-size: 11.5px;
+  color: #24506f;
+  background: #dbeaf5;
+  border-radius: 999px;
+}
+
+.imp-stile-bolle i.sabbia {
+  color: #6b5322;
+  background: #f3e7cf;
+}
+
+.imp-stile-caselle {
+  display: flex;
+  gap: 4px;
+}
+
+.imp-stile-caselle > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2px 7px;
+  background: #fff;
+  border: 1px solid var(--border-forte);
+  border-radius: 5px;
+  color: #241f19;
+}
+
+.imp-stile-caselle small {
+  font-size: 9.5px;
+  color: #77706a;
+}
+
+.imp-stile-caselle b {
+  font-size: 12px;
+}
+
+/* ---- dati e backup: lo stato in cima ---- */
+
+.imp-stati {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.imp-stato {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.imp-stato small {
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.imp-stato b {
+  font-size: 19px;
+  font-weight: 650;
+}
+
+.imp-stato span {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+.imp-stato button {
+  margin-top: 8px;
+}
+
+.imp-stato.ok b {
+  color: var(--success);
+}
+
+.imp-stato.avv {
+  background: color-mix(in srgb, #b7791f 12%, var(--surface));
+  border-color: color-mix(in srgb, #b7791f 35%, var(--surface));
+}
+
+.imp-stato.avv span {
+  color: color-mix(in srgb, #b7791f 80%, var(--text));
+}
+
+/* ---- profilo: i campi e, di fianco, il foglio ---- */
+
+.imp-profilo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 330px);
+  gap: 16px;
+  align-items: start;
+}
+
+.imp-intro {
+  margin: 0;
+  max-width: 70ch;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.imp-campi {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  padding: 14px 18px 16px;
+}
+
+.imp-campi .field {
+  min-width: 0;
+}
+
+.imp-campo-largo {
+  grid-column: 1 / -1;
+}
+
+.imp-foglio {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.imp-foglio .foglio-finto {
+  background: #fff;
+  color: #241f19;
+  box-shadow: var(--shadow-md);
+}
+
+.foglio-righe {
+  margin-top: 14px;
+}
+
+.foglio-righe i {
+  display: block;
+  height: 7px;
+  margin: 8px 0;
+  border-radius: 3px;
+  background: #f0ece4;
+}
+
+/* poco spazio: il controllo va sotto il testo, i campi in una colonna, il
+   foglio sotto i campi */
+@container imp (max-width: 560px) {
+  .imp-riga {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .imp-riga-controllo {
+    justify-content: flex-start;
+  }
+
+  .imp-campi {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1180px) {
+  .imp-profilo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .imp-foglio {
+    position: static;
+  }
+}
+
+.imp-stato button {
+  flex-direction: row;
+  width: auto;
+  white-space: nowrap;
+  align-self: flex-start;
+}

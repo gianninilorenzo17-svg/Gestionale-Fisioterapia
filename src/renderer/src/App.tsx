@@ -61,7 +61,7 @@ const TAB_CONFIG: { key: TabConfig; label: string }[] = [
   { key: 'esercizi', label: 'Libreria esercizi' },
   { key: 'questionari', label: 'Questionari' },
   { key: 'testValutazione', label: 'Test di valutazione' },
-  { key: 'screening', label: 'Screening' },
+  { key: 'screening', label: 'Protocolli di screening' },
   { key: 'gruppi', label: 'Gruppi' },
   { key: 'farmaci', label: 'Farmaci' }
 ]

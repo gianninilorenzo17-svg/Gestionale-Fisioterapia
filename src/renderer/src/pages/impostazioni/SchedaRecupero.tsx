@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import Aiuto from '../../components/Aiuto'
+import { RigaImp } from './Riga'
 import { toast, toastErrore } from '../../components/Toast'
 import { errMsg } from '../../lib'
 import { daPrecarico, ricorda } from '../../precarico'
@@ -8,7 +8,7 @@ import { daPrecarico, ricorda } from '../../precarico'
 // sempre, dal primo avvio. In piu' si puo' impostare una domanda: e' piu' comoda
 // da ricordare, ma meno sicura della chiave, quindi si aggiunge a lei e non la
 // sostituisce. Per impostarla o toglierla serve la password di adesso.
-export function SchedaRecupero(): React.JSX.Element {
+export function RigheRecupero(): React.JSX.Element {
   const [domanda, setDomanda] = useState<string | null>(() => daPrecarico<string | null>('domanda', null))
   const [modo, setModo] = useState<'vedi' | 'imposta' | 'togli'>('vedi')
   const [testo, setTesto] = useState('')
@@ -63,81 +63,88 @@ export function SchedaRecupero(): React.JSX.Element {
     }
   }
 
-  return (
-    <section className="card single-col">
-      <div className="sotto-titolo">
-        Recupero della password
-        <Aiuto testo="Se dimentichi la password puoi rientrare in due modi. Con la chiave di recupero che hai salvato al primo avvio: vale sempre ed è il modo più sicuro. Oppure rispondendo a una domanda che scegli tu: è più comoda, ma una risposta si indovina più facilmente di una chiave. Scegli una domanda la cui risposta sai solo tu e non si trova online (non il nome dello studio o la tua città). Maiuscole e spazi nella risposta non contano." />
-      </div>
-
-      <div className="stato-recupero">
-        <div className="riga-recupero">
-          <span className="nome-recupero">Chiave di recupero</span>
-          <span className="badge-stato">Attiva</span>
-        </div>
-        <div className="riga-recupero">
-          <span className="nome-recupero">Domanda di recupero</span>
-          {domanda ? (
-            <span className="badge-stato">Attiva</span>
-          ) : (
-            <span className="badge-stato follow">Non impostata</span>
-          )}
-        </div>
-        {domanda && <p className="hint domanda-attuale">«{domanda}»</p>}
-      </div>
-
-      {modo === 'imposta' && (
-        <>
-          <label>
-            Domanda
-            <input
-              autoFocus
-              placeholder="es. Come si chiamava la mia maestra delle elementari?"
-              value={testo}
-              onChange={(e) => setTesto(e.target.value)}
-            />
-          </label>
-          <label>
-            Risposta (almeno 8 caratteri: meglio una frase che una parola)
-            <input type="password" value={risposta} onChange={(e) => setRisposta(e.target.value)} />
-          </label>
-          <label>
-            Ripeti la risposta
-            <input type="password" value={ripeti} onChange={(e) => setRipeti(e.target.value)} />
-          </label>
-        </>
-      )}
-      {modo !== 'vedi' && (
+  const modulo =
+    modo === 'vedi' ? undefined : (
+      <div className="imp-modulo">
+        {modo === 'imposta' && (
+          <>
+            <label>
+              Domanda
+              <input
+                autoFocus
+                placeholder="es. Come si chiamava la mia maestra delle elementari?"
+                value={testo}
+                onChange={(e) => setTesto(e.target.value)}
+              />
+            </label>
+            <label>
+              Risposta (almeno 8 caratteri: meglio una frase che una parola)
+              <input
+                type="password"
+                value={risposta}
+                onChange={(e) => setRisposta(e.target.value)}
+              />
+            </label>
+            <label>
+              Ripeti la risposta
+              <input type="password" value={ripeti} onChange={(e) => setRipeti(e.target.value)} />
+            </label>
+          </>
+        )}
         <label>
           Password attuale
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
-      )}
-      {errore && <p className="auth-error">{errore}</p>}
-
-      <div className="modal-actions">
-        {modo === 'vedi' ? (
-          <>
-            {domanda && <button onClick={() => setModo('togli')}>Togli la domanda</button>}
-            <button className="primary" onClick={() => setModo('imposta')}>
-              {domanda ? 'Cambia la domanda' : 'Imposta una domanda'}
+        {errore && <p className="auth-error">{errore}</p>}
+        <div className="modal-actions">
+          <button onClick={chiudi}>Annulla</button>
+          {modo === 'imposta' ? (
+            <button className="primary" onClick={() => void salva()}>
+              Salva la domanda
             </button>
-          </>
-        ) : (
-          <>
-            <button onClick={chiudi}>Annulla</button>
-            {modo === 'imposta' ? (
-              <button className="primary" onClick={() => void salva()}>
-                Salva la domanda
-              </button>
-            ) : (
-              <button className="primary" onClick={() => void togli()}>
-                Togli la domanda
-              </button>
-            )}
-          </>
-        )}
+          ) : (
+            <button className="primary" onClick={() => void togli()}>
+              Togli la domanda
+            </button>
+          )}
+        </div>
       </div>
-    </section>
+    )
+
+  return (
+    <>
+      <RigaImp
+        nome="Chiave di recupero"
+        descrizione="La chiave che hai salvato al primo avvio: vale sempre ed è il modo più sicuro di rientrare se dimentichi la password."
+      >
+        <span className="badge-stato">Attiva</span>
+      </RigaImp>
+      <RigaImp
+        nome="Domanda di recupero"
+        descrizione={
+          domanda ? (
+            <>
+              «{domanda}»<br />
+              Più comoda della chiave ma meno sicura: la risposta si indovina più facilmente.
+            </>
+          ) : (
+            'Un secondo modo di rientrare, a una domanda che scegli tu. Più comoda della chiave ma meno sicura: scegli una risposta che non si trova online. Maiuscole e spazi non contano.'
+          )
+        }
+        sotto={modulo}
+      >
+        {modo === 'vedi' && (
+          <span className="imp-azioni">
+            {domanda ? (
+              <span className="badge-stato">Attiva</span>
+            ) : (
+              <span className="badge-stato follow">Non impostata</span>
+            )}
+            {domanda && <button onClick={() => setModo('togli')}>Togli</button>}
+            <button onClick={() => setModo('imposta')}>{domanda ? 'Cambia…' : 'Imposta…'}</button>
+          </span>
+        )}
+      </RigaImp>
+    </>
   )
 }

@@ -562,3 +562,233 @@
 .riga-fu .azioni-riga input[type='date'] {
   width: 150px;
 }
+
+/* ---- Compilazione di uno screening: testata fissa, indice, una riga per misura ---- */
+
+/* La pagina parte dal bordo della finestra, cosi' la testata fissa non lascia
+   uno spazio sopra da cui si vedono scorrere i riquadri. */
+.content:has(.pagina-compila-screening) {
+  padding-top: 0;
+}
+
+.pagina-compila-screening .scr-testa {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  flex-wrap: nowrap;
+  margin: 14px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+}
+
+.pagina-compila-screening .scr-testa > * {
+  flex: none;
+}
+
+.pagina-compila-screening .scr-testa > .scr-chi {
+  flex: 0 1 auto;
+}
+
+.pagina-compila-screening .scr-testa > .val-spazio {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.scr-chi {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+  min-width: 0;
+}
+
+.scr-chi h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.scr-chi span {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.scr-corpo {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.scr-indice {
+  position: sticky;
+  top: 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scr-indice button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  text-align: left;
+  font-size: 14px;
+}
+
+.scr-indice button b {
+  font-weight: 500;
+}
+
+.scr-indice button small {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.scr-indice button.completa small {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.scr-indice button.attiva {
+  background: var(--accent-soft);
+}
+
+.scr-indice button.attiva b {
+  color: var(--accent-hover);
+  font-weight: 600;
+}
+
+.scr-colonna {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.scr-colonna .sezione-screening,
+.scr-colonna .note-screening {
+  margin: 0;
+  scroll-margin-top: 90px;
+}
+
+.scr-colonna #scr-punteggio {
+  scroll-margin-top: 90px;
+}
+
+.sezione-screening h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.scr-quanti {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+/* una misura = una riga: nome, caselle dei lati, e a destra l'esito */
+.pagina-compila-screening .misura-riga {
+  display: grid;
+  grid-template-columns: minmax(130px, 220px) auto minmax(150px, 1fr);
+  gap: 4px 22px;
+  align-items: center;
+  margin-top: 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+/* niente fascia colorata attorno al nome del test: qui il nome basta in grassetto */
+.pagina-compila-screening .voce-test {
+  border-top: 1px solid var(--border);
+  padding: 12px 0 4px;
+}
+
+.pagina-compila-screening .voce-test:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.pagina-compila-screening .voce-testata {
+  padding: 0;
+  margin-bottom: 4px;
+  background: none;
+}
+
+.pagina-compila-screening .voce-nome {
+  color: var(--text);
+}
+
+.pagina-compila-screening .misura-riga:first-of-type {
+  border-top: none;
+}
+
+.pagina-compila-screening .misura-nome {
+  margin: 0;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.misura-esito {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.misura-esito small {
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.pillola-lsi {
+  display: inline-flex;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: var(--riga-alterna);
+  color: var(--text-dim);
+}
+
+.pillola-lsi.ok {
+  background: color-mix(in srgb, var(--success) 14%, var(--surface));
+  color: color-mix(in srgb, var(--success) 78%, black);
+}
+
+.pillola-lsi.att {
+  background: color-mix(in srgb, var(--attenzione, #b7791f) 16%, var(--surface));
+  color: color-mix(in srgb, var(--attenzione, #b7791f) 82%, black);
+}
+
+.pillola-lsi.no {
+  background: color-mix(in srgb, var(--danger) 13%, var(--surface));
+  color: color-mix(in srgb, var(--danger) 82%, black);
+}
+
+@media (max-width: 1000px) {
+  .scr-corpo {
+    grid-template-columns: 1fr;
+  }
+
+  .scr-indice {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .pagina-compila-screening .misura-riga {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sezione-screening h3 {
+  margin-top: 0;
+}

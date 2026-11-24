@@ -43,7 +43,7 @@ export const screening: ArgomentoGuida = {
       elementi: [
         {
           passi: [
-            'Apri i protocolli: [[Configurazione > Screening]].',
+            'Apri i protocolli: [[Configurazione > Protocolli di screening]].',
             'Premi **+** per un **Nuovo protocollo**: scrivi lo sport e il nome (es. «Screening off season»).',
             'Crea le sezioni con **Nuova sezione**.',
             'In ogni sezione premi **Aggiungi test o questionario** e pesca dalla libreria. Si riordinano trascinando.',

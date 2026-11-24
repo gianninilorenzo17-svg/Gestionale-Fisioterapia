@@ -15,14 +15,23 @@ test('impostazioni: ogni scheda si apre', async () => {
     await expect(pagina.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     await pagina.getByRole('button', { name: 'Profilo', exact: true }).click()
-    await expect(pagina.getByText('Chi firma i fogli', { exact: false })).toBeVisible()
+    await expect(pagina.getByText('Chi sei', { exact: true })).toBeVisible()
     await pagina.screenshot({ path: join(FOTO, '13-impostazioni-profilo.png'), fullPage: true })
 
-    await pagina.getByRole('button', { name: 'Accesso e aspetto', exact: true }).click()
-    await expect(pagina.getByText('Cambia password', { exact: false }).first()).toBeVisible()
-    await expect(pagina.getByText('Recupero della password', { exact: false }).first()).toBeVisible()
-    await expect(pagina.getByText('Colore dell', { exact: false }).first()).toBeVisible()
-    await pagina.screenshot({ path: join(FOTO, '14-impostazioni-accesso.png'), fullPage: true })
+    await pagina.getByRole('button', { name: 'Aspetto', exact: true }).click()
+    await expect(pagina.getByText("Colore dell'app", { exact: false }).first()).toBeVisible()
+    await expect(pagina.getByText('Dimensione dei caratteri', { exact: false }).first()).toBeVisible()
+    await expect(pagina.getByText('Scheda del paziente', { exact: false }).first()).toBeVisible()
+    await pagina.screenshot({ path: join(FOTO, '14-impostazioni-aspetto.png'), fullPage: true })
+
+    await pagina.getByRole('button', { name: 'Sicurezza', exact: true }).click()
+    await expect(pagina.getByText('Chiave di recupero', { exact: false }).first()).toBeVisible()
+    await expect(pagina.getByText('Blocco automatico', { exact: false }).first()).toBeVisible()
+    // il modulo della password si apre solo dal pulsante
+    await expect(pagina.getByLabel('Password attuale')).toHaveCount(0)
+    await pagina.getByRole('button', { name: 'Cambia password…' }).click()
+    await expect(pagina.getByLabel('Password attuale')).toBeVisible()
+    await pagina.screenshot({ path: join(FOTO, '14b-impostazioni-sicurezza.png'), fullPage: true })
 
     await pagina.getByRole('button', { name: 'Dati e backup', exact: true }).click()
     // le copie e le cartelle sono gia' pronte: niente «Caricamento…» nemmeno per un istante

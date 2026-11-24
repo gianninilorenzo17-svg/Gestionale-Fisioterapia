@@ -1064,7 +1064,7 @@ export interface SchedaPaziente {
   fase_nome: string | null
   note: string | null
   sezioni: { nome: string; esercizi: EsercizioScheda[] }[]
-  // Come si scrive la dose (scelto in Impostazioni > Accesso e aspetto).
+  // Come si scrive la dose (scelto in Impostazioni > Aspetto).
   stile?: 'bolle' | 'caselle'
 }
 

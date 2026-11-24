@@ -2,7 +2,7 @@
 //
 // Due stili: «bolle» (la dose a frase, con carico e recupero in due bolle
 // colorate) e «caselle» (quattro caselle bianche fisse: Serie, Rip., Carico,
-// Recupero). Si sceglie in Impostazioni > Accesso e aspetto, e per la scheda
+// Recupero). Si sceglie in Impostazioni > Aspetto, e per la scheda
 // SENZA immagini e quella CON immagini la scelta e' indipendente.
 //
 // Come il tema (vedi temi.ts) lo scelto e' ricordato in impostazioni.json e il

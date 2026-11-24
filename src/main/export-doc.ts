@@ -150,7 +150,7 @@ export function generaHtml(
     e.variante?.trim() ? `<span class="variante">${esc(e.variante.trim())}</span>` : ''
   type RigaEs = DatiSedutaExport['sezioni'][number]['esercizi'][number]
 
-  // La dose, scritta nello stile scelto in Impostazioni > Accesso e aspetto:
+  // La dose, scritta nello stile scelto in Impostazioni > Aspetto:
   // «bolle» (frase + due bolle colorate) o «caselle» (quattro caselle bianche).
   const doseHtml = (e: RigaEs, stile: StileScheda): string => {
     if (stile === 'caselle') {

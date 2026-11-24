@@ -36,6 +36,7 @@ import {
   type GiornoPedana,
   type GruppoPedana
 } from '../../../shared/pedana'
+import { LSI_ATTENZIONE, LSI_OTTIMO } from '../../../shared/quadro'
 import {
   arrotonda,
   DECIMALI_MISURA,
@@ -481,7 +482,7 @@ function NuovoScreening({
       <h3>Nuovo screening</h3>
       {protocolli.length === 0 && (
         <p className="hint">
-          Non hai ancora protocolli: creane uno in Configurazione, scheda &ldquo;Screening&rdquo;.
+          Non hai ancora protocolli: creane uno in Configurazione, scheda &ldquo;Protocolli di screening&rdquo;.
         </p>
       )}
       <div className="riga-campi">
@@ -553,6 +554,11 @@ function Esecuzione({
   // Chiudendo il programma, o uscendo da questa scheda, con valori non
   // salvati: si salvano da soli.
   const salvataggio = useSalvataggio(modificato)
+  // L'ultimo screening dello stesso protocollo fatto prima di questo: serve a
+  // scrivere accanto a ogni test com'era andata la volta scorsa.
+  const [prima, setPrima] = useState<{ data: string; valori: RigaValore[] } | null>(null)
+  // La parte dell'indice a cui si e' saltati per ultima.
+  const [parteAttiva, setParteAttiva] = useState('parte-0')
 
   const aggiornaPunteggio = useCallback((): void => {
     window.api.screeningSvolti
@@ -578,6 +584,32 @@ function Esecuzione({
       })
       .catch((e) => toastErrore(errMsg(e)))
   }, [id])
+
+  useEffect(() => {
+    if (!dati) return
+    const s = dati.sessione
+    let vivo = true
+    window.api.screeningSvolti
+      .list(s.paziente_id)
+      .then(async (tutti) => {
+        const precedenti = tutti
+          .filter(
+            (x) =>
+              x.id !== id &&
+              x.protocollo_nome === s.protocollo_nome &&
+              (x.data < s.data || (x.data === s.data && x.id < id))
+          )
+          .sort((a, b) => (a.data === b.data ? b.id - a.id : a.data < b.data ? 1 : -1))
+        const ultimo = precedenti[0]
+        if (!ultimo) return
+        const d = await window.api.screeningSvolti.get(ultimo.id)
+        if (vivo) setPrima({ data: ultimo.data, valori: d.valori })
+      })
+      .catch(() => undefined)
+    return () => {
+      vivo = false
+    }
+  }, [dati, id])
 
   salvataggio.funzione.current = () => salva()
   const salva = async (): Promise<boolean> => {
@@ -658,35 +690,41 @@ function Esecuzione({
 
   if (!dati) return <p className="hint caricamento-ritardato">Caricamento…</p>
 
+  // Una voce e' "fatta" se ha almeno un numero scritto (o il questionario
+  // compilato): l'indice a sinistra conta quante ne mancano.
+  const voceFatta = (v: VoceEseguita): boolean =>
+    v.tipo === 'questionario'
+      ? v.compilazione_id != null
+      : v.misure.some(
+          (m) =>
+            m.id != null &&
+            Object.entries(valori).some(([k, t]) => k.startsWith(`${m.id}|`) && t.trim() !== '')
+        )
+  const vaiAllaParte = (chiaveParte: string): void => {
+    setParteAttiva(chiaveParte)
+    document
+      .getElementById(`scr-${chiaveParte}`)
+      ?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  }
+
   return (
     <div className="page pagina-compila-screening">
-      <header className="page-header builder-header">
-        <h2>
-          {dati.sessione.paziente_cognome} {dati.sessione.paziente_nome}
-          <span className="titolo-sport">
-            {' · '}
-            {dati.sessione.protocollo_nome}
+      {/* Testata che resta in vista: chi e', che screening, la data e il
+          salvataggio sempre a portata, senza tornare in cima o in fondo. */}
+      <div className="val-testa scr-testa">
+        <button className="leggero" onClick={() => void indietro()}>
+          <ChevronLeft size={18} /> Screening
+        </button>
+        <div className="scr-chi">
+          <h2>
+            {dati.sessione.paziente_cognome} {dati.sessione.paziente_nome}
+          </h2>
+          <span>
+            {dati.sessione.protocollo_nome} · {dati.sessione.sport}
           </span>
-        </h2>
-        <span className="row-actions">
-          <button onClick={() => void indietro()}>
-            <ChevronLeft size={18} /> Tutti gli screening
-          </button>
-          <button title="Guarda il report, poi lo scarichi da lì" onClick={() => void apriReport()}>
-            <FileText size={16} /> Report
-          </button>
-        </span>
-      </header>
-
-      {/* Una striscia sola sotto al titolo: a sinistra di che screening si
-          tratta, a destra il giorno in cui e' stato fatto. Le note stanno in
-          fondo, dopo i test: si scrivono quando si e' finito di misurare. */}
-      <div className="testata-screening">
-        <span className="dettaglio-screening">
-          {dati.sessione.protocollo_nome} · {dati.sessione.sport}
-        </span>
-        <label className="compila-data">
-          Data
+        </div>
+        <label className="campo-data-pillola">
+          <small>Data</small>
           <input
             type="date"
             value={data}
@@ -696,55 +734,11 @@ function Esecuzione({
             }}
           />
         </label>
-      </div>
-
-      {dati.sezioni.length === 0 && (
-        <p className="hint">
-          Il protocollo di questo screening è stato eliminato: restano i valori già salvati.
-        </p>
-      )}
-
-      <div className="colonne-sezioni">
-        {dati.sezioni.map((sez, i) => (
-          <section key={i} className="card sezione-screening">
-            <h3>{sez.nome}</h3>
-            {sez.voci.length === 0 && <p className="hint">Nessun test in questa sezione.</p>}
-            {sez.voci.map((v, j) => (
-              <Voce
-                key={j}
-                voce={v}
-                valori={valori}
-                onScrivi={scrivi}
-                onCompila={(questionarioId) => setCompila(questionarioId)}
-                artoOperato={dati.sessione.arto_operato}
-              />
-            ))}
-          </section>
-        ))}
-      </div>
-
-      {/* Solo per i protocolli che hanno un punteggio: gli altri non mostrano niente. */}
-      {risultato && <RisultatoCluster risultato={risultato} daAggiornare={modificato} />}
-
-      <section className="card note-screening">
-        <label>
-          Note (facoltative)
-          <textarea
-            rows={3}
-            placeholder="es. terreno bagnato, atleta reduce da influenza, test interrotto per dolore"
-            value={note}
-            onChange={(e) => {
-              setNote(e.target.value)
-              setModificato(true)
-            }}
-          />
-        </label>
-      </section>
-
-      {/* Il salvataggio sta in fondo, dopo l'ultimo test: e' li' che si arriva
-          finendo di scrivere i numeri, non tornando su fino in cima. */}
-      <div className="azioni-fine-pagina">
+        <span className="val-spazio" />
         <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />
+        <button title="Guarda il report, poi lo scarichi da lì" onClick={() => void apriReport()}>
+          <FileText size={16} /> Report
+        </button>
         <button
           className="primary"
           disabled={!modificato || salvataggio.stato === 'salvo'}
@@ -752,6 +746,101 @@ function Esecuzione({
         >
           <Save size={18} /> Salva
         </button>
+      </div>
+
+      <div className="scr-corpo">
+        <nav className="scr-indice" aria-label="Parti dello screening">
+          {dati.sezioni.map((sez, i) => {
+            const fatte = sez.voci.filter(voceFatta).length
+            const completa = sez.voci.length > 0 && fatte === sez.voci.length
+            return (
+              <button
+                key={i}
+                className={[parteAttiva === `parte-${i}` ? 'attiva' : '', completa ? 'completa' : '']
+                  .filter(Boolean)
+                  .join(' ')}
+                onClick={() => vaiAllaParte(`parte-${i}`)}
+              >
+                <b>{sez.nome}</b>
+                <small>
+                  {fatte}/{sez.voci.length}
+                  {completa ? ' ✓' : ''}
+                </small>
+              </button>
+            )
+          })}
+          <button
+            className={parteAttiva === 'note' ? 'attiva' : ''}
+            onClick={() => vaiAllaParte('note')}
+          >
+            <b>Note</b>
+            <small>{note.trim() ? 'scritte' : 'facoltative'}</small>
+          </button>
+          {risultato && (
+            <button
+              className={parteAttiva === 'punteggio' ? 'attiva' : ''}
+              onClick={() => vaiAllaParte('punteggio')}
+            >
+              <b>Punteggio</b>
+              <small>
+                {String(risultato.totale ?? '—').replace('.', ',')} /{' '}
+                {String(risultato.massimo ?? '—').replace('.', ',')}
+              </small>
+            </button>
+          )}
+        </nav>
+
+        <div className="scr-colonna">
+          {dati.sezioni.length === 0 && (
+            <p className="hint">
+              Il protocollo di questo screening è stato eliminato: restano i valori già salvati.
+            </p>
+          )}
+          {dati.sezioni.map((sez, i) => (
+            <section key={i} id={`scr-parte-${i}`} className="card sezione-screening">
+              <h3>
+                {sez.nome}
+                <span className="scr-quanti">
+                  {sez.voci.filter(voceFatta).length} di {sez.voci.length}
+                </span>
+              </h3>
+              {sez.voci.length === 0 && <p className="hint">Nessun test in questa sezione.</p>}
+              {sez.voci.map((v, j) => (
+                <Voce
+                  key={j}
+                  voce={v}
+                  valori={valori}
+                  onScrivi={scrivi}
+                  onCompila={(questionarioId) => setCompila(questionarioId)}
+                  artoOperato={dati.sessione.arto_operato}
+                  prima={prima}
+                />
+              ))}
+            </section>
+          ))}
+
+          {/* Solo per i protocolli che hanno un punteggio: gli altri non mostrano niente. */}
+          {risultato && (
+            <div id="scr-punteggio">
+              <RisultatoCluster risultato={risultato} daAggiornare={modificato} />
+            </div>
+          )}
+
+          <section id="scr-note" className="card note-screening">
+            <label>
+              Note (facoltative)
+              <textarea
+                rows={3}
+                placeholder="es. terreno bagnato, atleta reduce da influenza, test interrotto per dolore"
+                value={note}
+                onChange={(e) => {
+                  setNote(e.target.value)
+                  setModificato(true)
+                }}
+              />
+            </label>
+          </section>
+        </div>
       </div>
 
       {sceltaReport && (
@@ -831,13 +920,15 @@ function Voce({
   valori,
   onScrivi,
   onCompila,
-  artoOperato
+  artoOperato,
+  prima
 }: {
   voce: VoceEseguita
   valori: Record<string, string>
   onScrivi: (k: string, testo: string) => void
   onCompila: (questionarioId: number) => void
   artoOperato: 'dx' | 'sx' | null
+  prima: { data: string; valori: RigaValore[] } | null
 }): React.JSX.Element {
   const [mostraComeSiFa, setMostraComeSiFa] = useState(false)
 
@@ -899,6 +990,7 @@ function Voce({
             artoOperato={artoOperato}
             valori={valori}
             onScrivi={onScrivi}
+            prima={prima}
           />
         ))
       )}
@@ -914,7 +1006,8 @@ function Misura({
   lsiCutoff,
   artoOperato,
   valori,
-  onScrivi
+  onScrivi,
+  prima
 }: {
   misura: MisuraTest
   // Tutte le misure del test: servono a chi si calcola dalle altre.
@@ -925,6 +1018,7 @@ function Misura({
   artoOperato: 'dx' | 'sx' | null
   valori: Record<string, string>
   onScrivi: (k: string, testo: string) => void
+  prima: { data: string; valori: RigaValore[] } | null
 }): React.JSX.Element {
   const misuraId = misura.id ?? 0
   const calcolata = misura.calcolo != null && misura.calcolo_a != null && misura.calcolo_b != null
@@ -964,6 +1058,45 @@ function Misura({
   // ma non in che verso.
   const lsi = lati.length === 2 ? lsiDi(dx, sx, artoOperato, misura.cutoff_direzione) : null
   const superato = esito(lsi, lsiCutoff)
+  // Il colore dell'LSI: con la soglia del test vale quella, altrimenti 90 / 80.
+  const livello =
+    lsi == null
+      ? ''
+      : lsiCutoff != null
+        ? superato
+          ? 'ok'
+          : 'no'
+        : lsi >= LSI_OTTIMO
+          ? 'ok'
+          : lsi >= LSI_ATTENZIONE
+            ? 'att'
+            : 'no'
+
+  // Com'era andata la volta scorsa: l'LSI se il test ha due lati, altrimenti il valore.
+  let testoPrima: string | null = null
+  if (prima && !calcolata) {
+    if (lati.length === 2) {
+      const l = lsiDi(
+        valoreDi(prima.valori, misura, misure, 'dx'),
+        valoreDi(prima.valori, misura, misure, 'sx'),
+        artoOperato,
+        misura.cutoff_direzione
+      )
+      if (l != null) {
+        testoPrima = `${arrotonda(l, DECIMALI_PERCENTUALE).toFixed(DECIMALI_PERCENTUALE)}%`
+      }
+    } else {
+      const v = valoreDi(prima.valori, misura, misure, null)
+      if (v != null) testoPrima = arrotonda(v, DECIMALI_MISURA).toFixed(DECIMALI_MISURA)
+    }
+    if (testoPrima != null) {
+      const giorno = new Date(`${prima.data}T12:00:00`).toLocaleDateString('it-IT', {
+        day: 'numeric',
+        month: 'short'
+      })
+      testoPrima = `${testoPrima} · ${giorno}`
+    }
+  }
 
   return (
     <div className="misura-riga">
@@ -1025,16 +1158,20 @@ function Misura({
           </tbody>
         </table>
       </div>
-      {lsi != null && (
-        <p className={`asimmetria${superato === false ? ' alta' : ''}`}>
-          {artoOperato != null ? 'LSI' : 'Simmetria'}{' '}
-          {arrotonda(lsi, DECIMALI_PERCENTUALE).toFixed(DECIMALI_PERCENTUALE)}%
-          {lsiCutoff != null &&
-            (superato
-              ? ` — superato (soglia ${lsiCutoff}%)`
-              : ` — sotto la soglia di ${lsiCutoff}%`)}
-        </p>
-      )}
+      <div className="misura-esito">
+        {lsi != null && (
+          <span className={`pillola-lsi ${livello}`}>
+            {artoOperato != null ? 'LSI' : 'Simmetria'}{' '}
+            {arrotonda(lsi, DECIMALI_PERCENTUALE).toFixed(DECIMALI_PERCENTUALE)}%
+          </span>
+        )}
+        {lsi != null && lsiCutoff != null && (
+          <small>
+            {superato ? 'superato' : 'sotto la soglia'} del {lsiCutoff}%
+          </small>
+        )}
+        {testoPrima != null && <small className="misura-prima">La volta prima: {testoPrima}</small>}
+      </div>
     </div>
   )
 }

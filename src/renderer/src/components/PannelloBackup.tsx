@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import Aiuto from './Aiuto'
 import {
   ChevronDown,
   Cloud,
@@ -16,7 +15,8 @@ import type { EsitoControllo, InfoBackup } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import { errMsg, formatData } from '../lib'
-import { avvisoCopiaFuori } from '../../../shared/copie'
+import { avvisoCopiaFuori, giorniDallaCopiaFuori } from '../../../shared/copie'
+import { CardImp, RigaImp } from '../pages/impostazioni/Riga'
 import { daPrecarico, ricorda } from '../precarico'
 
 // Copie di sicurezza dell'archivio. Ogni copia contiene il database cifrato e
@@ -133,225 +133,311 @@ export default function PannelloBackup(): React.JSX.Element {
     void window.api.backup.ripristina(nome).catch((e) => toastErrore(errMsg(e)))
   }
 
+  // Le tre domande a cui si risponde guardando qui: quando e' l'ultima copia,
+  // quante ce ne sono, e se ce n'e' una fuori dal computer.
+  const ultima = info.copie[0]
+  const parti = ultima ? quando(ultima.nome).split(' alle ') : null
+  const giorniFuori = giorniDallaCopiaFuori(info.ultimaCopiaFuori)
+  const fuoriAvviso = avvisoCopiaFuori(info)
+
+  const faiCopiaFuori = (): void => {
+    void copia(async () => {
+      const dove = await window.api.backup.copiaFuori()
+      if (dove) toast('Copia salvata sul supporto scelto.')
+    })
+  }
+
+  const menuFaiCopia = (
+    <span className="menu-wrapper">
+      <button className="primary" disabled={copiaInCorso} onClick={() => setMenuCopia(!menuCopia)}>
+        <Save size={16} /> {copiaInCorso ? 'Copia in corso…' : 'Fai una copia'}
+        {!copiaInCorso && <ChevronDown size={15} />}
+      </button>
+      {menuCopia && (
+        <>
+          <div className="menu-chiudi" onClick={() => setMenuCopia(false)} />
+          <div className="menu-tendina">
+            <button
+              onClick={() => {
+                setMenuCopia(false)
+                void copia(async () => {
+                  await window.api.backup.eseguiOra()
+                  toast('Copia di sicurezza creata.')
+                })
+              }}
+            >
+              <Save size={16} /> Qui, nella cartella delle copie
+            </button>
+            <button
+              onClick={() => {
+                setMenuCopia(false)
+                faiCopiaFuori()
+              }}
+            >
+              <HardDriveDownload size={16} /> Su chiavetta o disco esterno…
+            </button>
+            <button
+              onClick={() => {
+                setMenuCopia(false)
+                void run(async () => {
+                  const dove = await window.api.backup.esportaArchivio()
+                  if (dove) toast('Archivio esportato in tabelle leggibili.')
+                })
+              }}
+            >
+              <FileSpreadsheet size={16} /> In tabelle Excel…
+            </button>
+          </div>
+        </>
+      )}
+    </span>
+  )
+
   return (
-    <div className="blocco-impostazione">
-      <div className="sotto-titolo">
-        Copie di sicurezza
-        <Aiuto testo="L'app tiene da sola delle copie datate del tuo archivio: una all'accesso e una alla chiusura. Se metti la cartella dentro OneDrive, finiscono online da sole. Queste copie stanno però sullo stesso computer: ogni tanto usa “Copia su chiavetta” per portarne una fuori. Con “Controlla” apri una copia in disparte e verifichi che sia davvero leggibile: l'archivio in uso non viene toccato." />
+    <div className="imp-colonna">
+      {/* Prima lo stato: "i miei dati sono al sicuro?". Quello che non va si
+          riconosce dal colore, e ha il pulsante per sistemarlo. */}
+      <div className="imp-stati">
+        <div className={`imp-stato${!ultima || info.copiaFallita ? ' avv' : ''}`}>
+          <small>Ultima copia</small>
+          {info.copiaFallita ? (
+            <>
+              <b>non riuscita</b>
+              <span>le copie di prima ci sono ancora</span>
+            </>
+          ) : parti ? (
+            <>
+              <b>{parti[0]}</b>
+              <span>
+                {parti[1] ? `alle ${parti[1]} · ` : ''}
+                {peso(ultima.dimensione)}
+              </span>
+            </>
+          ) : (
+            <>
+              <b>mai fatta</b>
+              <span>
+                {info.attivo
+                  ? 'si fa da sola quando accedi e quando chiudi'
+                  : 'le copie automatiche sono spente'}
+              </span>
+            </>
+          )}
+        </div>
+        <div className="imp-stato">
+          <small>Copie nella cartella</small>
+          <b>
+            {info.copie.length} di {info.daTenere}
+          </b>
+          <span>le più vecchie si cancellano da sole</span>
+        </div>
+        <div className={`imp-stato${info.inOneDrive ? ' ok' : fuoriAvviso ? ' avv' : ' ok'}`}>
+          <small>Fuori dal computer</small>
+          {info.inOneDrive ? (
+            <>
+              <b>in OneDrive</b>
+              <span>le copie finiscono online da sole</span>
+            </>
+          ) : giorniFuori == null ? (
+            <>
+              <b>nessuna</b>
+              <span>se il computer si rompe, le copie vanno via con lui</span>
+            </>
+          ) : (
+            <>
+              <b>{giorniFuori === 0 ? 'oggi' : `${giorniFuori} giorni fa`}</b>
+              <span>l&apos;ultima su chiavetta o disco esterno</span>
+            </>
+          )}
+          {!info.inOneDrive && fuoriAvviso && (
+            <button className="primary" disabled={copiaInCorso} onClick={faiCopiaFuori}>
+              <HardDriveDownload size={15} /> Copia su chiavetta
+            </button>
+          )}
+        </div>
       </div>
 
-      <label className="checkbox-inline">
-        <input
-          type="checkbox"
-          className="interruttore"
-          checked={info.attivo}
-          onChange={(e) => void run(() => window.api.backup.setAttivo(e.target.checked))}
-        />
-        Fai le copie automaticamente
-      </label>
-
-      <div className="cartella-path">{info.cartella}</div>
-      {avvisoCopiaFuori(info) && (
-        <span className="esito-copia esito-attenzione">
-          <HardDriveDownload size={15} /> {avvisoCopiaFuori(info)} Usa «Fai una copia» ›
-          «Su chiavetta o disco esterno».
-        </span>
-      )}
-      {info.copiaFallita && (
-        <span className="esito-copia esito-guasto">
-          <CircleAlert size={15} /> L&apos;ultima copia automatica non è riuscita (
-          {new Date(info.copiaFallita.quando).toLocaleString('it-IT', {
-            dateStyle: 'short',
-            timeStyle: 'short'
-          })}
-          , {info.copiaFallita.messaggio}). Le copie di prima ci sono ancora. Prova «Fai una copia» ›
-          «Qui, nella cartella delle copie»: se non riesce, controlla che la cartella delle copie sia raggiungibile. Alla
-          prossima chiusura riuscita questo avviso sparisce.
-        </span>
-      )}
-      {info.inOneDrive && (
-        <span className="esito-copia esito-buono">
-          <Cloud size={15} /> Queste copie finiscono anche online, in OneDrive: se il computer si
-          rompe, i dati non si perdono.
-        </span>
-      )}
-      {info.inOneDrive && passwordDebole && (
-        <span className="esito-copia esito-guasto">
-          <CircleAlert size={15} /> Le copie stanno online e la tua password è corta o facile da
-          indovinare: chi si procurasse una copia potrebbe provarne quante vuole. Cambiala da
-          Impostazioni, in «Cambia password»: meglio una frase di qualche parola.
-        </span>
-      )}
-      {info.inOneDrive && conDomanda && (
-        <span className="esito-copia esito-guasto">
-          <CircleAlert size={15} /> Hai una domanda di recupero, e le copie stanno online: chi
-          si procurasse quelle copie potrebbe provare a indovinare la risposta quante volte vuole.
-          Se preferisci, toglila da Impostazioni, in «Recupero della password»: la chiave di
-          recupero basta.
-        </span>
-      )}
-
-      <div className="modal-actions riga-backup">
-        {/* Scritta sopra alla casella, come tutti gli altri campi: accanto
-            restava schiacciata contro il numero. */}
-        <label className="campo-copie">
-          Copie da tenere
+      <CardImp titolo="Copie di sicurezza" azioni={menuFaiCopia}>
+        <RigaImp
+          nome="Fai le copie automaticamente"
+          descrizione="Una quando accedi e una quando chiudi il programma. Ogni copia contiene il database cifrato e il file delle chiavi: servono entrambi."
+        >
+          <input
+            type="checkbox"
+            className="interruttore"
+            aria-label="Fai le copie automaticamente"
+            checked={info.attivo}
+            onChange={(e) => void run(() => window.api.backup.setAttivo(e.target.checked))}
+          />
+        </RigaImp>
+        <RigaImp
+          nome="Copie da tenere"
+          descrizione="Quando superano questo numero, le più vecchie si cancellano. Vale dalla prossima copia."
+        >
           <input
             type="number"
+            className="imp-numero"
             min={1}
             max={100}
+            aria-label="Copie da tenere"
             value={info.daTenere}
             onChange={(e) => {
               // Il campo svuotato non e' "tienine zero": si aspetta che scriva
-              // un numero. Il valore si salva subito, e vale dalla prossima copia.
+              // un numero. Il valore si salva subito.
               const n = Number(e.target.value)
               if (Number.isFinite(n) && n >= 1) void run(() => window.api.backup.setDaTenere(n))
             }}
           />
-        </label>
-        <span className="spacer" />
-        <button onClick={() => void window.api.backup.apriCartella()}>
-          <FolderOpen size={16} /> Apri cartella
-        </button>
-        <button onClick={() => void run(() => window.api.backup.cambiaCartella())}>
-          Cambia cartella…
-        </button>
-        {/* Le copie dentro OneDrive vanno online da sole: e' il modo piu'
-            semplice di averle fuori dal computer. Il pulsante compare solo se
-            OneDrive su questo computer c'e' davvero. */}
-        {info.oneDrive && !info.inOneDrive && (
-          <button
-            onClick={() =>
-              void run(async () => {
-                // Online le copie sono fuori dal computer, ed e' il bello; ma
-                // chi se ne procura una puo' provare password senza limiti.
-                const ok = await chiedi({
-                  titolo: 'Mettere le copie in OneDrive?',
-                  testo:
-                    'Le copie restano cifrate: senza la password, o la chiave di recupero, non si aprono.\n\n' +
-                    'Ma online chi se ne procurasse una potrebbe provare password quante vuole, senza che tu lo sappia: ' +
-                    'conta che la password sia lunga e non comune.' +
-                    (passwordDebole
-                      ? '\n\nLa tua password è corta o facile da indovinare: dopo, cambiala da Impostazioni, in «Cambia password».'
-                      : '') +
-                    (conDomanda
-                      ? '\n\nHai anche una domanda di recupero: vale lo stesso per la sua risposta.'
-                      : ''),
-                  conferma: 'Metti in OneDrive'
-                })
-                if (!ok) return
-                await window.api.backup.usaOneDrive()
-                toast('Le copie andranno in OneDrive.')
-              })
-            }
-          >
-            <Cloud size={16} /> Metti in OneDrive
-          </button>
-        )}
-        {/* Le tre copie sono la stessa azione fatta in tre posti: qui dentro,
-            su una chiavetta, o in tabelle leggibili. Un pulsante solo con il
-            menu, invece di tre in fila che sbordavano dal riquadro. */}
-        <span className="menu-wrapper">
-          <button className="primary" disabled={copiaInCorso} onClick={() => setMenuCopia(!menuCopia)}>
-            <Save size={16} /> {copiaInCorso ? 'Copia in corso…' : 'Fai una copia'}
-            {!copiaInCorso && <ChevronDown size={15} />}
-          </button>
-          {menuCopia && (
-            <>
-              <div className="menu-chiudi" onClick={() => setMenuCopia(false)} />
-              <div className="menu-tendina">
-                <button
-                  onClick={() => {
-                    setMenuCopia(false)
-                    void copia(async () => {
-                      await window.api.backup.eseguiOra()
-                      toast('Copia di sicurezza creata.')
+        </RigaImp>
+        <RigaImp
+          nome="Cartella delle copie"
+          descrizione={<span className="cartella-path">{info.cartella}</span>}
+          larga
+        >
+          <span className="imp-azioni">
+            <button onClick={() => void window.api.backup.apriCartella()}>
+              <FolderOpen size={16} /> Apri cartella
+            </button>
+            <button onClick={() => void run(() => window.api.backup.cambiaCartella())}>
+              Cambia cartella…
+            </button>
+            {/* Le copie dentro OneDrive vanno online da sole: e' il modo piu'
+                semplice di averle fuori dal computer. Il pulsante compare solo
+                se OneDrive su questo computer c'e' davvero. */}
+            {info.oneDrive && !info.inOneDrive && (
+              <button
+                onClick={() =>
+                  void run(async () => {
+                    // Online le copie sono fuori dal computer, ed e' il bello; ma
+                    // chi se ne procura una puo' provare password senza limiti.
+                    const ok = await chiedi({
+                      titolo: 'Mettere le copie in OneDrive?',
+                      testo:
+                        'Le copie restano cifrate: senza la password, o la chiave di recupero, non si aprono.\n\n' +
+                        'Ma online chi se ne procurasse una potrebbe provare password quante vuole, senza che tu lo sappia: ' +
+                        'conta che la password sia lunga e non comune.' +
+                        (passwordDebole
+                          ? '\n\nLa tua password è corta o facile da indovinare: dopo, cambiala da Impostazioni, in «Sicurezza».'
+                          : '') +
+                        (conDomanda
+                          ? '\n\nHai anche una domanda di recupero: vale lo stesso per la sua risposta.'
+                          : ''),
+                      conferma: 'Metti in OneDrive'
                     })
-                  }}
-                >
-                  <Save size={16} /> Qui, nella cartella delle copie
-                </button>
-                <button
-                  onClick={() => {
-                    setMenuCopia(false)
-                    void copia(async () => {
-                      const dove = await window.api.backup.copiaFuori()
-                      if (dove) toast('Copia salvata sul supporto scelto.')
-                    })
-                  }}
-                >
-                  <HardDriveDownload size={16} /> Su chiavetta o disco esterno…
-                </button>
-                <button
-                  onClick={() => {
-                    setMenuCopia(false)
-                    void run(async () => {
-                      const dove = await window.api.backup.esportaArchivio()
-                      if (dove) toast('Archivio esportato in tabelle leggibili.')
-                    })
-                  }}
-                >
-                  <FileSpreadsheet size={16} /> In tabelle Excel…
-                </button>
-              </div>
-            </>
-          )}
-        </span>
-      </div>
-
-      {info.copie.length === 0 ? (
-        <p className="hint">
-          Nessuna copia ancora. Premi &ldquo;Fai una copia ora&rdquo; per averne subito una.
-        </p>
-      ) : (
-        <ul className="sedute-list">
-          {info.copie.map((c) => (
-            <li key={c.nome} className="riga-copia">
-              <div className="seduta-info">
-                <span className="seduta-data">{quando(c.nome)}</span>
-                <span className="seduta-meta">
-                  {peso(c.dimensione)}
-                  {c.nome.startsWith('prima-del-ripristino') && ' · prima di un ripristino'}
-                  {c.nome.startsWith('prima-della-migrazione') && ' · prima di un aggiornamento'}
-                </span>
-                {esiti[c.nome] === 'attesa' && <span className="esito-copia">Controllo in corso…</span>}
-                {typeof esiti[c.nome] === 'object' && (
-                  <span
-                    className={
-                      (esiti[c.nome] as EsitoControllo).ok
-                        ? 'esito-copia esito-buono'
-                        : 'esito-copia esito-guasto'
-                    }
-                  >
-                    {(esiti[c.nome] as EsitoControllo).ok ? (
-                      <>
-                        <CircleCheck size={15} /> Si apre, e contiene{' '}
-                        {dentro(esiti[c.nome] as EsitoControllo)}.
-                      </>
-                    ) : (
-                      <>
-                        <CircleAlert size={15} /> {(esiti[c.nome] as EsitoControllo).messaggio}
-                      </>
-                    )}
-                  </span>
-                )}
-              </div>
-              <span className="row-actions">
-                <button
-                  title="Apre questa copia in disparte e controlla che sia leggibile"
-                  disabled={esiti[c.nome] === 'attesa'}
-                  onClick={() => void controlla(c.nome)}
-                >
-                  <ShieldCheck size={18} /> Controlla
-                </button>
-                <button title="Riporta l'archivio a questa copia" onClick={() => void ripristina(c.nome)}>
-                  <RotateCcw size={18} /> Ripristina
-                </button>
+                    if (!ok) return
+                    await window.api.backup.usaOneDrive()
+                    toast('Le copie andranno in OneDrive.')
+                  })
+                }
+              >
+                <Cloud size={16} /> Metti in OneDrive
+              </button>
+            )}
+          </span>
+        </RigaImp>
+        {(info.copiaFallita ||
+          info.inOneDrive ||
+          (info.inOneDrive && passwordDebole) ||
+          (info.inOneDrive && conDomanda)) && (
+          <div className="imp-avvisi">
+            {info.copiaFallita && (
+              <span className="esito-copia esito-guasto">
+                <CircleAlert size={15} /> L&apos;ultima copia automatica non è riuscita (
+                {new Date(info.copiaFallita.quando).toLocaleString('it-IT', {
+                  dateStyle: 'short',
+                  timeStyle: 'short'
+                })}
+                , {info.copiaFallita.messaggio}). Le copie di prima ci sono ancora. Prova «Fai una
+                copia» › «Qui, nella cartella delle copie»: se non riesce, controlla che la cartella
+                delle copie sia raggiungibile. Alla prossima chiusura riuscita questo avviso
+                sparisce.
               </span>
-            </li>
-          ))}
-        </ul>
-      )}
+            )}
+            {info.inOneDrive && (
+              <span className="esito-copia esito-buono">
+                <Cloud size={15} /> Queste copie finiscono anche online, in OneDrive: se il computer
+                si rompe, i dati non si perdono.
+              </span>
+            )}
+            {info.inOneDrive && passwordDebole && (
+              <span className="esito-copia esito-guasto">
+                <CircleAlert size={15} /> Le copie stanno online e la tua password è corta o facile
+                da indovinare: chi si procurasse una copia potrebbe provarne quante vuole. Cambiala
+                da Impostazioni, in «Sicurezza»: meglio una frase di qualche parola.
+              </span>
+            )}
+            {info.inOneDrive && conDomanda && (
+              <span className="esito-copia esito-guasto">
+                <CircleAlert size={15} /> Hai una domanda di recupero, e le copie stanno online:
+                chi si procurasse quelle copie potrebbe provare a indovinare la risposta quante
+                volte vuole. Se preferisci, toglila da Impostazioni, in «Sicurezza»: la chiave di
+                recupero basta.
+              </span>
+            )}
+          </div>
+        )}
+      </CardImp>
+
+      <CardImp titolo="Copie fatte" nota={info.copie.length > 0 ? String(info.copie.length) : undefined}>
+        {info.copie.length === 0 ? (
+          <p className="hint imp-vuoto">
+            Nessuna copia ancora. Premi &ldquo;Fai una copia&rdquo; per averne subito una.
+          </p>
+        ) : (
+          <ul className="sedute-list imp-copie">
+            {info.copie.map((c) => (
+              <li key={c.nome} className="riga-copia">
+                <div className="seduta-info">
+                  <span className="seduta-data">{quando(c.nome)}</span>
+                  <span className="seduta-meta">
+                    {peso(c.dimensione)}
+                    {c.nome.startsWith('prima-del-ripristino') && ' · prima di un ripristino'}
+                    {c.nome.startsWith('prima-della-migrazione') && ' · prima di un aggiornamento'}
+                  </span>
+                  {esiti[c.nome] === 'attesa' && (
+                    <span className="esito-copia">Controllo in corso…</span>
+                  )}
+                  {typeof esiti[c.nome] === 'object' && (
+                    <span
+                      className={
+                        (esiti[c.nome] as EsitoControllo).ok
+                          ? 'esito-copia esito-buono'
+                          : 'esito-copia esito-guasto'
+                      }
+                    >
+                      {(esiti[c.nome] as EsitoControllo).ok ? (
+                        <>
+                          <CircleCheck size={15} /> Si apre, e contiene{' '}
+                          {dentro(esiti[c.nome] as EsitoControllo)}.
+                        </>
+                      ) : (
+                        <>
+                          <CircleAlert size={15} /> {(esiti[c.nome] as EsitoControllo).messaggio}
+                        </>
+                      )}
+                    </span>
+                  )}
+                </div>
+                <span className="row-actions">
+                  <button
+                    title="Apre questa copia in disparte e controlla che sia leggibile"
+                    disabled={esiti[c.nome] === 'attesa'}
+                    onClick={() => void controlla(c.nome)}
+                  >
+                    <ShieldCheck size={18} /> Controlla
+                  </button>
+                  <button
+                    title="Riporta l'archivio a questa copia"
+                    onClick={() => void ripristina(c.nome)}
+                  >
+                    <RotateCcw size={18} /> Ripristina
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardImp>
     </div>
   )
 }
