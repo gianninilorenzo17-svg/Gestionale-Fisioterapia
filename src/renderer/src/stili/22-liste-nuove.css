@@ -792,3 +792,15 @@
 .sezione-screening h3 {
   margin-top: 0;
 }
+
+/* sopra l'indice dello screening il passaggio del mouse resta discreto: quello
+   generale dei pulsanti e' bianco, che nel tema scuro acceca */
+.scr-indice button:hover:not(:disabled) {
+  background: var(--riga-alterna);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.scr-indice button.attiva:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
