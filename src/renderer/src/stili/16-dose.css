@@ -1,15 +1,311 @@
-/* La dose della fase (Patologie e fasi, linguetta «Dose»). La riga della dose
-   in seduta e il bottoncino monopodalico stanno in 05-seduta.css. */
+/* La dose: i colori delle voci, le pillole, i modelli in libreria, la riga in
+   seduta con la barretta sugli esercizi. Il bottoncino monopodalico sta in
+   05-seduta.css. */
 
-.modelli-dose {
+/* Un colore per voce, uguale ovunque. */
+.voce-potenza { --c: #d08a2e; }
+.voce-plio_int { --c: #3f72ab; }
+.voce-plio_est { --c: #6fa8d8; }
+.voce-forza { --c: #55806a; }
+.voce-ipertrofia { --c: #8e5aa0; }
+.voce-eccentrica { --c: #b3565f; }
+.voce-isometria { --c: #a8693f; }
+.voce-nessuna { --c: var(--border-forte); }
+
+.pill-dose {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 9px;
+  border: 1px solid var(--c, var(--border-forte));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c, transparent) 14%, transparent);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pill-dose.voce-nessuna {
+  background: transparent;
+  color: var(--text-dim);
+}
+
+.pill-dose.da-sistemare {
+  border-color: var(--attenzione);
+  color: var(--attenzione);
+  background: transparent;
+}
+
+.pill-menu {
+  padding: 3px 10px;
+  cursor: pointer;
+}
+
+.punto-voce {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 3px;
+  background: var(--c);
+}
+
+.menu-dose-wrapper {
+  display: inline-flex;
+}
+
+.menu-dose {
+  min-width: 220px;
+  text-align: left;
+}
+
+.menu-dose button {
+  justify-content: space-between;
+}
+
+.menu-dose button.separa {
+  border-top: 1px solid var(--border);
+}
+
+/* ---- La riga della dose in seduta ---- */
+
+.riga-dose {
+  position: relative;
+  margin-bottom: var(--spazio);
+}
+
+.riga-dose-sintesi {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-start;
+  gap: 4px 18px;
+  width: 100%;
+  padding: 7px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.riga-dose-titolo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.riga-dose-voce {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.riga-dose-voce > i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  background: var(--c);
+}
+
+.riga-dose .dose-raggiunta {
+  color: var(--success);
+}
+
+.riga-dose .dose-vicina {
+  color: var(--attenzione);
+}
+
+.riga-dose .dose-lontana {
+  color: var(--danger);
+}
+
+/* il dettaglio per muscolo, passando sopra forza o ipertrofia */
+.riga-dose-bolla {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 30;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--text);
+  color: var(--surface);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.riga-dose-bolla > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.riga-dose-voce:hover > .riga-dose-bolla {
+  display: flex;
+}
+
+.riga-dose-sintesi[aria-expanded='true'] .riga-dose-bolla {
+  display: none;
+}
+
+/* il dettaglio sta sopra alla scheda: gli esercizi non si spostano */
+.riga-dose-dettaglio {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 21;
+  width: min(620px, 100%);
+  max-height: 65vh;
+  overflow: auto;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.18);
+  font-size: 13.5px;
+}
+
+.riga-dose-viste {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.riga-dose-viste button {
+  padding: 3px 12px;
+}
+
+.riga-dose-viste button.attivo {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.tabella-riga-dose {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabella-riga-dose th {
+  padding: 3px 6px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.tabella-riga-dose td {
+  padding: 4px 6px;
+  border-top: 1px solid var(--border);
+}
+
+.riga-dose-etichetta {
+  margin: 10px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.riga-dose-quote {
+  display: flex;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 5px;
+}
+
+.riga-dose-quote i {
+  background: var(--c);
+}
+
+/* ---- L'obiettivo della sezione e la barretta sulla riga ---- */
+
+.obiettivo-sezione {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  margin: 4px 0 12px;
+  margin-left: auto;
+  margin-right: 10px;
+}
+
+.righe-seduta li.riga-esercizio.con-barra {
+  padding-left: 18px;
+}
+
+.riga-esercizio > .menu-dose-wrapper {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 2px;
+  width: 12px;
+}
+
+.barra-dose {
+  width: 12px;
+  height: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.barra-dose > span {
+  display: block;
+  width: 5px;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--c);
+}
+
+.barra-dose:hover > span,
+.barra-dose:focus-visible > span {
+  width: 10px;
+}
+
+.riga-esercizio > .menu-dose-wrapper .menu-dose {
+  left: 14px;
+  right: auto;
+  top: 0;
+}
+
+.eccezione-dose {
+  order: 5;
+}
+
+/* ---- Libreria → Sezioni e Dosi, e la linguetta «Dose» della fase ---- */
+
+/* l'elenco dei modelli sopra e la tabella sotto: la tabella ha bisogno di
+   tutta la larghezza */
+.modelli-elenco {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.modelli-elenco .crud-list ul {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.modelli-elenco .crud-list li {
+  border: 1px solid var(--border);
+}
+
+.modelli-elenco .crud-list li.selected {
+  border-color: var(--accent);
 }
 
 .tabella-dose {
+  width: 100%;
   border-collapse: collapse;
 }
 
@@ -22,24 +318,199 @@
 }
 
 .tabella-dose td {
-  padding: 3px 6px;
+  padding: 4px 6px;
+  border-top: 1px solid var(--border);
 }
 
-.tabella-dose td:first-child {
-  min-width: 180px;
+.tabella-dose input[type='number'] {
+  width: 58px;
+  margin: 0;
+  padding: 5px 6px;
+  text-align: center;
+  -moz-appearance: textfield;
 }
 
-.tabella-dose input {
-  width: 72px;
+.tabella-dose input[type='number']::-webkit-inner-spin-button {
+  display: none;
 }
 
-.tabella-dose .sotto-titolo-dose td {
-  padding-top: 14px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--text-dim);
+.tabella-dose .cella-indicazione {
+  width: 100%;
+}
+
+.tabella-dose textarea.indicazione {
+  width: 100%;
+  min-width: 140px;
+  min-height: 0;
+  margin: 0;
+  padding: 5px 8px;
+  font-size: 13px;
+  line-height: 1.35;
+  /* alta quanto il testo: una riga come le altre caselle, di piu' se serve */
+  display: block;
+  field-sizing: content;
+  resize: none;
+}
+
+.intervallo-dose {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.alternativa-modello {
+  margin-top: 10px;
+}
+
+.fasi-modello {
+  margin-top: 16px;
+}
+
+.riga-fase-modello {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+
+.lista-sezioni-fase {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista-sezioni-fase li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.lista-sezioni-fase li .pill-dose {
+  margin-left: auto;
+}
+
+/* struttura della fase: le pillole degli obiettivi in colonna. Larghezza fissa
+   per la pillola e per i pulsanti (le sezioni della fase ne hanno uno in piu') */
+.struttura-tab li .item-nome {
+  flex: 1;
+  min-width: 0;
+}
+
+.struttura-tab li .item-nome .tag-riga {
+  display: table;
+  margin: 3px 0 0;
+}
+
+.struttura-tab li .pill-dose {
+  flex: none;
+  justify-content: center;
+  width: 128px;
+}
+
+.struttura-tab li .item-actions {
+  flex: none;
+  justify-content: flex-end;
+  width: 64px;
+}
+
+/* il menu dei modelli: largo abbastanza da non spezzare «Nessun modello» */
+.tendina.tendina-modello {
+  min-width: 220px;
+}
+
+/* la ciambella «Lavoro di oggi» nella striscia della seduta: il riquadro bianco
+   come le altre caselle (la regola di .builder-col vale solo per i figli diretti) */
+.striscia-seduta > .card.ciambella-dose {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.ciambella-dose-corpo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ciambella-dose-corpo svg {
+  width: 96px;
+  height: 96px;
+  flex: none;
+  overflow: visible;
+}
+
+.ciambella-dose-corpo circle {
+  stroke: var(--c);
+}
+
+.ciambella-dose-corpo ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+}
+
+.ciambella-dose-corpo li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 0;
+}
+
+.ciambella-dose-corpo li i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--c);
+}
+
+.ciambella-dose-bolla {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 190px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--text);
+  color: var(--surface);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.ciambella-dose-bolla > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* gli esercizi da sistemare */
+.btn-da-sistemare {
+  border-color: var(--attenzione);
+  color: var(--attenzione);
+  white-space: nowrap;
+}
+
+.riga-da-sistemare {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+
+.riga-da-sistemare > span:first-child {
+  flex: 1;
+  min-width: 0;
 }
 
 /* ---- Carico settimana per settimana (Percorso del paziente) ---- */
@@ -86,26 +557,10 @@
   cursor: default;
 }
 
-.carico-barra {
-  fill: var(--accent);
-}
 
 /* la settimana di oggi non e' finita: la barra e' piu' chiara */
 .carico-barra.in-corso {
   fill-opacity: 0.5;
-}
-
-.carico-fascia-dose {
-  fill: var(--accent-soft);
-  stroke: var(--border-forte);
-  stroke-width: 1;
-  stroke-dasharray: 3 3;
-}
-
-.carico-soglia-dose {
-  stroke: var(--text-dim);
-  stroke-width: 1.5;
-  stroke-dasharray: 4 3;
 }
 
 .carico-colonna-sopra {

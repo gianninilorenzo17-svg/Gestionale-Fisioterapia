@@ -1,6 +1,6 @@
 // Il carico settimana per settimana nel Percorso: sei settimane di sedute (una
-// vuota in mezzo), la dose della fase, il dolore che sale con il carico. Si
-// vedono la tabella, i due grafici, la lettura sotto il mouse e l'avviso.
+// vuota in mezzo) e il dolore che sale con il carico. Si vedono la tabella con i
+// soli numeri, i due grafici, la lettura sotto il mouse e l'avviso.
 import { test, expect } from '@playwright/test'
 import { join } from 'node:path'
 import { avvia, creaArchivio, FOTO, vaiA } from './app'
@@ -13,12 +13,10 @@ test('carico: le settimane con la dose, i grafici e l\'avviso', async () => {
     await pagina.evaluate(async () => {
       const api = window.api
       const rinforzo = await api.categorie.create('Rinforzo')
-      await api.categorie.setContaCome(rinforzo, 'forza')
       const quad = await api.categorie.create('Quadricipite')
       await api.categorie.setPadre(quad, rinforzo)
       const plio = await api.categorie.create('Pliometria')
-      await api.categorie.setContaCome(plio, 'plio_est')
-      const esercizio = (nome: string, categoria_id: number, gambe: 'due' | 'una') =>
+      const esercizio = (nome: string, categoria_id: number, gambe: 'due' | 'una', tipo: 'rinforzo' | 'plio_est') =>
         api.esercizi.create({
           nome,
           categoria_id,
@@ -32,16 +30,15 @@ test('carico: le settimane con la dose, i grafici e l\'avviso', async () => {
           recupero_default: null,
           nota_tecnica: null,
           link: null,
-          gambe
+          gambe,
+          tipo
         })
-      const legExt = await esercizio('Leg extension', quad, 'due')
-      const hop = await esercizio('Single leg hop', plio, 'una')
+      const legExt = await esercizio('Leg extension', quad, 'due', 'rinforzo')
+      const hop = await esercizio('Single leg hop', plio, 'una', 'plio_est')
       const pat = await api.patologie.create('LCA')
       const fase = await api.fasi.create(pat, 'RTP 1')
-      await api.dose.impostaFase(fase, [
-        { chiave: 'plio_est', minimo: 80, massimo: 120 },
-        { chiave: `forza:${quad}`, minimo: 3, massimo: null }
-      ])
+      const rtp = (await api.dose.modelli()).find((m) => m.nome === 'RTP 2')!
+      await api.dose.impostaModelloFase(fase, rtp.id)
       const pz = await api.pazienti.create({
         nome: 'Luca',
         cognome: 'Carico',
@@ -108,7 +105,7 @@ test('carico: le settimane con la dose, i grafici e l\'avviso', async () => {
             tecnica_ids: [],
             trattamento: null,
             note: null,
-            sezioni: [{ sezione_id: null, nome: 'Esercizi' }],
+            sezioni: [{ sezione_id: null, nome: 'Esercizi', obiettivo: 'forza' }],
             esercizi: [riga(hop, String(hopSerie[i])), riga(legExt, String(legSerie))]
           })
         }
@@ -130,19 +127,17 @@ test('carico: le settimane con la dose, i grafici e l\'avviso', async () => {
     const righe = card.locator('.tabella-carico tbody tr')
     await expect(righe).toHaveCount(6)
     await expect(righe.nth(3)).toContainText('Nessuna seduta')
-    // la piu' recente: 240 contatti su 160-240, forza 6 su almeno 6
-    await expect(righe.nth(0).locator('.voce-dose').first()).toHaveText('240')
-    await expect(righe.nth(0).locator('.voce-dose').first()).toHaveClass(/ok/)
-    await expect(righe.nth(0)).toContainText('/ 160–240')
-    // tre settimane fa: 2 serie di forza a seduta, sotto la dose
-    await expect(righe.nth(2).locator('.voce-dose').nth(1)).toHaveClass(/poco/)
+    // la piu' recente: 240 contatti e 6 serie di forza, senza nessun confronto
+    await expect(righe.nth(0).locator('.voce-dose').nth(0)).toHaveText('240')
+    await expect(righe.nth(0).locator('.voce-dose').nth(1)).toHaveText('6')
+    await expect(righe.nth(0).locator('.voce-dose').nth(1)).toHaveAttribute('title', 'Quadricipite 6')
 
     // sotto il mouse, i numeri della settimana
     const grafico = card.locator('.grafico-carico')
     await grafico.scrollIntoViewIfNeeded()
     const box = (await grafico.boundingBox())!
     await grafico.hover({ position: { x: box.width - 30, y: box.height / 2 } })
-    await expect(card.locator('.carico-lettura')).toContainText('Pliometria est. 240 contatti (dose 160–240)')
+    await expect(card.locator('.carico-lettura')).toContainText('Plio est. 240 contatti')
     await expect(card.locator('.carico-lettura')).toContainText('dolore 4')
     await pagina.screenshot({ path: join(FOTO, '43-carico-settimane.png'), fullPage: true })
 
@@ -151,9 +146,9 @@ test('carico: le settimane con la dose, i grafici e l\'avviso', async () => {
 
     // la voce del grafico si cambia (la tendina la disegna il programma)
     await card.locator('.carico-testata .menu-scelta-bottone').click()
-    await pagina.locator('.menu-scelta-lista').getByText('Quadricipite', { exact: true }).click()
+    await pagina.locator('.menu-scelta-lista').getByText('Forza', { exact: true }).click()
     await grafico.hover({ position: { x: box.width - 30, y: box.height / 2 } })
-    await expect(card.locator('.carico-lettura')).toContainText('Quadricipite 6 serie')
+    await expect(card.locator('.carico-lettura')).toContainText('Forza 6 serie')
 
     expect(prova.errori, 'errori nella console').toEqual([])
   } finally {

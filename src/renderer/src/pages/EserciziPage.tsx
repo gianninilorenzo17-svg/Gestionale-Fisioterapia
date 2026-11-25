@@ -7,6 +7,8 @@ import {
   ChevronDown,
   ChevronUp,
   ImageIcon,
+  ImageOff,
+  ImagePlus,
   Pencil,
   Plus,
   Trash2,
@@ -17,6 +19,9 @@ import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import CategorieEsercizi from '../components/CategorieEsercizi'
 import ProgressioniLibreria from '../components/ProgressioniLibreria'
+import SezioniLibreria from '../components/SezioniLibreria'
+import DosiLibreria from '../components/DosiLibreria'
+import { PillTipo } from '../components/dose/comune'
 import SceltaConRicerca from '../components/SceltaConRicerca'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'
 import RitaglioImmagine from '../components/RitaglioImmagine'
@@ -26,7 +31,7 @@ import { errMsg } from '../lib'
 import { daPrecarico, ricorda } from '../precarico'
 import type { Dosaggio } from '../../../shared/dosaggio'
 import Tendina from '../components/Tendina'
-import type { Gambe } from '../../../shared/dose'
+import { TIPI_ESERCIZIO, type Gambe, type TipoEsercizio } from '../../../shared/dose'
 import {
   aCluster,
   caricoTesto,
@@ -53,12 +58,14 @@ interface FormState {
   link: string
   // A una gamba: mai, a scelta in seduta (il segno monopodalico), sempre.
   gambe: Gambe
+  // Come si conta nella dose; '' = ancora da scegliere.
+  tipo: TipoEsercizio | ''
   // null = nessuna immagine. `immagineCambiata` evita di riscrivere il campo
   // (pesante) quando si salva un esercizio senza aver toccato l'immagine.
   immagine: string | null
   immagineCambiata: boolean
   // Dalla piu' facile alla piu' difficile. Quasi sempre vuote.
-  varianti: VarianteInput[]
+  varianti: (VarianteInput & { immagineCambiata?: boolean })[]
 }
 
 const FORM_VUOTO: FormState = {
@@ -77,12 +84,13 @@ const FORM_VUOTO: FormState = {
   nota_tecnica: '',
   link: '',
   gambe: 'due',
+  tipo: '',
   immagine: null,
   immagineCambiata: false,
   varianti: []
 }
 
-function spostaVariante(varianti: VarianteInput[], da: number, a: number): VarianteInput[] {
+function spostaVariante(varianti: FormState['varianti'], da: number, a: number): FormState['varianti'] {
   const copia = [...varianti]
   const [spostata] = copia.splice(da, 1)
   copia.splice(a, 0, spostata)
@@ -104,9 +112,9 @@ export default function EserciziPage(): React.JSX.Element {
   const [ricerca, setRicerca] = useState('')
   // Sale a ogni pressione della linguetta «Esercizi»: la libreria torna alle schede.
   const [giroCategorie, setGiroCategorie] = useState(0)
-  // Le due linguette della libreria: gli esercizi, che si aprono dalle schede
-  // delle loro categorie, e le progressioni.
-  const [vista, setVista] = useState<'esercizi' | 'progressioni'>('esercizi')
+  // Le linguette della libreria: gli esercizi (che si aprono dalle schede delle
+  // loro categorie), le progressioni, le sezioni della seduta e le dosi.
+  const [vista, setVista] = useState<'esercizi' | 'progressioni' | 'sezioni' | 'dosi'>('esercizi')
   // Nelle caselle in cui si sceglie l'elenco e' a due livelli: prima le
   // categorie, e premendone una i suoi distretti, scritti col loro nome e basta.
   const vociCategorie = categorie
@@ -128,7 +136,8 @@ export default function EserciziPage(): React.JSX.Element {
   const [immagineAperta, setImmagineAperta] = useState<EsercizioConCategoria | null>(null)
   // L'immagine (appena scelta da file, o gia' presente nell'esercizio) in
   // attesa di essere ritagliata: null quando la finestra di ritaglio e' chiusa.
-  const [inRitaglio, setInRitaglio] = useState<string | null>(null)
+  // `variante` e' la posizione della variante a cui va la foto; null = esercizio.
+  const [inRitaglio, setInRitaglio] = useState<{ src: string; variante: number | null } | null>(null)
 
   const load = async (archiviati = mostraArchiviati): Promise<void> => {
     const lista = await window.api.esercizi.list(archiviati)
@@ -184,7 +193,10 @@ export default function EserciziPage(): React.JSX.Element {
       nota_tecnica: form.nota_tecnica.trim() || null,
       link: normalizzaLink(form.link),
       gambe: form.gambe,
-      varianti: form.varianti
+      tipo: form.tipo || null,
+      varianti: form.varianti.map(({ immagine, immagineCambiata, ...v }) =>
+        immagineCambiata ? { ...v, immagine: immagine ?? null } : v
+      )
     }
     try {
       const id =
@@ -252,6 +264,7 @@ export default function EserciziPage(): React.JSX.Element {
   const apriModifica = async (e: EsercizioConCategoria): Promise<void> => {
     try {
       const immagine = e.ha_immagine ? await window.api.esercizi.immagine(e.id) : null
+      const foto = e.varianti.some((v) => v.ha_immagine) ? await window.api.esercizi.immaginiVarianti(e.id) : []
       setForm({
         id: e.id,
         nome: e.nome,
@@ -268,9 +281,14 @@ export default function EserciziPage(): React.JSX.Element {
         nota_tecnica: e.nota_tecnica ?? '',
         link: e.link ?? '',
         gambe: e.gambe,
+        tipo: e.tipo ?? '',
         immagine,
         immagineCambiata: false,
-        varianti: e.varianti.map((v) => ({ id: v.id, nome: v.nome }))
+        varianti: e.varianti.map((v) => ({
+          id: v.id,
+          nome: v.nome,
+          immagine: foto.find((x) => x.id === v.id)?.immagine
+        }))
       })
     } catch (err) {
       toastErrore(errMsg(err))
@@ -279,18 +297,30 @@ export default function EserciziPage(): React.JSX.Element {
 
   // Scegliere il file apre subito il ritaglio: si salva nel form solo il
   // risultato gia' ritagliato, non la foto intera appena caricata.
-  const scegliImmagine = async (): Promise<void> => {
+  const scegliImmagine = async (variante: number | null = null): Promise<void> => {
     if (!form) return
     try {
       const dataUrl = await window.api.scegliImmagine()
-      if (dataUrl) setInRitaglio(dataUrl)
+      if (dataUrl) setInRitaglio({ src: dataUrl, variante })
     } catch (e) {
       toastErrore(errMsg(e))
     }
   }
 
+  const fotoVariante = (indice: number, immagine: string | null): void =>
+    setForm((f) =>
+      f
+        ? {
+            ...f,
+            varianti: f.varianti.map((v, j) => (j === indice ? { ...v, immagine, immagineCambiata: true } : v))
+          }
+        : f
+    )
+
   const confermaRitaglio = (dataUrlRitagliata: string): void => {
-    setForm((f) => (f ? { ...f, immagine: dataUrlRitagliata, immagineCambiata: true } : f))
+    const variante = inRitaglio?.variante ?? null
+    if (variante != null) fotoVariante(variante, dataUrlRitagliata)
+    else setForm((f) => (f ? { ...f, immagine: dataUrlRitagliata, immagineCambiata: true } : f))
     setInRitaglio(null)
   }
 
@@ -390,6 +420,7 @@ export default function EserciziPage(): React.JSX.Element {
                 >
                   <b>{e.nome}</b>
                   {e.nome_alternativo && <span className="hint"> · {e.nome_alternativo}</span>}
+                  <PillTipo tipo={e.tipo} />
                   {e.gambe === 'scelta' && <span className="tag-riga">1 o 2 gambe</span>}
                   {e.gambe === 'una' && <span className="tag-riga">una gamba</span>}
                   {e.varianti.length > 0 && (
@@ -483,10 +514,20 @@ export default function EserciziPage(): React.JSX.Element {
         >
           Progressioni
         </button>
+        <button className={vista === 'sezioni' ? 'active' : ''} onClick={() => setVista('sezioni')}>
+          Sezioni
+        </button>
+        <button className={vista === 'dosi' ? 'active' : ''} onClick={() => setVista('dosi')}>
+          Dosi
+        </button>
       </div>
 
       {vista === 'progressioni' ? (
         <ProgressioniLibreria />
+      ) : vista === 'sezioni' ? (
+        <SezioniLibreria />
+      ) : vista === 'dosi' ? (
+        <DosiLibreria />
       ) : (
         <CategorieEsercizi
           tornaAllInizio={giroCategorie}
@@ -495,6 +536,15 @@ export default function EserciziPage(): React.JSX.Element {
           onRicerca={setRicerca}
           onNuovoEsercizio={() => setForm({ ...FORM_VUOTO })}
           renderEsercizi={blocco}
+          onModificaEsercizio={(e) => void apriModifica(e)}
+          onTipo={async (id, tipo) => {
+            try {
+              await window.api.esercizi.setTipo(id, tipo)
+              await load()
+            } catch (e) {
+              toastErrore(errMsg(e))
+            }
+          }}
           onCambiato={async () => {
             await loadCategorie()
             await load()
@@ -543,6 +593,21 @@ export default function EserciziPage(): React.JSX.Element {
                   onCambia={(id) => setForm({ ...form, categoria_id: id })}
                 />
               </label>
+              <label>
+                Tipo (per la dose)
+                <Tendina
+                  value={form.tipo}
+                  onChange={(e) => setForm({ ...form, tipo: e.target.value as TipoEsercizio | '' })}
+                >
+                  <option value="">— da scegliere —</option>
+                  {TIPI_ESERCIZIO.map((t) => (
+                    <option key={t.tipo} value={t.tipo}>
+                      {t.nome}
+                    </option>
+                  ))}
+                </Tendina>
+              </label>
+              <p className="hint">Il muscolo principale è la categoria.</p>
               <label>
                 Gambe
                 <Tendina
@@ -663,6 +728,17 @@ export default function EserciziPage(): React.JSX.Element {
                     />
                     <span className="variante-azioni">
                       <button
+                        title={v.immagine ? 'Cambia la foto della variante' : 'Aggiungi una foto per questa variante'}
+                        onClick={() => void scegliImmagine(i)}
+                      >
+                        {v.immagine ? <img className="variante-foto" src={v.immagine} alt="" /> : <ImagePlus size={16} />}
+                      </button>
+                      {v.immagine && (
+                        <button title="Togli la foto della variante" onClick={() => fotoVariante(i, null)}>
+                          <ImageOff size={16} />
+                        </button>
+                      )}
+                      <button
                         title="Più in alto (più facile)"
                         disabled={i === 0}
                         onClick={() => setForm({ ...form, varianti: spostaVariante(form.varianti, i, i - 1) })}
@@ -692,6 +768,9 @@ export default function EserciziPage(): React.JSX.Element {
                 >
                   <Plus size={16} /> Aggiungi una variante
                 </button>
+                {form.varianti.length > 0 && (
+                  <p className="hint">La foto è facoltativa: senza, sulla scheda va quella dell'esercizio.</p>
+                )}
               </div>
             </section>
 
@@ -717,7 +796,7 @@ export default function EserciziPage(): React.JSX.Element {
                     <img className="immagine-anteprima" src={form.immagine} alt="" />
                     <div className="campo-immagine-azioni">
                       <button onClick={() => void scegliImmagine()}>Sostituisci…</button>
-                      <button onClick={() => setInRitaglio(form.immagine)}>Ritaglia di nuovo…</button>
+                      <button onClick={() => setInRitaglio({ src: form.immagine!, variante: null })}>Ritaglia di nuovo…</button>
                       <button
                         className="danger"
                         onClick={() => setForm({ ...form, immagine: null, immagineCambiata: true })}
@@ -762,7 +841,7 @@ export default function EserciziPage(): React.JSX.Element {
 
       {inRitaglio && (
         <RitaglioImmagine
-          src={inRitaglio}
+          src={inRitaglio.src}
           onConferma={confermaRitaglio}
           onAnnulla={() => setInRitaglio(null)}
           onCliccaFuori={chiudiCliccandoFuori}

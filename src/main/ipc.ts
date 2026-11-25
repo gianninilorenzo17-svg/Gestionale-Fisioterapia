@@ -128,8 +128,18 @@ import {
   segniDellaSeduta
 } from './segni'
 import { eliminaBozza, leggiBozza, salvaBozza } from './bozze'
-import { caricoPaziente, doseSettimana, leggiDoseFase, salvaDoseFase } from './dose'
-import type { DoseFase, TipoLavoro } from '../shared/dose'
+import {
+  caricoPaziente,
+  creaModello,
+  doseSettimana,
+  elencoModelli,
+  eliminaModello,
+  fasiConModello,
+  impostaModelloFase,
+  modelloDiFase,
+  salvaModello
+} from './dose'
+import type { DoseModelloInput, ObiettivoSezione, TipoEsercizio } from '../shared/dose'
 import { cercaInArchivio } from './ricerca'
 import { aggiungiReferto, elencoReferti, eliminaReferto, leggiReferto, PESO_MASSIMO_REFERTO } from './referti'
 import {
@@ -142,11 +152,12 @@ import {
   eliminaCategoria,
   eliminaEsercizio,
   impostaCluster,
-  impostaContaCome,
+  impostaTipo,
   impostaImmagine,
   impostaPadre,
   impostaRir,
   leggiImmagine,
+  immaginiVarianti,
   rinominaCategoria
 } from './esercizi'
 import {
@@ -194,7 +205,15 @@ import {
   rinominaObiettivo,
   rinominaPatologia,
   rinominaSezione,
-  rinominaTestAvanzamento
+  rinominaTestAvanzamento,
+  creaSezioneLibreria,
+  elencoSezioniLibreria,
+  eliminaSezioneLibreria,
+  impostaCategorieLibreria,
+  impostaObiettivoLibreria,
+  impostaObiettivoSezione,
+  rinominaSezioneLibreria,
+  usaSezioneDiLibreria
 } from './percorso'
 import {
   aggiornaSeduta,
@@ -864,6 +883,23 @@ export function registerIpc(): void {
   handle('sezioni:update', (id: number, nome: string) => rinominaSezione(id, nome))
   handle('sezioni:delete', (id: number) => eliminaSezione(id))
   handle('sezioni:reorder', (ids: number[]) => riordina('sezioni', ids))
+  handle('sezioni:setObiettivo', (id: number, obiettivo: ObiettivoSezione | null) =>
+    impostaObiettivoSezione(id, obiettivo)
+  )
+  handle('sezioni:daLibreria', (faseId: number, libreriaId: number, usata: boolean) =>
+    usaSezioneDiLibreria(faseId, libreriaId, usata)
+  )
+  handle('sezioniLibreria:list', () => elencoSezioniLibreria())
+  handle('sezioniLibreria:create', (nome: string) => creaSezioneLibreria(nome))
+  handle('sezioniLibreria:update', (id: number, nome: string) => rinominaSezioneLibreria(id, nome))
+  handle('sezioniLibreria:delete', (id: number) => eliminaSezioneLibreria(id))
+  handle('sezioniLibreria:reorder', (ids: number[]) => riordina('sezioni_libreria', ids))
+  handle('sezioniLibreria:setObiettivo', (id: number, obiettivo: ObiettivoSezione | null) =>
+    impostaObiettivoLibreria(id, obiettivo)
+  )
+  handle('sezioniLibreria:setCategorie', (id: number, categoriaIds: number[]) =>
+    impostaCategorieLibreria(id, categoriaIds)
+  )
   handle('sezioni:setCategorie', (sezioneId: number, categoriaIds: number[]) =>
     impostaCategorieSezione(sezioneId, categoriaIds)
   )
@@ -892,7 +928,7 @@ export function registerIpc(): void {
   // Stessa cosa per le ripetizioni di riserva: hanno senso nella forza, non
   // nella mobilita'.
   handle('categorie:setRir', (id: number, attivo: boolean) => impostaRir(id, attivo))
-  handle('categorie:setContaCome', (id: number, tipo: TipoLavoro | null) => impostaContaCome(id, tipo))
+  handle('esercizi:setTipo', (id: number, tipo: TipoEsercizio | null) => impostaTipo(id, tipo))
   // Un solo livello: una categoria che ha gia' dei distretti dentro non puo'
   // finire dentro a un'altra, e non ci si puo' mettere dentro a se stessa.
   handle('categorie:setPadre', (id: number, padreId: number | null) => impostaPadre(id, padreId))
@@ -912,7 +948,8 @@ export function registerIpc(): void {
   const IMG_LARGHEZZA_MAX = 1000
   const IMG_ALTEZZA_MAX = 1400
 
-  handle('esercizi:immagine', (id: number) => leggiImmagine(id))
+  handle('esercizi:immagine', (id: number, variante?: string | null) => leggiImmagine(id, variante))
+  handle('esercizi:immaginiVarianti', (id: number) => immaginiVarianti(id))
 
   handle('esercizi:setImmagine', (id: number, dataUrl: string | null) => impostaImmagine(id, dataUrl))
 
@@ -1294,9 +1331,16 @@ export function registerIpc(): void {
   handle('progressioni:impostaFase', (faseId: number, dati: ProgressioniFase) =>
     impostaProgressioniFase(faseId, dati)
   )
-  handle('dose:fase', (faseId: number) => leggiDoseFase(faseId))
+  handle('dose:modelli', () => elencoModelli())
+  handle('dose:creaModello', (nome: string) => creaModello(nome))
+  handle('dose:salvaModello', (id: number, modello: DoseModelloInput) => salvaModello(id, modello))
+  handle('dose:eliminaModello', (id: number) => eliminaModello(id))
+  handle('dose:modelloFase', (faseId: number) => modelloDiFase(faseId))
+  handle('dose:impostaModelloFase', (faseId: number, modelloId: number | null) =>
+    impostaModelloFase(faseId, modelloId)
+  )
+  handle('dose:fasi', () => fasiConModello())
   handle('dose:caricoPaziente', (pazienteId: number) => caricoPaziente(pazienteId))
-  handle('dose:impostaFase', (faseId: number, dosi: DoseFase[]) => salvaDoseFase(faseId, dosi))
   handle('dose:settimana', (pazienteId: number, data: string, sedutaId: number | null) =>
     doseSettimana(pazienteId, data, sedutaId)
   )

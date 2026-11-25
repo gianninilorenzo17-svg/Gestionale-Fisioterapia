@@ -8,6 +8,7 @@ import {
   campiDaBozza,
   categorieDellaSezione,
   contaSeduta,
+  senzaObiettivo,
   daProporre,
   haQualcosa,
   esitiDaSalvare,
@@ -273,8 +274,8 @@ test('Salvare: cosa c\'e\' da salvare, le misure e i numeri vuoti', () => {
   assert.equal(input.focus, 'corsa')
   assert.deepEqual(input.segni, [{ segno_id: 1, valore: 7.5 }], 'la virgola vale, il vuoto non e\' zero')
   assert.deepEqual(input.sezioni, [
-    { sezione_id: 5, nome: 'Forza' },
-    { sezione_id: null, nome: 'Extra' }
+    { sezione_id: 5, nome: 'Forza', obiettivo: null },
+    { sezione_id: null, nome: 'Extra', obiettivo: null }
   ])
   assert.deepEqual(
     input.esercizi.map((e) => [e.esercizio_id, e.nome_libero, e.nota, e.sezioneIndex]),
@@ -477,15 +478,14 @@ test("Progressioni: si suggeriscono solo nelle sezioni che propongono la categor
 // Il segno monopodalico: si accende e si spegne dalla riga, Ctrl+Z lo annulla,
 // si salva con la seduta e fa contare doppio i contatti di pliometria.
 test('Monopodalico: il segno sulla riga, Ctrl+Z, il salvataggio e il conto della dose', () => {
-  const cmj = { ...esercizio(4, 'CMJ', 30, 'Pliometria'), gambe: 'scelta' } as EsercizioConCategoria
-  const plio = { ...categoria(30, 'Pliometria'), conta_come: 'plio_est' } as Categoria
+  const cmj = { ...esercizio(4, 'CMJ', 30, 'Pliometria'), gambe: 'scelta', tipo: 'plio_est' } as EsercizioConCategoria
   let s = tutte([{ tipo: 'aggiungi', sez: 0, esercizio: cmj }])
   assert.equal(s.sezioni[0].righe[0].monopodalico, 0, 'dalla libreria nasce a due gambe')
-  assert.deepEqual(contaSeduta(s.sezioni, [cmj], [plio]), { plio_est: 30 })
+  assert.deepEqual(contaSeduta(s.sezioni, [cmj]), { plio_est: 30 })
   s = riduciSezioni(s, { tipo: 'monopodalico', sez: 0, riga: 0, valore: true })
   assert.equal(s.sezioni[0].righe[0].monopodalico, 1)
   assert.equal(s.storia.at(-1)!.cosa, 'CMJ a una gamba')
-  assert.deepEqual(contaSeduta(s.sezioni, [cmj], [plio]), { plio_est: 60 })
+  assert.deepEqual(contaSeduta(s.sezioni, [cmj]), { plio_est: 60 })
   const campi = { data: '2026-11-02', ora: '', faseId: null, faseNome: null, focus: '', dolore: '', sforzo: '',
     misure: {}, note: '', riferitoAndamento: null, riferito: '', tecnicaIds: [], trattamento: '', esiti: {} }
   assert.equal(inputSeduta(1, campi, s.sezioni, []).esercizi[0].monopodalico, 1)
@@ -515,4 +515,23 @@ test("Massimali in seduta: l'ultimo di ogni esercizio e di ogni lato, nessuno se
   assert.deepEqual(per[7].map((x) => [x.lato, x.valore]), [['dx', 80], ['sx', 70]])
   assert.equal(per[9].length, 1)
   assert.equal(per[8], undefined)
+})
+
+// La dose in seduta: "qui conta come" sulla riga e l'obiettivo della sezione si
+// annullano con Ctrl+Z, si salvano, e il rinforzo senza obiettivo si dice a parte.
+test('Dose: eccezione sulla riga e obiettivo della sezione', () => {
+  const squat = { ...esercizio(7, 'Squat', 20, 'Quadricipite'), tipo: 'rinforzo', serie_default: '3' } as EsercizioConCategoria
+  let s = tutte([{ tipo: 'aggiungi', sez: 0, esercizio: squat }])
+  assert.deepEqual(contaSeduta(s.sezioni, [squat]), {})
+  assert.deepEqual(senzaObiettivo(s.sezioni, [squat]), [{ sezione: 'Forza', serie: 3 }])
+  s = riduciSezioni(s, { tipo: 'obiettivo', sez: 0, obiettivo: 'forza' })
+  assert.deepEqual(contaSeduta(s.sezioni, [squat]), { 'forza:20': 3 })
+  assert.deepEqual(senzaObiettivo(s.sezioni, [squat]), [])
+  s = riduciSezioni(s, { tipo: 'conta', sez: 0, riga: 0, conta: 'ipertrofia' })
+  assert.deepEqual(contaSeduta(s.sezioni, [squat]), { 'ipertrofia:20': 3 })
+  const salvata = inputSeduta(1, campi(), s.sezioni, [])
+  assert.equal(salvata.sezioni[0].obiettivo, 'forza')
+  assert.deepEqual([salvata.esercizi[0].tipo, salvata.esercizi[0].conta], ['rinforzo', 'ipertrofia'])
+  s = riduciSezioni(s, { tipo: 'annulla' })
+  assert.deepEqual(contaSeduta(s.sezioni, [squat]), { 'forza:20': 3 })
 })

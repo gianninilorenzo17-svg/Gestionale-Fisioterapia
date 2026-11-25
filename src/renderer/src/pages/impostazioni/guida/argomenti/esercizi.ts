@@ -36,6 +36,7 @@ export const esercizi: ArgomentoGuida = {
             'Premi **Nuovo esercizio**.',
             'Scrivi il **Nome** e scegli la **Categoria**. Il distretto si sceglie nello stesso campo: l’elenco ha prima le categorie e poi i loro distretti.',
             'Se vuoi, scrivi un **Nome alternativo** (di solito il nome in inglese): serve solo a ritrovare l’esercizio quando lo cerchi, in libreria, nelle sedute e nelle progressioni. Sulla scheda e nei documenti si legge sempre e solo il **Nome**.',
+            'Scegli il **Tipo (per la dose)**: Rinforzo, Pliometria estensiva, Pliometria intensiva o Non conta (vedi **Dose per seduta e per settimana**).',
             'Nel campo **Gambe** scegli una delle tre voci: **Due**, **A scelta in seduta** (squat, CMJ, affondi…) oppure **Sempre una** (single leg hop…).',
             'Scrivi i valori di partenza: **Serie**, **Ripetizioni**, **Carico** (con la sua unità) e **Recupero**. **Cluster per serie** e **RIR** compaiono solo se la categoria li prevede.',
             'Premi **Salva**. Cliccare fuori dalla finestra salva lo stesso.'
@@ -52,6 +53,7 @@ export const esercizi: ArgomentoGuida = {
             'Apri l’esercizio con la matita: [[Configurazione > Libreria esercizi > Esercizi > matita]].',
             'In fondo, nella parte **Varianti (opzionale)**, premi **Aggiungi una variante** e scrivi il nome (es. «con conteggio all’indietro»).',
             'Mettile in ordine con le frecce: **la più facile in alto, la più difficile in basso**.',
+            'Se la variante si fa in modo diverso a vedersi (push up sulle ginocchia), aggiungi la sua foto con l’icona dell’immagine dentro la casella. Senza foto vale quella dell’esercizio.',
             'Premi **Salva**.'
           ]
         }
@@ -65,7 +67,8 @@ export const esercizi: ArgomentoGuida = {
             'Esercizio **A scelta**: nella sua riga c’è un bottoncino che mostra la modalità in corso, **Bipodalico** o **Monopodalico**: premilo per passare all’altra. Sulla scheda non si scrive niente finché è bipodalico; se passa a **Monopodalico** il nome diventa per esempio «Squat monopodalico». Con **Sempre una** o **Due** il bottone non c’è.',
             'Esercizio con varianti: nella riga c’è il menu **normale ▾**. Scegli una variante e sulla scheda si legge sotto il nome. **normale** vuol dire nessuna variante e sulla scheda non si scrive niente.',
             'Se un esercizio non ha varianti, il menu non compare.',
-            'Vale per PDF, Word, finestra della scheda e CSV.'
+            'Vale per PDF, Word, finestra della scheda e CSV.',
+            'Nella scheda illustrata esce la foto della variante, se ne ha una; altrimenti quella dell’esercizio.'
           ]
         }
       ]
@@ -75,7 +78,7 @@ export const esercizi: ArgomentoGuida = {
       elementi: [
         {
           punti: [
-            'In seduta si salva il **testo** della variante: se poi la rinomini in libreria, le sedute già fatte restano come erano.',
+            'In seduta si salva il **testo** della variante: se poi la rinomini in libreria, le sedute già fatte restano come erano, e per loro si vede la foto dell’esercizio.',
             'Una variante usata da uno step di una progressione non si può togliere (vedi **Progressioni a step**).',
             'Per togliere un esercizio dall’elenco senza perdere le sedute in cui l’hai usato, usa l’icona **Togli dall’elenco**: si archivia, e con l’interruttore **Archiviati** lo rivedi. Un esercizio già usato in una seduta non si elimina.'
           ]

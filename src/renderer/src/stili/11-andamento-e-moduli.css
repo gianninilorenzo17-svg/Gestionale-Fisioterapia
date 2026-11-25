@@ -438,9 +438,10 @@
   min-width: 0;
 }
 
-/* Il nome con le gambe e la variante accanto, sulla stessa riga. Se manca
-   spazio si accorcia prima la variante (puntini), poi «Monopodalico» diventa
-   «Mono» (vedi le soglie sotto), e per ultimo il nome. Non va mai a capo. */
+/* Il nome con le gambe e la variante accanto, sulla stessa riga. La variante
+   prende al massimo quasi meta' dello spazio, «Monopodalico» diventa «Mono»
+   quando manca posto (vedi le soglie sotto). Il nome ha uno spazio suo: oltre quello va a
+   capo, e solo se non basta la seconda riga finisce con i puntini. */
 .esercizio-scheda .titolo-es {
   display: flex;
   align-items: baseline;
@@ -450,13 +451,16 @@
 
 .esercizio-scheda .nome {
   flex: 0 1 auto;
-  min-width: 4ch;
+  min-width: min(12ch, 100%);
+  max-width: 34ch;
   font-size: 16.5px;
   font-weight: 600;
   line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
 }
 
 /* Mono/bipodalico e variante hanno colori loro, diversi fra loro e dal nome. */
@@ -473,8 +477,8 @@
 }
 
 .esercizio-scheda .variante-es {
-  flex: 0 8 auto;
-  min-width: 8ch;
+  flex: none;
+  max-width: 45%;
   font-size: 13px;
   font-weight: 700;
   color: #c0502f;

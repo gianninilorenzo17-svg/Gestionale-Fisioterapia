@@ -3,17 +3,26 @@ import type { ArgomentoGuida } from '../modello'
 export const dose: ArgomentoGuida = {
   id: 'dose',
   titolo: 'Dose per seduta e per settimana',
-  breve: 'Contatti di pliometria e serie di forza, confrontati con la fase',
+  breve: 'Cosa c’è in una seduta e cosa manca al minimo della fase',
   parole: [
     'pliometria',
     'contatti',
     'serie',
     'forza',
+    'ipertrofia',
     'potenza',
+    'eccentrica',
+    'isometria',
     'volume',
     'carico',
+    'modello',
     'rtp',
     'preparazione atletica',
+    'sezioni',
+    'obiettivo',
+    'tipo',
+    'da sistemare',
+    'barretta',
     'avviso',
     'monopodalico',
     'settimana',
@@ -26,70 +35,60 @@ export const dose: ArgomentoGuida = {
     {
       titolo: 'A cosa serve',
       elementi: [
-        'Mentre costruisci la seduta, il programma conta i **contatti** della pliometria e le **serie** di potenza e forza, e li confronta con i numeri che hai deciso per quella fase. Serve solo a **programmare**: non entra in nessun documento.',
-        'Per farlo funzionare servono **tre cose**, da fare una volta sola: dire come si conta ogni categoria, scrivere i numeri della fase e indicare quante sedute fa il paziente.'
+        'Mentre costruisci la seduta, il programma conta quello che ci metti (contatti di pliometria, serie, ripetizioni, secondi) e ti segnala **solo quello che manca** al minimo della fase. Sopra il minimo non dice niente. Serve solo a **programmare**: non entra in nessun documento.',
+        'È già tutto pronto: tre modelli di dose, le sezioni e il tipo degli esercizi che il programma ha riconosciuto. A te resta **scegliere il modello di ogni fase**.'
       ]
     },
     {
-      titolo: 'Passo 1 · Come si conta ogni categoria',
+      titolo: 'Il tipo di ogni esercizio',
       elementi: [
+        'Ogni esercizio ha un **tipo**: **Rinforzo**, **Pliometria estensiva**, **Pliometria intensiva** oppure **Non conta**. Il muscolo principale è la sua categoria.',
         {
           passi: [
             'Apri la libreria: [[Configurazione > Libreria esercizi > Esercizi]].',
-            'Premi la **matita** sulla piastrella di una categoria (o di un distretto).',
-            'Nel menu **Nel conto della dose** scegli: **Pliometria estensiva (contatti)**, **Pliometria intensiva (contatti)**, **Potenza con carico (serie)** o **Forza (serie)**.',
-            'Premi **Salva**. Ripeti per le altre categorie.'
-          ]
-        },
-        'Isometrie, core e accessori si lasciano su **Non si conta**. Un distretto lasciato vuoto prende la scelta della sua categoria. La forza si conta **per muscolo**: ogni categoria o distretto di forza ha la sua riga nel passo 2.'
-      ]
-    },
-    {
-      titolo: 'Passo 2 · I numeri della fase',
-      elementi: [
-        {
-          passi: [
-            'Apri la fase: [[Configurazione > Patologie e fasi > la patologia > la fase > Dose]].',
-            'Per partire da un modello, premi **Riempi con:** e scegli **RTP 1**, **RTP 2** o **Preparazione atletica**.',
-            'Correggi i numeri: ogni riga ha **da** e **a**. Solo «da» vuol dire «almeno», solo «a» vuol dire «al massimo», vuoto vuol dire «non controllare».',
-            'Si salva uscendo dalla casella.'
+            'Se accanto alla ricerca c’è **Da sistemare**, premilo e scegli il tipo di ogni esercizio in elenco. Quando non ne resta nessuno il pulsante sparisce.',
+            'Per cambiarlo dopo, apri l’esercizio con la matita e usa **Tipo (per la dose)**.'
           ]
         }
       ]
     },
     {
-      titolo: 'Passo 3 · Le sedute a settimana',
+      titolo: 'Le sezioni e il loro obiettivo',
+      elementi: [
+        'Le sezioni si scrivono una volta in [[Configurazione > Libreria esercizi > Sezioni]], con le categorie che propongono e l’**Obiettivo**: Forza, Ipertrofia, Potenza, Eccentrica, Isometria, Pliometria o Non conta.',
+        'L’obiettivo decide dove va il **rinforzo** che metti in quella sezione. La **pliometria** si conta ovunque, anche nel riscaldamento.',
+        'Nella fase ([[Patologie e fasi > la fase > Struttura della seduta]]) le sezioni della libreria si **spuntano**; se te ne serve una che vale solo lì, usa **Sezione solo di questa fase**.',
+        'In seduta una sezione aggiunta al volo ha il pulsante **Scegli obiettivo**: finché non lo scegli, il suo rinforzo resta «senza obiettivo».'
+      ]
+    },
+    {
+      titolo: 'I modelli e le fasi',
       elementi: [
         {
           passi: [
-            'Apri il paziente: [[Pazienti > il paziente > Percorso]].',
-            'Scrivi il numero nel campo **Sedute a settimana** (da 1 a 14).'
+            'Apri [[Configurazione > Libreria esercizi > Dosi]].',
+            'In **Il modello di ogni fase** scegli **RTP 1**, **RTP 2** o **Preparazione atletica** per ogni fase. Una fase senza modello conta e basta.',
+            'Il modello di una fase si sceglie anche dalla sua linguetta **Dose**.'
           ]
         },
-        'Lo puoi cambiare anche al volo dalla riga della dose in seduta. Senza questo numero la forza si confronta con il valore per seduta.'
+        'Nella stessa pagina i numeri dei modelli si cambiano: per ogni voce la dose **per seduta** (da – a), le volte **a settimana** e un’**indicazione** (percentuale, ripetizioni, RIR). Si salva uscendo dalla casella. Una voce senza numeri si conta ma non si giudica. Con **Nuovo modello** ne aggiungi altri.',
+        'In **Preparazione atletica** potenza e pliometria intensiva sono **alternative**: raggiunta una, l’altra non si segnala (c’è la spunta sotto la tabella).'
       ]
     },
     {
       titolo: 'Cosa vedi in seduta',
       elementi: [
-        'Sopra l’elenco degli esercizi compare una riga compatta, per esempio «Pliometria est. 90 ✓ · Quadricipite 3 serie ✓». La spunta vuol dire dentro l’intervallo, il triangolo vuol dire **poco** o **troppo**. Cliccandola si apre il dettaglio, una riga per voce. La riga compare solo se la fase ha almeno un numero nella linguetta **Dose**.'
-      ]
-    },
-    {
-      titolo: 'Il carico settimana per settimana',
-      elementi: [
-        'In [[Pazienti > il paziente > Percorso]], sotto le progressioni, il riquadro **Carico settimana per settimana** mette in fila le settimane già fatte, dalla più recente. Ogni casella dice quanto è stato fatto e, dopo la barra, quanto voleva la dose della fase per quella settimana: «240 ✓ / 160–240».',
+        'In cima alla seduta la ciambella **Lavoro di oggi** mostra com’è divisa, in percentuale sulle serie. Passando il mouse su una parte, per esempio **Forza**, si vede quanto va a ogni muscolo.',
+        'Sopra gli esercizi c’è **una riga sola** con i numeri, per esempio «Plio int. 30 · Plio est. 90 · Forza 5 · −1».',
         {
           punti: [
-            '**Pliometria e potenza**: la dose per seduta × le sedute **fatte** quella settimana.',
-            '**Forza**: la dose per seduta × le **sedute a settimana** del paziente (senza quel numero, × le sedute fatte).',
-            'La **fase** della settimana è quella dell’ultima seduta. Le sedute al campo non contano nel carico, ma dolore e sforzo sì.',
-            'Nella settimana **in corso** non si segna mai «poco»: può ancora arrivare.',
-            'Le settimane senza sedute restano in tabella con «Nessuna seduta», così una pausa si vede.'
+            'I numeri sono **verdi** quando la dose è raggiunta, **arancioni** quando si è almeno a metà del minimo e **rossi** sotto la metà (nella vista Settimana il confronto è con la dose di tutta la settimana). Per esempio «Plio est. 20/80» sono 20 contatti su un minimo di 80; «Forza 5 · −1» vuol dire che a un muscolo manca una serie. Le voci non ancora messe compaiono a zero. Il segnale sparisce mentre scrivi, appena aggiungi quello che manca.',
+            'Non compare se le **altre sedute della settimana** (fatte o programmate) hanno già raggiunto il minimo le volte chieste, voce per voce e muscolo per muscolo («2–3» vale 2).',
+            'Passando il mouse su **Forza** o **Ipertrofia** si vede il dettaglio per muscolo.',
+            'Cliccando la riga si apre il dettaglio sopra la scheda: **Seduta** (fatto, dose, cosa manca e com’è divisa) oppure **Settimana**.'
           ]
         },
-        'Sopra la tabella ci sono due grafici sulle stesse settimane: il carico della voce scelta in **Nel grafico**, con la fascia della dose dietro le barre, e sotto **dolore** e **sforzo** medi da 0 a 10. Passando il mouse su una settimana se ne leggono i numeri.',
-        'Se nelle ultime tre settimane il dolore medio è salito ogni settimana (di almeno un punto in tutto) mentre una voce del carico cresceva, in cima compare un **avviso**. Il riquadro non c’è per i pazienti senza dose nelle fasi né esercizi che si contano. Come il resto della dose, non entra in nessun documento.'
+        'A sinistra di ogni esercizio c’è una **barretta colorata**: dice in quale voce finisce. Cliccandola scegli un’eccezione per quella riga (per esempio contare uno squat come ipertrofia); la barretta prende il colore della voce scelta e sotto compare **Ripristina**.'
       ]
     },
     {
@@ -97,13 +96,23 @@ export const dose: ArgomentoGuida = {
       elementi: [
         {
           punti: [
-            '**Pliometria** = serie × cluster × ripetizioni. A **una gamba** i contatti valgono doppio (3 × 10 per gamba = 60).',
-            '**Forza** e **potenza** = somma delle serie.',
+            '**Pliometria** = contatti: serie × cluster × ripetizioni. A **una gamba** si sommano le due (3 × 10 per gamba = 60).',
+            '**Forza** e **ipertrofia** = serie, per muscolo principale. Un cluster 4 × (3 × 2) vale 4 serie.',
+            '**Potenza** = serie in tutto.',
+            '**Eccentrica** = ripetizioni in tutto.',
+            '**Isometria massimale** = secondi in tutto: scrivi il tempo nelle ripetizioni (per esempio 5"). Le isometrie fuori da una sezione con obiettivo **Isometria** non si contano.',
             '**«8-10» conta come 8** (il primo numero).',
-            'Una ripetizione **a tempo** (30", 45 sec, 1 min) è un’isometria e **non conta**.',
-            'La **pliometria** si confronta per seduta. La **forza** si confronta sulla **settimana**: numero della fase × sedute a settimana, meno quello già fatto nelle altre sedute della settimana, diviso le sedute che restano. Il dettaglio lo dice con «da fare oggi» e «in settimana».'
+            'Un esercizio **solo per questa seduta** non ha un tipo e non si conta.'
           ]
         }
+      ]
+    },
+    {
+      titolo: 'Il carico settimana per settimana',
+      elementi: [
+        'In [[Pazienti > il paziente > Percorso]] il riquadro **Carico settimana per settimana** mette in fila le settimane già fatte, dalla più recente, con i soli numeri: nessun confronto con la dose. Passando su forza e ipertrofia si vede il dettaglio per muscolo.',
+        'Sopra la tabella ci sono due grafici sulle stesse settimane: il carico della voce scelta in **Nel grafico** e sotto **dolore** e **sforzo** medi da 0 a 10.',
+        'Se nelle ultime tre settimane il dolore medio è salito ogni settimana (di almeno un punto in tutto) mentre una voce del carico cresceva, in cima compare un **avviso**.'
       ]
     },
     {
@@ -111,10 +120,10 @@ export const dose: ArgomentoGuida = {
       elementi: [
         {
           punti: [
-            'Le sedute di una **fase al campo** non entrano nel conto della settimana (vedi **Patologie, fasi e distretti**).',
-            'Si contano le sedute della stessa settimana, da lunedì a domenica, fatte o programmate. Studio, palestra e casa contano uguale.',
-            'Lato operato e lato sano non si distinguono.',
-            'Le serie si contano tutte, con o senza RIR.'
+            'Le sedute di una **fase al campo** non entrano nel conto (vedi **Patologie, fasi e distretti**).',
+            'La settimana va da lunedì a domenica.',
+            'La seduta ricorda il tipo degli esercizi e l’obiettivo delle sezioni: se poi li cambi in libreria, le sedute già salvate restano come erano.',
+            'Lato operato e lato sano non si distinguono.'
           ]
         }
       ]

@@ -17,6 +17,8 @@ import { toast, toastErrore } from '../Toast'
 import Aiuto from '../Aiuto'
 import RigaSeduta from './RigaSeduta'
 import SuggerimentiProgressioni from './SuggerimentiProgressioni'
+import type { ObiettivoSezione } from '../../../../shared/dose'
+import { MenuObiettivo, PillObiettivo } from '../dose/comune'
 import {
   categorieDellaSezione,
   daProporre,
@@ -39,6 +41,10 @@ interface Props {
   indice: number
   categorie: Categoria[]
   templateCats: Record<number, number[]>
+  // l'obiettivo che hanno le sezioni della fase: dove c'e' non si cambia
+  templateObiettivi: Record<number, ObiettivoSezione | null>
+  // false al campo: li' non si conta niente
+  dose: boolean
   libreria: EsercizioConCategoria[]
   ultime: Record<number, UltimaVolta>
   // l'ultimo massimale segnato di ogni esercizio
@@ -58,7 +64,7 @@ interface Props {
   invia: (a: AzioneSezioni) => void
   nuovaChiaveVolo: () => number
   onRicopiata: (chiave: string) => void
-  onImmagine: (esercizio: { id: number; nome: string }) => void
+  onImmagine: (esercizio: { id: number; nome: string; variante?: string | null }) => void
 }
 
 // Una sezione della seduta: il titolo con i suoi comandi, gli esercizi, e la
@@ -68,6 +74,8 @@ export default function SezioneSeduta({
   indice: idxSez,
   categorie,
   templateCats,
+  templateObiettivi,
+  dose,
   libreria,
   ultime,
   massimali,
@@ -145,6 +153,22 @@ export default function SezioneSeduta({
         ) : (
           <h3>{s.nome}</h3>
         )}
+        {/* Dove va il rinforzo di questa sezione. Quelle della fase lo hanno
+            gia'; per una sezione aggiunta qui si sceglie. */}
+        {dose && (
+          <span className="obiettivo-sezione">
+            {s.sezione_id == null && <span className="hint">solo per questa scheda</span>}
+            {s.sezione_id != null && templateObiettivi[s.sezione_id] != null ? (
+              <PillObiettivo obiettivo={s.obiettivo ?? null} />
+            ) : (
+              <MenuObiettivo
+                titolo={`Obiettivo di ${s.nome}`}
+                obiettivo={s.obiettivo ?? null}
+                onScegli={(obiettivo) => invia({ tipo: 'obiettivo', sez: idxSez, obiettivo })}
+              />
+            )}
+          </span>
+        )}
         <span className="item-actions-static">
           <button
             className="btn-aggiungi-sezione"
@@ -189,6 +213,9 @@ export default function SezioneSeduta({
                 rir={mostraRir(r, categorie)}
                 varianti={libreria.find((x) => x.id === id)?.varianti ?? SENZA_VARIANTI}
                 gambe={libreria.find((x) => x.id === id)?.gambe ?? null}
+                tipoLibreria={libreria.find((x) => x.id === id)?.tipo ?? null}
+                obiettivo={s.obiettivo ?? null}
+                dose={dose}
                 ultima={ultima}
                 massimali={id != null ? massimali[id] : undefined}
                 dnd={riordinoRighe.contenitore(chiave)}

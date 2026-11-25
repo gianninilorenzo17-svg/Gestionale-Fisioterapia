@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Fase, PazienteDettaglio, SedutaRiepilogo, StatoProgressione } from '../../../../shared/types'
-import { quoteLavoro, type FamigliaLavoro } from '../../../../shared/dose'
+import { quoteLavoro, type Voce } from '../../../../shared/dose'
 import { riepilogoPedana } from '../../../../shared/pedana'
 import {
   inFaseDal,
@@ -28,8 +28,8 @@ export interface DatiQuadro {
   // sedute
   ultima: SedutaRiepilogo | null
   eserciziUltima: string[]
-  // su cosa si e' lavorato: quota di serie per famiglia, dalla piu' grande
-  lavoroUltima: { famiglia: FamigliaLavoro; nome: string; percento: number }[]
+  // su cosa si e' lavorato: quota di serie per voce della dose
+  lavoroUltima: { voce: Voce; nome: string; percento: number }[]
   programmate: SedutaRiepilogo[]
   fatte: number
   settimana: Settimana
@@ -96,7 +96,7 @@ export async function leggiDatiQuadro(
       return vuoto
     })
 
-  const [punti, dettaglio, obiettivi, raggiunti, progressioni, pedana, compilazioni, promemoria, charts, valutazioni, segni, massimali, carico, categorie] =
+  const [punti, dettaglio, obiettivi, raggiunti, progressioni, pedana, compilazioni, promemoria, charts, valutazioni, segni, massimali, carico] =
     await Promise.all([
       prendi(api.pazienti.andamentoDolore(paziente.id), []),
       ultima ? prendi(api.sedute.get(ultima.id), null) : Promise.resolve(null),
@@ -110,8 +110,7 @@ export async function leggiDatiQuadro(
       prendi(api.valutazioni.list(paziente.id), []),
       prendi(api.segni.andamento(paziente.id), []),
       prendi(api.massimali.list(paziente.id), []),
-      prendi(api.dose.caricoPaziente(paziente.id), null),
-      prendi(api.categorie.list(), [])
+      prendi(api.dose.caricoPaziente(paziente.id), null)
     ])
   const fatte = sedute.filter((s) => s.data <= oggi)
   return {
@@ -121,8 +120,9 @@ export async function leggiDatiQuadro(
       ultima,
       eserciziUltima: (dettaglio?.sezioni ?? []).flatMap((s) => s.esercizi.map((e) => e.nome)),
       lavoroUltima: quoteLavoro(
-        (dettaglio?.sezioni ?? []).flatMap((s) => s.esercizi),
-        categorie
+        (dettaglio?.sezioni ?? []).flatMap((s) =>
+          s.esercizi.map((e) => ({ tipo: e.tipo ?? null, conta: e.conta, obiettivo: s.obiettivo ?? null, serie: e.serie }))
+        )
       ),
       programmate: sedute
         .filter((s) => s.data > oggi)

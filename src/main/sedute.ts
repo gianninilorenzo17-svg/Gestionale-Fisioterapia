@@ -11,8 +11,17 @@
 import { getDb } from './db'
 import { dataIt, eliminaConCestino } from './cestino'
 import { validaData, validaOra, validaScala010 } from './validazione'
-import { categoriePerConto } from './dose'
-import { contaRighe, type RigaConto } from '../shared/dose'
+import { OBIETTIVO_SEZIONE, perSeduta, righeConto } from './dose'
+import {
+  contaRighe,
+  contaValida,
+  obiettivoValido,
+  tipoEsercizioValido,
+  totaleVoce,
+  type Conta,
+  type ObiettivoSezione,
+  type TipoEsercizio
+} from '../shared/dose'
 import type { SedutaDettaglio, SedutaInput, SedutaRiepilogo } from '../shared/types'
 
 // Le parti della seduta che stanno in tabelle loro: misure dei segni,
@@ -27,16 +36,17 @@ function scriviFigli(sedutaId: number | bigint, input: SedutaInput): void {
   const insTecnica = db.prepare('INSERT OR IGNORE INTO seduta_tecniche (seduta_id, tecnica_id) VALUES (?, ?)')
   for (const t of input.tecnica_ids ?? []) insTecnica.run(sedutaId, t)
   const insSez = db.prepare(
-    'INSERT INTO seduta_sezioni (seduta_id, sezione_id, nome, ordine) VALUES (?, ?, ?, ?)'
+    'INSERT INTO seduta_sezioni (seduta_id, sezione_id, nome, ordine, obiettivo) VALUES (?, ?, ?, ?, ?)'
   )
   const sezioneIds = input.sezioni.map(
-    (s, i) => Number(insSez.run(sedutaId, s.sezione_id, s.nome.trim(), i).lastInsertRowid)
+    (s, i) => Number(insSez.run(sedutaId, s.sezione_id, s.nome.trim(), i, s.obiettivo ?? null).lastInsertRowid)
   )
   const insEs = db.prepare(
     `INSERT INTO seduta_esercizi (seduta_id, esercizio_id, nome_libero, serie, cluster,
                                   ripetizioni, rir, carico, recupero_cluster, recupero, nota,
-                                  variante, monopodalico, ordine, seduta_sezione_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                                  variante, monopodalico, ordine, seduta_sezione_id, tipo, conta)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+             COALESCE(?, (SELECT tipo FROM esercizi WHERE id = ?)), ?)`
   )
   // Come sono andati gli esercizi delle progressioni: solo avanza e indietro,
   // "continua" e' non scrivere niente.
@@ -60,7 +70,11 @@ function scriviFigli(sedutaId: number | bigint, input: SedutaInput): void {
       e.variante?.trim() || null,
       e.monopodalico === 1 ? 1 : 0,
       i,
-      e.sezioneIndex != null ? (sezioneIds[e.sezioneIndex] ?? null) : null
+      e.sezioneIndex != null ? (sezioneIds[e.sezioneIndex] ?? null) : null,
+      // il tipo si fotografa come la dose: quello della riga, o quello di oggi
+      e.tipo ?? null,
+      e.esercizio_id,
+      e.conta ?? null
     )
   )
 }
@@ -77,6 +91,16 @@ export function validaSeduta(input: SedutaInput): void {
       throw new Error("Un esercizio della seduta non ha ne' un esercizio di libreria ne' un nome: riprova.")
     }
   }
+  for (const s of input.sezioni) {
+    if (s.obiettivo != null && !obiettivoValido(s.obiettivo)) {
+      throw new Error("L'obiettivo di una sezione non è valido: riprova.")
+    }
+  }
+  for (const e of input.esercizi) {
+    if ((e.tipo != null && !tipoEsercizioValido(e.tipo)) || (e.conta != null && !contaValida(e.conta))) {
+      throw new Error('Il tipo di un esercizio della seduta non è valido: riprova.')
+    }
+  }
   for (const p of input.progressioni ?? []) {
     if (p.esito !== 'avanza' && p.esito !== 'indietro') {
       throw new Error("L'esito di una progressione non è valido: riprova.")
@@ -88,36 +112,19 @@ export function validaSeduta(input: SedutaInput): void {
 export function elencoSedute(pazienteId: number): SedutaRiepilogo[] {
   const db = getDb()
 
-  // Il carico di ogni seduta, con lo stesso conto della dose: contatti di
-  // pliometria, serie di potenza e di forza. Solo a video.
-  const categorie = categoriePerConto()
-  const righe = db
-    .prepare(
-      `SELECT se.seduta_id, e.categoria_id, e.gambe, se.monopodalico, se.serie, se.cluster, se.ripetizioni
-       FROM seduta_esercizi se
-       JOIN esercizi e ON e.id = se.esercizio_id
-       JOIN sedute s ON s.id = se.seduta_id
-       WHERE s.paziente_id = ?`
-    )
-    .all(pazienteId) as (RigaConto & { seduta_id: number })[]
-  const righePerSeduta = new Map<number, RigaConto[]>()
-  for (const { seduta_id, ...r } of righe) {
-    righePerSeduta.set(seduta_id, [...(righePerSeduta.get(seduta_id) ?? []), r])
-  }
+  // Il carico di ogni seduta, con lo stesso conto della dose. Solo a video.
+  const righePerSeduta = perSeduta(righeConto('s.paziente_id = ?', [pazienteId]))
   const caricoDi = (id: number): string | null => {
-    const conto = contaRighe(righePerSeduta.get(id) ?? [], categorie)
-    let contatti = 0
-    let forza = 0
-    for (const [k, v] of Object.entries(conto)) {
-      if (k === 'plio_est' || k === 'plio_int') contatti += v
-      else if (k.startsWith('forza:')) forza += v
-    }
-    const potenza = conto.potenza ?? 0
+    const conto = contaRighe(righePerSeduta.get(id) ?? [])
+    const di = (n: number, testo: string): string => (n > 0 ? `${n} ${testo}` : '')
     return (
       [
-        contatti > 0 ? `${contatti} contatti` : '',
-        potenza > 0 ? `${potenza} serie di potenza` : '',
-        forza > 0 ? `${forza} serie di forza` : ''
+        di(totaleVoce(conto, 'plio_est') + totaleVoce(conto, 'plio_int'), 'contatti'),
+        di(totaleVoce(conto, 'potenza'), 'serie di potenza'),
+        di(totaleVoce(conto, 'forza'), 'serie di forza'),
+        di(totaleVoce(conto, 'ipertrofia'), 'serie di ipertrofia'),
+        di(totaleVoce(conto, 'eccentrica'), 'rip. eccentriche'),
+        di(totaleVoce(conto, 'isometria'), 'sec di isometria')
       ]
         .filter(Boolean)
         .join(' · ') || null
@@ -187,8 +194,11 @@ export function leggiSeduta(id: number): SedutaDettaglio {
     .get(id)
   if (!seduta) throw new Error('Seduta non trovata.')
   const sezioniRows = db
-    .prepare('SELECT id, sezione_id, nome FROM seduta_sezioni WHERE seduta_id = ? ORDER BY ordine, id')
-    .all(id) as { id: number; sezione_id: number | null; nome: string }[]
+    .prepare(
+      `SELECT ss.id, ss.sezione_id, ss.nome, ${OBIETTIVO_SEZIONE} AS obiettivo
+       FROM seduta_sezioni ss WHERE ss.seduta_id = ? ORDER BY ss.ordine, ss.id`
+    )
+    .all(id) as { id: number; sezione_id: number | null; nome: string; obiettivo: ObiettivoSezione | null }[]
   // Un esercizio "al volo" non ha una riga in libreria: LEFT JOIN, e il nome
   // e' quello scritto li' per li'.
   const esercizi = db
@@ -198,7 +208,8 @@ export function leggiSeduta(id: number): SedutaDettaglio {
               e.unita_carico,
               (e.immagine IS NOT NULL) AS ha_immagine,
               se.serie, se.cluster, se.ripetizioni, se.rir, se.carico, se.recupero_cluster,
-              se.recupero, se.nota, se.variante, se.monopodalico, se.seduta_sezione_id
+              se.recupero, se.nota, se.variante, se.monopodalico, se.seduta_sezione_id,
+              COALESCE(se.tipo, e.tipo) AS tipo, se.conta
        FROM seduta_esercizi se
        LEFT JOIN esercizi e ON e.id = se.esercizio_id
        LEFT JOIN categorie c ON c.id = e.categoria_id
@@ -210,6 +221,7 @@ export function leggiSeduta(id: number): SedutaDettaglio {
   const sezioni = sezioniRows.map((s) => ({
     sezione_id: s.sezione_id,
     nome: s.nome,
+    obiettivo: s.obiettivo,
     esercizi: esercizi
       .filter((e) => e.seduta_sezione_id === s.id)
       .map(({ seduta_sezione_id: _ignora, ...resto }) => resto)
@@ -219,7 +231,7 @@ export function leggiSeduta(id: number): SedutaDettaglio {
     .filter((e) => e.seduta_sezione_id == null)
     .map(({ seduta_sezione_id: _ignora, ...resto }) => resto)
   if (orfani.length > 0) {
-    sezioni.push({ sezione_id: null, nome: 'Esercizi', esercizi: orfani })
+    sezioni.push({ sezione_id: null, nome: 'Esercizi', obiettivo: null, esercizi: orfani })
   }
   const tecnica_ids = (
     db.prepare('SELECT tecnica_id FROM seduta_tecniche WHERE seduta_id = ?').all(id) as {
@@ -307,12 +319,12 @@ export function programmaSeduta(origineId: number, date: string[], ora: string |
     | undefined
   if (!sorgente) throw new Error('Seduta da copiare non trovata.')
   const sezioni = db
-    .prepare('SELECT id, sezione_id, nome FROM seduta_sezioni WHERE seduta_id = ? ORDER BY ordine, id')
-    .all(origineId) as { id: number; sezione_id: number | null; nome: string }[]
+    .prepare('SELECT id, sezione_id, nome, obiettivo FROM seduta_sezioni WHERE seduta_id = ? ORDER BY ordine, id')
+    .all(origineId) as { id: number; sezione_id: number | null; nome: string; obiettivo: ObiettivoSezione | null }[]
   const esercizi = db
     .prepare(
       `SELECT esercizio_id, nome_libero, serie, cluster, ripetizioni, rir, carico,
-              recupero_cluster, recupero, nota, variante, monopodalico, seduta_sezione_id
+              recupero_cluster, recupero, nota, variante, monopodalico, seduta_sezione_id, tipo, conta
        FROM seduta_esercizi WHERE seduta_id = ? ORDER BY ordine, id`
     )
     .all(origineId) as {
@@ -329,6 +341,8 @@ export function programmaSeduta(origineId: number, date: string[], ora: string |
     variante: string | null
     monopodalico: 0 | 1
     seduta_sezione_id: number | null
+    tipo: TipoEsercizio | null
+    conta: Conta | null
   }[]
 
   return db.transaction(() => {
@@ -359,7 +373,7 @@ export function programmaSeduta(origineId: number, date: string[], ora: string |
         tecnica_ids: [],
         trattamento: null,
         note: sorgente.note,
-        sezioni: sezioni.map((z) => ({ sezione_id: z.sezione_id, nome: z.nome })),
+        sezioni: sezioni.map((z) => ({ sezione_id: z.sezione_id, nome: z.nome, obiettivo: z.obiettivo })),
         esercizi: esercizi.map((e) => ({
           esercizio_id: e.esercizio_id,
           nome_libero: e.nome_libero,
@@ -373,6 +387,8 @@ export function programmaSeduta(origineId: number, date: string[], ora: string |
           nota: e.nota,
           variante: e.variante,
           monopodalico: e.monopodalico,
+          tipo: e.tipo,
+          conta: e.conta,
           sezioneIndex:
             e.seduta_sezione_id == null
               ? null

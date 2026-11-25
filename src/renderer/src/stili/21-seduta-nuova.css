@@ -58,10 +58,6 @@
   min-width: 0;
 }
 
-.striscia-seduta > .riga-dose {
-  margin-bottom: 0;
-}
-
 .builder-col > .striscia-seduta > section.card,
 .striscia-seduta .striscia-card {
   padding: 12px 14px;
@@ -508,18 +504,7 @@
   }
 }
 
-/* Dose seduta e obiettivi fase come gli altri specchietti (22 nov) */
-.striscia-seduta .riga-dose-sintesi {
-  display: flex;
-  width: 100%;
-  padding: 0;
-  margin-bottom: 8px;
-  background: transparent;
-  border: 0;
-}
-.striscia-seduta .riga-dose-sintesi svg { margin-left: auto; }
-.barra-striscia i.oltre { background: var(--attenzione); }
-.riga-dose-dettaglio { padding: 8px 0 0; }
+/* Obiettivi fase come gli altri specchietti (22 nov) */
 .obiettivi-aperti { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
 .obiettivi-aperti li { display: flex; align-items: center; gap: 8px; }
 .casella-vuota { width: 16px; height: 16px; flex: none; border: 1.5px solid var(--border); border-radius: 4px; }
@@ -693,10 +678,9 @@
 /* Patologia e fase staccate dal nome */
 .testata-fissa .testata-chi .testata-fase { margin-left: 0.6em; }
 
-/* Nome lungo con tendina della variante o bottone mono/bipodalico: il nome non si
-   spezza mai a meta' parola (andava a una lettera per riga) e prende almeno
-   140 px; a restringersi e' la variante, che si abbrevia con i puntini. Il
+/* Nome lungo: resta su una riga con i puntini e le icone subito accanto. Prende
+   almeno 140 px; a restringersi e' anche la variante, che si abbrevia con i puntini. Il
    bottone mono/bipodalico resta intero. */
 .righe-seduta .riga-esercizio .riga-testata { flex-wrap: nowrap; overflow-wrap: break-word; }
-.righe-seduta .riga-esercizio .riga-testata > .item-nome { flex: 1 0 140px; min-width: 140px; overflow-wrap: break-word; word-break: normal; }
+.righe-seduta .riga-esercizio .riga-testata > .item-nome { display: flex; flex: 1 1 0; min-width: 140px; }
 .righe-seduta .riga-esercizio .riga-testata > .select-variante { flex: 0 1 auto; min-width: 90px; max-width: 220px; }

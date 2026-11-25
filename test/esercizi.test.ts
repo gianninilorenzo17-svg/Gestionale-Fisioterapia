@@ -13,6 +13,7 @@ import {
   eliminaCategoria,
   eliminaEsercizio,
   impostaCluster,
+  immaginiVarianti,
   impostaImmagine,
   impostaPadre,
   impostaRir,
@@ -145,6 +146,34 @@ test('Un esercizio usato in una seduta non si elimina; uno mai usato va nel cest
 
   // una categoria con esercizi dentro non si elimina: lo dice il database
   assert.throws(() => eliminaCategoria(cat), /(utilizzato|FOREIGN|esercizi)/i)
+})
+
+test('La foto di una variante: propria se c\'e\', altrimenti quella dell\'esercizio', () => {
+  const cat = creaCategoria('Foto varianti')
+  const base = 'data:image/png;base64,iVBORw0KGgo='
+  const sua = 'data:image/jpeg;base64,/9j/4AAQ'
+  const id = creaEsercizio(
+    esercizio(cat, 'Push up', {
+      varianti: [
+        { id: null, nome: 'sulle ginocchia', immagine: sua },
+        { id: null, nome: 'sui piedi' }
+      ]
+    })
+  )
+  impostaImmagine(id, base)
+  assert.equal(leggiImmagine(id), base)
+  assert.equal(leggiImmagine(id, 'sulle ginocchia'), sua)
+  assert.equal(leggiImmagine(id, 'sui piedi'), base)
+  const [foto] = immaginiVarianti(id)
+  assert.equal(foto.immagine, sua)
+  // senza `immagine` la foto resta com'e', con null si toglie
+  aggiornaEsercizio(id, esercizio(cat, 'Push up', { varianti: [{ id: foto.id, nome: 'in ginocchio' }] }))
+  assert.equal(leggiImmagine(id, 'in ginocchio'), sua)
+  aggiornaEsercizio(
+    id,
+    esercizio(cat, 'Push up', { varianti: [{ id: foto.id, nome: 'in ginocchio', immagine: null }] })
+  )
+  assert.equal(leggiImmagine(id, 'in ginocchio'), base)
 })
 
 test('Le varianti di un esercizio: in ordine, senza doppioni, e tornano dal cestino', () => {

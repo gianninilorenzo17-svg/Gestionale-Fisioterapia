@@ -80,6 +80,8 @@ import type {
   Segno,
   SezioneCartella,
   SezioneConCategorie,
+  SezioneLibreria,
+  FaseConModello,
   StatoAggiornamento,
   StatoPaziente,
   Tecnica,
@@ -100,7 +102,7 @@ import type {
   Tema,
 } from './temi'
 import type { QualeScheda, StileScheda } from './stile-scheda'
-import type { DoseFase, DoseSettimana, TipoLavoro } from './dose'
+import type { DoseModello, DoseModelloInput, DoseSettimana, ObiettivoSezione, TipoEsercizio } from './dose'
 import type { CaricoPaziente } from './carico-settimane'
 import type {
   EsitoImportFarmaci,
@@ -254,6 +256,16 @@ export interface Canali {
   'sezioni:reorder': (ids: number[]) => void
   // sostituisce l'elenco ordinato delle categorie associate alla sezione
   'sezioni:setCategorie': (sezioneId: number, categoriaIds: number[]) => void
+  'sezioni:setObiettivo': (sezioneId: number, obiettivo: ObiettivoSezione | null) => void
+  // Spuntare o togliere nella fase una sezione della libreria.
+  'sezioni:daLibreria': (faseId: number, libreriaId: number, usata: boolean) => void
+  'sezioniLibreria:list': () => SezioneLibreria[]
+  'sezioniLibreria:create': (nome: string) => number
+  'sezioniLibreria:update': (id: number, nome: string) => void
+  'sezioniLibreria:delete': (id: number) => void
+  'sezioniLibreria:reorder': (ids: number[]) => void
+  'sezioniLibreria:setObiettivo': (id: number, obiettivo: ObiettivoSezione | null) => void
+  'sezioniLibreria:setCategorie': (id: number, categoriaIds: number[]) => void
   'testAvanzamento:list': (faseId: number) => TestAvanzamento[]
   'testAvanzamento:create': (faseId: number, nome: string) => number
   'testAvanzamento:update': (id: number, nome: string) => void
@@ -265,8 +277,6 @@ export interface Canali {
   // Accende o spegne il dosaggio a cluster per gli esercizi di questa categoria.
   'categorie:setCluster': (id: number, attivo: boolean) => void
   'categorie:setRir': (id: number, attivo: boolean) => void
-  // Come si contano i suoi esercizi nella dose della fase (null = fuori dal conto).
-  'categorie:setContaCome': (id: number, tipo: TipoLavoro | null) => void
   // Sposta una categoria dentro a un'altra, o la riporta al primo livello.
   'categorie:setPadre': (id: number, padreId: number | null) => void
   'categorie:delete': (id: number) => void
@@ -275,9 +285,12 @@ export interface Canali {
   'esercizi:create': (data: EsercizioInput) => number
   'esercizi:update': (id: number, data: EsercizioInput) => void
   'esercizi:setArchiviato': (id: number, archiviato: boolean) => void
+  // Il tipo per la dose (null = da sistemare).
+  'esercizi:setTipo': (id: number, tipo: TipoEsercizio | null) => void
   'esercizi:delete': (id: number) => void
   // L'immagine viaggia a parte: e' pesante e serve solo quando la si guarda.
-  'esercizi:immagine': (id: number) => string | null
+  'esercizi:immagine': (id: number, variante?: string | null) => string | null
+  'esercizi:immaginiVarianti': (esercizioId: number) => { id: number; immagine: string }[]
   'esercizi:setImmagine': (id: number, dataUrl: string | null) => void
   'pazienti:list': () => PazienteDettaglio[]
   'pazienti:create': (data: PazienteCreateInput) => number
@@ -502,12 +515,17 @@ export interface Canali {
   ) => StatoProgressione[]
   // Sposta a mano il paziente di uno step in una progressione, dal giorno indicato.
   'progressioni:muovi': (pazienteId: number, progressioneId: number, esito: EsitoProgressione, data: string) => void
-  // La dose della fase, per seduta: contatti di pliometria, serie di forza e potenza.
-  'dose:fase': (faseId: number) => DoseFase[]
-  'dose:impostaFase': (faseId: number, dosi: DoseFase[]) => void
+  // I modelli di dose (per seduta + volte a settimana) e quale usa ogni fase.
+  'dose:modelli': () => DoseModello[]
+  'dose:creaModello': (nome: string) => number
+  'dose:salvaModello': (id: number, modello: DoseModelloInput) => void
+  'dose:eliminaModello': (id: number) => void
+  'dose:modelloFase': (faseId: number) => DoseModello | null
+  'dose:impostaModelloFase': (faseId: number, modelloId: number | null) => void
+  'dose:fasi': () => FaseConModello[]
   // Le altre sedute della settimana di quella data, gia' contate.
   'dose:settimana': (pazienteId: number, data: string, sedutaId: number | null) => DoseSettimana
-  // Il carico settimana per settimana confrontato con la dose (linguetta Percorso).
+  // Il carico settimana per settimana (linguetta Percorso).
   'dose:caricoPaziente': (pazienteId: number) => CaricoPaziente
   'obiettiviTerapeutici:list': (pazienteId: number) => ObiettivoTerapeutico[]
   // Quello che il paziente si aspetta, con parole sue: una casella sola.
@@ -713,7 +731,18 @@ export const MAPPA_API = {
     update: 'sezioni:update',
     remove: 'sezioni:delete',
     reorder: 'sezioni:reorder',
-    setCategorie: 'sezioni:setCategorie'
+    setCategorie: 'sezioni:setCategorie',
+    setObiettivo: 'sezioni:setObiettivo',
+    daLibreria: 'sezioni:daLibreria'
+  },
+  sezioniLibreria: {
+    list: 'sezioniLibreria:list',
+    create: 'sezioniLibreria:create',
+    update: 'sezioniLibreria:update',
+    remove: 'sezioniLibreria:delete',
+    reorder: 'sezioniLibreria:reorder',
+    setObiettivo: 'sezioniLibreria:setObiettivo',
+    setCategorie: 'sezioniLibreria:setCategorie'
   },
   testAvanzamento: {
     list: 'testAvanzamento:list',
@@ -728,7 +757,6 @@ export const MAPPA_API = {
     update: 'categorie:update',
     setCluster: 'categorie:setCluster',
     setRir: 'categorie:setRir',
-    setContaCome: 'categorie:setContaCome',
     setPadre: 'categorie:setPadre',
     remove: 'categorie:delete',
     reorder: 'categorie:reorder'
@@ -738,8 +766,10 @@ export const MAPPA_API = {
     create: 'esercizi:create',
     update: 'esercizi:update',
     setArchiviato: 'esercizi:setArchiviato',
+    setTipo: 'esercizi:setTipo',
     remove: 'esercizi:delete',
     immagine: 'esercizi:immagine',
+    immaginiVarianti: 'esercizi:immaginiVarianti',
     setImmagine: 'esercizi:setImmagine'
   },
   pazienti: {
@@ -934,8 +964,13 @@ export const MAPPA_API = {
     muovi: 'progressioni:muovi'
   },
   dose: {
-    fase: 'dose:fase',
-    impostaFase: 'dose:impostaFase',
+    modelli: 'dose:modelli',
+    creaModello: 'dose:creaModello',
+    salvaModello: 'dose:salvaModello',
+    eliminaModello: 'dose:eliminaModello',
+    modelloFase: 'dose:modelloFase',
+    impostaModelloFase: 'dose:impostaModelloFase',
+    fasi: 'dose:fasi',
     settimana: 'dose:settimana',
     caricoPaziente: 'dose:caricoPaziente'
   },

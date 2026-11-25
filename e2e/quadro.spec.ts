@@ -67,7 +67,8 @@ test('quadro: panoramica del percorso, numeri solo se ci sono, un clic porta all
           recupero_default: null,
           nota_tecnica: null,
           link: null,
-          gambe: 'due'
+          gambe: 'due',
+          tipo: 'rinforzo'
         })
         const riga = {
           esercizio_id: ese,
@@ -98,7 +99,7 @@ test('quadro: panoramica del percorso, numeri solo se ci sono, un clic porta all
             tecnica_ids: [],
             trattamento: 'Terapia manuale',
             note: 'Bene il lavoro eccentrico, leggero fastidio dopo i salti.',
-            sezioni: [{ sezione_id: null, nome: 'Esercizi' }],
+            sezioni: [{ sezione_id: null, nome: 'Esercizi', obiettivo: 'forza' }],
             esercizi: [riga]
           })
         }
@@ -166,7 +167,7 @@ test('quadro: panoramica del percorso, numeri solo se ci sono, un clic porta all
     await expect(quadro.locator('.q-obiettivi')).toContainText('1/2')
     await expect(quadro).toContainText('Ultima seduta')
     await expect(quadro).toContainText('Bene il lavoro eccentrico')
-    // su cosa si e' lavorato: le famiglie di esercizi, non i nomi (un solo esercizio = tutto)
+    // su cosa si e' lavorato: le voci della dose, non i nomi (un solo esercizio = tutto)
     await expect(quadro.locator('.q-lavoro')).toContainText('100%')
     await expect(quadro).toContainText('Questa settimana')
     // dolore: l'ultimo e' 2, partiva da 6

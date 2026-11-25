@@ -21,7 +21,14 @@ import type {
 } from '../../../../shared/types'
 import { caricoTesto, recuperoTesto, rirTesto, volumeTesto } from '../../../../shared/dosaggio'
 import { esercizioCorrisponde, nomeStep } from '../../../../shared/varianti'
-import { contaRighe, type RigaConto } from '../../../../shared/dose'
+import {
+  contaRighe,
+  serieDellaRiga,
+  voceRiga,
+  type Conta,
+  type ObiettivoSezione,
+  type RigaConto
+} from '../../../../shared/dose'
 import { sposta } from '../../sposta'
 
 // Una riga della seduta in costruzione. chiaveVolo e' una chiave locale, mai
@@ -33,6 +40,8 @@ export type RigaBuilder = SedutaEsercizioDettaglio & { chiaveVolo?: number }
 export interface SezioneBuilder {
   sezione_id: number | null
   nome: string
+  // dove va il rinforzo messo qui, per la dose
+  obiettivo?: ObiettivoSezione | null
   righe: RigaBuilder[]
 }
 
@@ -106,6 +115,9 @@ export type AzioneSezioni =
   | { tipo: 'valore'; sez: number; riga: number; campo: CampoRiga; valore: string }
   // con storia: si annullano con Ctrl+Z
   | { tipo: 'monopodalico'; sez: number; riga: number; valore: boolean }
+  // per la dose: "qui conta come" su una riga, e l'obiettivo di una sezione
+  | { tipo: 'conta'; sez: number; riga: number; conta: Conta | null }
+  | { tipo: 'obiettivo'; sez: number; obiettivo: ObiettivoSezione | null }
   | { tipo: 'aggiungi'; sez: number; esercizio: EsercizioConCategoria; dose?: DoseStep }
   | { tipo: 'alVolo'; sez: number; nome: string; chiave: number }
   | { tipo: 'ricopia'; sez: number; riga: number; ultima: UltimaVolta }
@@ -132,6 +144,9 @@ export function rigaDaLibreria(e: EsercizioConCategoria, dose?: DoseStep): RigaB
     nome_libero: null,
     nome: e.nome,
     categoria_nome: e.categoria_nome,
+    categoria_id: e.categoria_id,
+    tipo: e.tipo,
+    conta: null,
     unita_carico: e.unita_carico,
     serie: dose?.serie ?? e.serie_default,
     cluster: e.cluster_default,
@@ -169,6 +184,8 @@ export function rigaAlVolo(nome: string, chiave: number): RigaBuilder {
     nota: null,
     variante: null,
     monopodalico: 0,
+    tipo: null,
+    conta: null,
     link: null,
     ha_immagine: 0,
     chiaveVolo: chiave
@@ -243,6 +260,21 @@ function applica(sezioni: SezioneBuilder[], a: AzioneSezioni): { sezioni: Sezion
       return {
         sezioni: inRiga(sezioni, a.sez, a.riga, (r) => ({ ...r, monopodalico: a.valore ? 1 : 0 })),
         cosa: a.valore ? `${nome} a una gamba` : `${nome} a due gambe`
+      }
+    }
+    case 'conta': {
+      const nome = sezioni[a.sez]?.righe[a.riga]?.nome ?? 'un esercizio'
+      return {
+        sezioni: inRiga(sezioni, a.sez, a.riga, (r) => ({ ...r, conta: a.conta })),
+        cosa: `cambiato come conta ${nome}`
+      }
+    }
+    case 'obiettivo': {
+      const s = sezioni[a.sez]
+      if (!s) return null
+      return {
+        sezioni: inSezione(sezioni, a.sez, (x) => ({ ...x, obiettivo: a.obiettivo })),
+        cosa: `cambiato l'obiettivo di ${s.nome}`
       }
     }
     case 'togliRiga': {
@@ -485,29 +517,51 @@ export function stessaDoseDellUltima(r: SedutaEsercizioDettaglio, u: UltimaVolta
 
 // ---- la dose ----
 
-// Il conto della seduta che si compone (contatti, serie) per chiave della dose.
-// Categoria e gambe vengono dalla libreria; un esercizio al volo non ha una
-// categoria e resta fuori.
-export function contaSeduta(
-  sezioni: SezioneBuilder[],
-  libreria: EsercizioConCategoria[],
-  categorie: Categoria[]
-): Record<string, number> {
+// Le righe di una sezione come le vuole il conto. Muscolo e gambe vengono dalla
+// libreria; un esercizio al volo non ha tipo e resta fuori.
+const righeDellaSezione = (s: SezioneBuilder, perId: Map<number, EsercizioConCategoria>): RigaConto[] =>
+  s.righe.map((r) => {
+    const e = r.esercizio_id == null ? undefined : perId.get(r.esercizio_id)
+    return {
+      categoria_id: e?.categoria_id ?? r.categoria_id ?? null,
+      tipo: r.tipo ?? e?.tipo ?? null,
+      conta: r.conta ?? null,
+      obiettivo: s.obiettivo ?? null,
+      gambe: e?.gambe ?? null,
+      monopodalico: r.monopodalico ?? 0,
+      serie: r.serie,
+      cluster: r.cluster,
+      ripetizioni: r.ripetizioni,
+      carico: r.carico,
+      unita_carico: r.unita_carico
+    }
+  })
+
+export function righeDelConto(sezioni: SezioneBuilder[], libreria: EsercizioConCategoria[]): RigaConto[] {
   const perId = new Map(libreria.map((e) => [e.id, e]))
-  const righe: RigaConto[] = sezioni.flatMap((s) =>
-    s.righe.map((r) => {
-      const e = r.esercizio_id == null ? undefined : perId.get(r.esercizio_id)
-      return {
-        categoria_id: e?.categoria_id ?? null,
-        gambe: e?.gambe ?? null,
-        monopodalico: r.monopodalico ?? 0,
-        serie: r.serie,
-        cluster: r.cluster,
-        ripetizioni: r.ripetizioni
-      }
-    })
-  )
-  return contaRighe(righe, categorie)
+  return sezioni.flatMap((s) => righeDellaSezione(s, perId))
+}
+
+// Il conto della seduta che si compone, per chiave della dose.
+export const contaSeduta = (
+  sezioni: SezioneBuilder[],
+  libreria: EsercizioConCategoria[]
+): Record<string, number> => contaRighe(righeDelConto(sezioni, libreria))
+
+// Il rinforzo che sta in sezioni senza obiettivo: quante serie, sezione per sezione.
+export function senzaObiettivo(
+  sezioni: SezioneBuilder[],
+  libreria: EsercizioConCategoria[]
+): { sezione: string; serie: number }[] {
+  const perId = new Map(libreria.map((e) => [e.id, e]))
+  return sezioni
+    .map((s) => ({
+      sezione: s.nome,
+      serie: righeDellaSezione(s, perId)
+        .filter((r) => voceRiga(r) === 'senza')
+        .reduce((t, r) => t + serieDellaRiga(r), 0)
+    }))
+    .filter((x) => x.serie > 0)
 }
 
 // ---- prima di salvare ----
@@ -621,7 +675,7 @@ export function inputSeduta(
     trattamento: c.trattamento.trim() || null,
     note: c.note.trim() || null,
     progressioni,
-    sezioni: sezioni.map((s) => ({ sezione_id: s.sezione_id, nome: s.nome })),
+    sezioni: sezioni.map((s) => ({ sezione_id: s.sezione_id, nome: s.nome, obiettivo: s.obiettivo ?? null })),
     esercizi: sezioni.flatMap((s, i) =>
       s.righe.map((r) => ({
         esercizio_id: r.esercizio_id,
@@ -636,6 +690,8 @@ export function inputSeduta(
         nota: r.nota?.trim() || null,
         variante: r.variante?.trim() || null,
         monopodalico: r.monopodalico === 1 ? 1 : 0,
+        tipo: r.tipo ?? null,
+        conta: r.conta ?? null,
         sezioneIndex: i
       }))
     )

@@ -29,6 +29,8 @@ import {
   campiDaBozza,
   massimaliPerEsercizio,
   contaSeduta,
+  righeDelConto,
+  senzaObiettivo,
   esitiDaSalvare,
   haQualcosa,
   inputSeduta,
@@ -44,7 +46,8 @@ import TestataSeduta from './seduta/TestataSeduta'
 import SezioneSeduta from './seduta/SezioneSeduta'
 import ChiusuraSeduta from './seduta/ChiusuraSeduta'
 import RigaDose from './seduta/RigaDose'
-import type { DoseFase, DoseSettimana } from '../../../shared/dose'
+import CiambellaDose from './seduta/CiambellaDose'
+import type { DoseModello, DoseSettimana, ObiettivoSezione } from '../../../shared/dose'
 
 // La costruzione di una seduta. Qui stanno il caricamento, il salvataggio e
 // l'uscita; i pezzi stanno in seduta/: le forme dei dati e le loro
@@ -83,6 +86,7 @@ interface Contesto {
   obiettivi: Obiettivo[]
   raggiunti: number[]
   templateCats: Record<number, number[]>
+  templateObiettivi: Record<number, ObiettivoSezione | null>
   // Le progressioni della fase, con lo step del paziente: per i suggerimenti,
   // l'esito e lo specchietto. Servono solo a programmare.
   progressioni: StatoProgressione[]
@@ -107,6 +111,7 @@ const CONTESTO_VUOTO: Contesto = {
   obiettivi: [],
   raggiunti: [],
   templateCats: {},
+  templateObiettivi: {},
   progressioni: [],
   progressioniTutte: []
 }
@@ -156,7 +161,7 @@ export default function SedutaBuilder({
   // invece che della seduta.
   const [sezioneAperta, setSezioneAperta] = useState<number | null>(null)
   const [nuovaSezione, setNuovaSezione] = useState('')
-  const [immagineAperta, setImmagineAperta] = useState<{ id: number; nome: string } | null>(null)
+  const [immagineAperta, setImmagineAperta] = useState<{ id: number; nome: string; variante?: string | null } | null>(null)
   const [specchietto, setSpecchietto] = useState(false)
 
   // Contatore per le chiavi locali delle righe "al volo" (sempre negative,
@@ -167,18 +172,24 @@ export default function SedutaBuilder({
   // "al volo" gia' salvate ma senza una chiave locale: gliene si assegna una
   // qui, una volta sola, invece che a ogni disegno.
   const assegnaChiavi = (
-    lette: { sezione_id: number | null; nome: string; esercizi: SedutaEsercizioDettaglio[] }[]
+    lette: {
+      sezione_id: number | null
+      nome: string
+      obiettivo?: ObiettivoSezione | null
+      esercizi: SedutaEsercizioDettaglio[]
+    }[]
   ): SezioneBuilder[] =>
     lette.map((sz) => ({
       sezione_id: sz.sezione_id,
       nome: sz.nome,
+      obiettivo: sz.obiettivo ?? null,
       righe: sz.esercizi.map((r) => (r.esercizio_id == null ? { ...r, chiaveVolo: nuovaChiaveVolo() } : r))
     }))
 
   // La dose e il conto della settimana, gia' letti all'apertura: gli effetti
   // piu' sotto non li rileggono la prima volta (altrimenti comparivano a pagina
   // gia' aperta, spostando tutto).
-  const precaricato = useRef({ dosi: false, settimana: false })
+  const precaricato = useRef({ modello: false, settimana: false })
 
   useEffect(() => {
     void (async () => {
@@ -285,13 +296,13 @@ export default function SedutaBuilder({
         // insieme, compresa la dose, cosi' la pagina compare gia' completa.
         const dataFinale = letti.data ?? dataBase
         const alCampoIniziale = elencoFasi.find((f) => f.id === fase)?.campo === 1
-        const [tutte, obs, template, progr, precedenteLetta, dosiLette, settimanaLetta] = await Promise.all([
+        const [tutte, obs, template, progr, precedenteLetta, modelloLetto, settimanaLetta] = await Promise.all([
           window.api.progressioni.stato(paziente.id, fase, finoAl(dataFinale), sedutaId, true),
           fase != null ? window.api.obiettivi.list(fase) : null,
           fase != null ? window.api.sezioni.list(fase) : null,
           fase != null ? window.api.progressioni.stato(paziente.id, fase, finoAl(dataFinale), sedutaId) : null,
           sedutaId != null ? window.api.sedute.precedente(paziente.id, sedutaId, dataFinale).catch(() => null) : null,
-          fase != null && !alCampoIniziale ? window.api.dose.fase(fase).catch(() => null) : null,
+          fase != null && !alCampoIniziale ? window.api.dose.modelloFase(fase).catch(() => undefined) : undefined,
           /^\d{4}-\d{2}-\d{2}$/.test(dataFinale)
             ? window.api.dose.settimana(paziente.id, dataFinale, sedutaId).catch(() => null)
             : null
@@ -301,12 +312,20 @@ export default function SedutaBuilder({
           ctx.obiettivi = obs
           ctx.progressioni = progr
           ctx.templateCats = Object.fromEntries(template.map((t) => [t.id, t.categoria_ids]))
+          ctx.templateObiettivi = Object.fromEntries(template.map((t) => [t.id, t.obiettivo]))
           // nuova seduta: struttura di default dal template della fase
-          if (iniziali == null) iniziali = template.map((t) => ({ sezione_id: t.id, nome: t.nome, righe: [] }))
+          iniziali =
+            iniziali == null
+              ? template.map((t) => ({ sezione_id: t.id, nome: t.nome, obiettivo: t.obiettivo, righe: [] }))
+              : // una seduta o una bozza di prima: l'obiettivo e' quello della fase
+                iniziali.map((s) => ({
+                  ...s,
+                  obiettivo: s.obiettivo ?? (s.sezione_id == null ? null : (ctx.templateObiettivi[s.sezione_id] ?? null))
+                }))
         }
 
-        precaricato.current = { dosi: dosiLette != null, settimana: settimanaLetta != null }
-        if (dosiLette) setDosi(dosiLette)
+        precaricato.current = { modello: modelloLetto !== undefined, settimana: settimanaLetta != null }
+        if (modelloLetto !== undefined) setModello(modelloLetto)
         if (settimanaLetta) setSettimana(settimanaLetta)
         setPrecedente(precedenteNuova ?? precedenteLetta)
         setContesto(ctx)
@@ -345,7 +364,7 @@ export default function SedutaBuilder({
     // le progressioni di tutte le fasi restano: l'esito si chiede per qualunque esercizio di progressione
     if (nuova == null) {
       invia({ tipo: 'imposta', sezioni: [] })
-      setContesto((c) => ({ ...c, obiettivi: [], templateCats: {}, progressioni: [] }))
+      setContesto((c) => ({ ...c, obiettivi: [], templateCats: {}, templateObiettivi: {}, progressioni: [] }))
       return
     }
     try {
@@ -358,9 +377,13 @@ export default function SedutaBuilder({
         ...c,
         obiettivi: obs,
         templateCats: Object.fromEntries(template.map((t) => [t.id, t.categoria_ids])),
+        templateObiettivi: Object.fromEntries(template.map((t) => [t.id, t.obiettivo])),
         progressioni: progr
       }))
-      invia({ tipo: 'imposta', sezioni: template.map((t) => ({ sezione_id: t.id, nome: t.nome, righe: [] })) })
+      invia({
+        tipo: 'imposta',
+        sezioni: template.map((t) => ({ sezione_id: t.id, nome: t.nome, obiettivo: t.obiettivo, righe: [] }))
+      })
     } catch (e) {
       toastErrore(errMsg(e))
     }
@@ -393,21 +416,22 @@ export default function SedutaBuilder({
 
   const totaleEsercizi = useMemo(() => contaEsercizi(sezioni), [sezioni])
 
-  // La dose: quella della fase, quella delle altre sedute della settimana, e
-  // il conto di questa. Al campo non si conta niente.
-  const [dosi, setDosi] = useState<DoseFase[]>([])
-  const [settimana, setSettimana] = useState<DoseSettimana>({ frequenza: null, altreSedute: 0, altre: {} })
+  // La dose: il modello della fase, le altre sedute della settimana, e il
+  // conto di questa. Al campo non si conta niente.
+  const [modello, setModello] = useState<DoseModello | null>(null)
+  const [settimana, setSettimana] = useState<DoseSettimana>({ altre: [] })
   useEffect(() => {
-    if (!pronto || campi.faseId == null || alCampo) {
-      setDosi([])
+    if (!pronto) return
+    // la prima volta il modello e' gia' stato letto con il resto, all'apertura
+    if (precaricato.current.modello) {
+      precaricato.current.modello = false
       return
     }
-    // la prima volta la dose e' gia' stata letta con il resto, all'apertura
-    if (precaricato.current.dosi) {
-      precaricato.current.dosi = false
+    if (campi.faseId == null || alCampo) {
+      setModello(null)
       return
     }
-    window.api.dose.fase(campi.faseId).then(setDosi, (e) => toastErrore(errMsg(e)))
+    window.api.dose.modelloFase(campi.faseId).then(setModello, (e) => toastErrore(errMsg(e)))
   }, [pronto, campi.faseId, alCampo])
   useEffect(() => {
     if (!pronto || !/^\d{4}-\d{2}-\d{2}$/.test(campi.data)) return
@@ -417,9 +441,13 @@ export default function SedutaBuilder({
     }
     window.api.dose.settimana(paziente.id, campi.data, sedutaId).then(setSettimana, (e) => toastErrore(errMsg(e)))
   }, [pronto, paziente.id, campi.data, sedutaId])
-  const contoDose = useMemo(
-    () => (dosi.length === 0 ? {} : contaSeduta(sezioni, contesto.libreria, contesto.categorie)),
-    [dosi, sezioni, contesto.libreria, contesto.categorie]
+  const dose = useMemo(
+    () => ({
+      conto: contaSeduta(sezioni, contesto.libreria),
+      righe: righeDelConto(sezioni, contesto.libreria),
+      senza: senzaObiettivo(sezioni, contesto.libreria)
+    }),
+    [sezioni, contesto.libreria]
   )
 
   // Gli esercizi gia' in seduta, per non riproporli, e le progressioni che ne
@@ -584,7 +612,7 @@ export default function SedutaBuilder({
     }
   }
 
-  const onImmagine = useCallback((e: { id: number; nome: string }) => setImmagineAperta(e), [])
+  const onImmagine = useCallback((e: { id: number; nome: string; variante?: string | null }) => setImmagineAperta(e), [])
 
   if (!pronto) {
     return (
@@ -623,19 +651,12 @@ export default function SedutaBuilder({
         </p>
       )}
 
-      {/* La striscia degli specchietti, nell'ordine in cui si guardano: la dose
-          della seduta, a che punto sono le progressioni, gli obiettivi della
-          fase. Sta sopra a tutto e non ruba larghezza agli esercizi. */}
-      {((campi.faseId != null && !alCampo) || contesto.progressioni.length > 0 || (campi.faseId != null && obiettivi.length > 0)) && (
+      {/* La striscia degli specchietti, nell'ordine in cui si guardano: a che
+          punto e' il lavoro di oggi, le progressioni, gli obiettivi della fase. Sta sopra a tutto
+          e non ruba larghezza agli esercizi. */}
+      {(!alCampo || contesto.progressioni.length > 0 || (campi.faseId != null && obiettivi.length > 0)) && (
         <div className="striscia-seduta">
-          {campi.faseId != null && !alCampo && (
-            <RigaDose
-              dosi={dosi}
-              conto={contoDose}
-              settimana={settimana}
-              categorie={contesto.categorie}
-            />
-          )}
+          {!alCampo && <CiambellaDose righe={dose.righe} categorie={contesto.categorie} />}
           <RiepilogoProgressioni stati={contesto.progressioni} onApri={() => setSpecchietto(true)} />
           {campi.faseId != null && obiettivi.length > 0 && (
             <section className="card striscia-card obiettivi-info">
@@ -690,6 +711,18 @@ export default function SedutaBuilder({
         Esercizi
       </div>
 
+      {/* La dose: una riga sola, subito sopra gli esercizi. */}
+      {!alCampo && (
+        <RigaDose
+          modello={modello}
+          conto={dose.conto}
+          altre={settimana.altre}
+          righe={dose.righe}
+          senza={dose.senza}
+          categorie={contesto.categorie}
+        />
+      )}
+
       {sezioni.length === 0 && (
         <section className="card">
           <p className="hint">
@@ -707,6 +740,8 @@ export default function SedutaBuilder({
           indice={idxSez}
           categorie={contesto.categorie}
           templateCats={contesto.templateCats}
+          templateObiettivi={contesto.templateObiettivi}
+          dose={!alCampo}
           libreria={contesto.libreria}
           ultime={contesto.ultime}
           massimali={contesto.massimali}
@@ -767,6 +802,7 @@ export default function SedutaBuilder({
         <ImmagineEsercizio
           esercizioId={immagineAperta.id}
           nome={immagineAperta.nome}
+          variante={immagineAperta.variante}
           onClose={() => setImmagineAperta(null)}
         />
       )}

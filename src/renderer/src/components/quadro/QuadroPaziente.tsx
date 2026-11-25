@@ -5,6 +5,7 @@ import { durataTra, formatData, testoPromemoria } from '../../lib'
 import type { Destinazione } from './sezioni'
 import type { DatiQuadro } from './useDatiQuadro'
 import Aiuto from '../Aiuto'
+import { coloreDose } from '../dose/comune'
 
 // La prima linguetta della scheda: una panoramica di cosa stiamo facendo e a che
 // punto e' il paziente, senza scrivere niente. Ogni riquadro e' un pulsante
@@ -289,8 +290,8 @@ export default function QuadroPaziente({
                         const parte = (l.percento / tot) * C
                         const el = (
                           <circle
-                            key={l.famiglia}
-                            className={`q-lavoro-${l.famiglia}`}
+                            key={l.voce}
+                            className={coloreDose(l.voce)}
                             cx="21"
                             cy="21"
                             r="15.9155"
@@ -308,8 +309,8 @@ export default function QuadroPaziente({
                   </svg>
                   <ul>
                     {dati.lavoroUltima.map((l) => (
-                      <li key={l.famiglia}>
-                        <span className={`q-lavoro-punto q-lavoro-${l.famiglia}`} aria-hidden="true" />
+                      <li key={l.voce}>
+                        <span className={`q-lavoro-punto ${coloreDose(l.voce)}`} aria-hidden="true" />
                         {l.nome} <b>{l.percento}%</b>
                       </li>
                     ))}

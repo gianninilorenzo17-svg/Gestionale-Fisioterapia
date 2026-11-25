@@ -1,7 +1,8 @@
-// La dose della fase e il monopodalico, gesto per gesto: la categoria si conta
-// come pliometria o forza, la fase prende i numeri degli appunti con un clic, il
-// paziente ha le sue sedute a settimana, e in seduta una riga sola dice se ci
-// siamo. Il bottoncino Bipodalico/Monopodalico c'e' solo sugli esercizi a scelta.
+// La dose gesto per gesto: il tipo dell'esercizio ("Da sistemare"), le sezioni
+// della libreria spuntate nella fase, il modello di dose, e in seduta una riga
+// sola con i numeri: verde, arancione o rosso secondo quanto manca. La barretta sulla riga per
+// le eccezioni. Il bottoncino Bipodalico/Monopodalico c'e' solo sugli esercizi
+// a scelta.
 import { test, expect, type Page } from '@playwright/test'
 import { join } from 'node:path'
 import { avvia, creaArchivio, FOTO, vaiA } from './app'
@@ -10,13 +11,19 @@ async function prepara(pagina: Page): Promise<void> {
   await pagina.evaluate(async () => {
     const api = window.api
     const rinforzo = await api.categorie.create('Rinforzo')
-    await api.categorie.setContaCome(rinforzo, 'forza')
     const quad = await api.categorie.create('Quadricipite')
     await api.categorie.setPadre(quad, rinforzo)
-    const ham = await api.categorie.create('Hamstring')
-    await api.categorie.setPadre(ham, rinforzo)
+    const glut = await api.categorie.create('Gluteo')
+    await api.categorie.setPadre(glut, rinforzo)
     const plio = await api.categorie.create('Pliometria')
-    const esercizio = (nome: string, categoria_id: number, serie: string, rip: string, gambe: 'due' | 'scelta' | 'una') =>
+    const esercizio = (
+      nome: string,
+      categoria_id: number,
+      serie: string,
+      rip: string,
+      gambe: 'due' | 'scelta' | 'una',
+      tipo: 'rinforzo' | 'plio_est' | null
+    ) =>
       api.esercizi.create({
         nome,
         categoria_id,
@@ -30,18 +37,22 @@ async function prepara(pagina: Page): Promise<void> {
         recupero_default: null,
         nota_tecnica: null,
         link: null,
-        gambe
+        gambe,
+        tipo
       })
-    await esercizio('Leg extension', quad, '3', '10', 'due')
-    await esercizio('Leg curl', ham, '3', '10', 'due')
-    await esercizio('Single leg hop', plio, '3', '10', 'una')
-    await esercizio('Broad jump', plio, '2', '15', 'scelta')
+    await esercizio('Leg extension', quad, '3', '8', 'due', 'rinforzo')
+    await esercizio('Hip thrust', glut, '2', '8', 'due', 'rinforzo')
+    await esercizio('Single leg hop', plio, '3', '10', 'una', 'plio_est')
+    await esercizio('Broad jump', plio, '2', '15', 'scelta', null)
+
+    // le sezioni della libreria con le loro categorie
+    const libreria = await api.sezioniLibreria.list()
+    const idDi = (nome: string): number => libreria.find((l) => l.nome === nome)!.id
+    await api.sezioniLibreria.setCategorie(idDi('Pliometria estensiva'), [plio])
+    await api.sezioniLibreria.setCategorie(idDi('Forza'), [rinforzo])
+
     const pat = await api.patologie.create('LCA')
-    const fase = await api.fasi.create(pat, 'RTP 1')
-    const sezPlio = await api.sezioni.create(fase, 'Pliometria')
-    await api.sezioni.setCategorie(sezPlio, [plio])
-    const sezForza = await api.sezioni.create(fase, 'Forza')
-    await api.sezioni.setCategorie(sezForza, [rinforzo])
+    const fase = await api.fasi.create(pat, 'Ritorno al campo')
     await api.pazienti.create({
       nome: 'Luca',
       cognome: 'Dose',
@@ -73,78 +84,107 @@ async function apriPaziente(pagina: Page): Promise<void> {
 
 const riga = (pagina: Page, nome: string) => pagina.locator('.righe-seduta li', { hasText: nome })
 
-test('dose: la categoria si conta, la fase prende i numeri, la seduta dice se ci siamo', async () => {
+test('dose: da sistemare, sezioni e modello della fase, la riga in seduta', async () => {
   const prova = await avvia()
   try {
     const { pagina } = prova
     await creaArchivio(pagina)
     await prepara(pagina)
 
-    // ---- la pliometria si conta in contatti: si sceglie sulla categoria
+    // ---- l'esercizio senza tipo si sistema, e il pulsante sparisce
     await vaiA(pagina, 'Configurazione')
     await pagina.locator('.config-tabs-top').getByRole('button', { name: 'Libreria esercizi' }).click()
-    // i comandi della piastrella compaiono passandoci sopra
-    const piastrella = pagina.locator('.scelta-tile', { hasText: 'Pliometria' })
-    await piastrella.hover()
-    await piastrella.getByTitle('Modifica').click()
-    await pagina.locator('.modal label', { hasText: 'Nel conto della dose' }).locator('.menu-scelta-bottone').click()
-    await pagina.locator('.menu-scelta-popup').getByRole('button', { name: /Pliometria estensiva/ }).click()
-    await pagina.locator('.modal').screenshot({ path: join(FOTO, '40-dose-categoria.png') })
-    await pagina.locator('.modal').getByRole('button', { name: 'Salva' }).click()
-    await expect(pagina.locator('.scelta-tile', { hasText: 'Pliometria' }).locator('.badge')).toHaveText(
-      'pliometria est.'
-    )
+    await pagina.getByRole('button', { name: /Da sistemare/ }).click()
+    await pagina.locator('.modal').screenshot({ path: join(FOTO, '40-dose-da-sistemare.png') })
+    await pagina.locator('.modal').getByTitle('Tipo di Broad jump').click()
+    await pagina.locator('.menu-scelta-popup').getByRole('button', { name: 'Pliometria estensiva' }).click()
+    await pagina.locator('.modal').getByRole('button', { name: 'Chiudi' }).click()
+    await expect(pagina.getByRole('button', { name: /Da sistemare/ })).toHaveCount(0)
 
-    // ---- la fase prende i numeri degli appunti con un clic
+    // ---- la fase spunta le sezioni della libreria
     await pagina.locator('.config-tabs-top').getByRole('button', { name: 'Patologie e fasi' }).click()
     await pagina.getByText('LCA', { exact: true }).first().click()
-    await pagina.getByText('RTP 1', { exact: true }).first().click()
-    await pagina.locator('.config-tabs').getByRole('button', { name: 'Dose', exact: true }).click()
-    await pagina.locator('.modelli-dose').getByRole('button', { name: 'RTP 1' }).click()
-    await expect(pagina.getByLabel('Pliometria estensiva, da')).toHaveValue('80')
-    await expect(pagina.getByLabel('Pliometria estensiva, a')).toHaveValue('120')
-    await expect(pagina.getByLabel('Quadricipite, da')).toHaveValue('3')
-    await expect(pagina.getByLabel('Hamstring, da')).toHaveValue('3')
-    await pagina.screenshot({ path: join(FOTO, '41-dose-fase.png'), fullPage: true })
+    await pagina.getByText('Ritorno al campo', { exact: true }).first().click()
+    await pagina.locator('.sezioni-da-libreria').getByText('Pliometria estensiva', { exact: true }).click()
+    await expect(pagina.getByTitle('Togli dalla fase')).toHaveCount(1)
+    await pagina.locator('.sezioni-da-libreria').getByText('Forza', { exact: true }).click()
+    await expect(pagina.getByTitle('Togli dalla fase')).toHaveCount(2)
+    await pagina.screenshot({ path: join(FOTO, '41-dose-sezioni-fase.png'), fullPage: true })
 
-    // ---- il paziente fa tre sedute a settimana
+    // ---- e il modello si assegna da Libreria → Dosi
+    await pagina.locator('.config-tabs-top').getByRole('button', { name: 'Libreria esercizi' }).click()
+    await pagina.getByRole('button', { name: 'Dosi', exact: true }).click()
+    await expect(pagina.getByLabel('Pliometria estensiva, per seduta da')).toHaveValue('80')
+    await pagina.getByTitle('Modello di LCA, Ritorno al campo').click()
+    await pagina.locator('.menu-scelta-popup').getByRole('button', { name: 'RTP 2' }).click()
+    await expect(pagina.getByTitle('Modello di LCA, Ritorno al campo')).toContainText('RTP 2')
+    await pagina.screenshot({ path: join(FOTO, '42-dose-modelli.png'), fullPage: true })
+
+    // ---- in seduta: una riga sola, colorata secondo quanto manca
     await apriPaziente(pagina)
-    await pagina.getByRole('button', { name: 'Percorso', exact: true }).click()
-    await pagina.getByLabel('Sedute a settimana').fill('3')
-    await pagina.getByLabel('Sedute a settimana').press('Enter')
-
-    // ---- in seduta: la riga della dose e il monopodalico
     await pagina.getByRole('button', { name: 'Nuova seduta', exact: true }).click()
     const dose = pagina.locator('.riga-dose')
-    await expect(dose.locator('.voce-striscia', { hasText: 'Pliometria' })).toContainText('0/')
+    const voce = (v: string) => dose.locator(`.riga-dose-voce[data-voce="${v}"] b`)
+    await expect(voce('plio_est')).toHaveText('0/80')
+    await expect(voce('plio_est')).toHaveClass(/dose-lontana/)
+    await expect(voce('forza')).toHaveText('0/3')
+
     await pagina.getByTitle('Aggiungi un esercizio a questa sezione').nth(0).click()
     await pagina.getByTitle('Aggiungi Single leg hop').click()
     await pagina.getByTitle('Aggiungi Broad jump').click()
-    // il bottoncino c'e' solo sull'esercizio "a scelta"
     await expect(riga(pagina, 'Single leg hop').locator('.btn-monopodalico')).toHaveCount(0)
     // single leg hop 3 × 10 a una gamba = 60, broad jump 2 × 15 = 30
-    await expect(dose.locator('.voce-striscia', { hasText: 'Pliometria' })).toContainText('90/')
+    await expect(voce('plio_est')).toHaveText('90')
+    await expect(voce('plio_est')).toHaveClass(/dose-raggiunta/)
     await riga(pagina, 'Broad jump').getByRole('button', { name: 'Bipodalico' }).click()
-    await expect(riga(pagina, 'Broad jump').getByRole('button', { name: 'Monopodalico' })).toBeVisible()
-    await expect(dose.locator('.voce-striscia', { hasText: 'Pliometria' })).toContainText('120/')
+    await expect(voce('plio_est')).toHaveText('120')
 
     await pagina.getByTitle('Aggiungi un esercizio a questa sezione').nth(1).click()
     await pagina.getByTitle('Aggiungi Leg extension').click()
-    // aperta, la striscia dice com'e' messa ogni voce
-    await dose.locator('.riga-dose-sintesi').click()
-    await expect(dose.locator('li.ok', { hasText: 'Pliometria' })).toBeVisible()
-    await expect(dose.locator('li.ok', { hasText: 'Quadricipite' })).toBeVisible()
-    await expect(dose.locator('li.poco', { hasText: 'Hamstring' })).toBeVisible()
-    await expect(dose).toContainText('in settimana 0 su almeno 9')
-    await pagina.screenshot({ path: join(FOTO, '42-dose-seduta.png'), fullPage: true })
+    await pagina.getByTitle('Aggiungi Hip thrust').click()
+    // quadricipite 3 va bene, gluteo 2: ne manca una
+    await expect(voce('forza')).toHaveText('5 · −1')
+
+    // ---- la ciambella: sulla forza, la percentuale dei muscoli
+    const ciambella = pagina.locator('.ciambella-dose')
+    await ciambella.locator('li', { hasText: 'Forza' }).hover()
+    await expect(ciambella.getByRole('tooltip')).toContainText('Quadricipite')
+    await expect(ciambella.getByRole('tooltip')).toContainText('%')
+    await pagina.screenshot({ path: join(FOTO, '47-dose-ciambella.png') })
+    await pagina.mouse.move(0, 0)
+
+    // ---- l'eccezione sulla barretta
+    await riga(pagina, 'Hip thrust').locator('.barra-dose').click()
+    await pagina.locator('.menu-dose').getByRole('button', { name: 'Ipertrofia', exact: true }).click()
+    await expect(riga(pagina, 'Hip thrust').locator('.eccezione-dose')).toContainText('Qui conta come ipertrofia')
+    await expect(voce('forza')).toHaveText('3')
+    await expect(voce('ipertrofia')).toHaveText('2')
+    await pagina.screenshot({ path: join(FOTO, '43-dose-seduta.png'), fullPage: true })
+    await riga(pagina, 'Hip thrust').getByRole('button', { name: 'Ripristina' }).click()
+    await expect(voce('forza')).toHaveText('5 · −1')
+
+    // ---- il dettaglio si apre sopra la scheda
+    await expect(voce('forza')).toHaveClass(/dose-vicina/)
+    await dose.locator('.riga-dose-titolo').click()
+    await expect(dose.locator('.riga-dose-dettaglio')).toContainText('Forza · Gluteo')
+    await expect(dose.locator('.riga-dose-dettaglio')).toContainText('1 serie')
+    await pagina.screenshot({ path: join(FOTO, '44-dose-dettaglio.png') })
+    await dose.getByRole('button', { name: 'Settimana' }).click()
+    await expect(dose.locator('.riga-dose-dettaglio')).toContainText('su 2–3')
+    await pagina.screenshot({ path: join(FOTO, '45-dose-settimana.png') })
+    await dose.locator('.riga-dose-titolo').click({ force: true })
+
     await pagina.getByRole('button', { name: /Salva seduta/ }).click()
 
-    // riaperta, il segno c'e'
+    // riaperta, il segno c'e' e il conto pure
     await apriPaziente(pagina)
     await pagina.getByRole('button', { name: 'Diario sedute' }).click()
     await pagina.getByTitle('Modifica la seduta').first().click()
     await expect(riga(pagina, 'Broad jump').getByRole('button', { name: 'Monopodalico' })).toBeVisible()
+    await expect(voce('plio_est')).toHaveText('120')
     await pagina.locator('.nome-nel-titolo').click()
+    await apriPaziente(pagina)
+    await pagina.screenshot({ path: join(FOTO, '46-dose-quadro.png'), fullPage: true })
 
     expect(prova.errori, 'errori nella console').toEqual([])
   } finally {

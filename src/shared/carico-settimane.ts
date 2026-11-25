@@ -1,29 +1,15 @@
-// Il carico settimana per settimana, confrontato con la dose della fase: per la
-// linguetta Percorso del paziente. Come la dose serve SOLO a programmare e non
-// finisce in nessun documento. Il conto delle righe e' lo stesso della seduta
-// (contaRighe in shared/dose.ts); qui si sommano le sedute di ogni settimana.
-// Le prove stanno in test/carico-settimane.test.ts.
+// Il carico settimana per settimana, per la linguetta Percorso del paziente:
+// quanto si e' fatto, voce per voce, senza confronti con la dose. Come la dose
+// serve SOLO a programmare e non finisce in nessun documento. Il conto delle
+// righe e' lo stesso della seduta (contaRighe in shared/dose.ts); qui si sommano
+// le sedute di ogni settimana. Le prove stanno in test/carico-settimane.test.ts.
 //
-// Quanto ci vorrebbe in una settimana:
-//  - pliometria e potenza: la dose e' per seduta, quindi si moltiplica per le
-//    sedute fatte quella settimana (due sedute invece di tre non sono "poco":
-//    conta se ogni seduta aveva la sua dose);
-//  - forza: la dose e' per seduta ma si ragiona sulla settimana (shared/dose.ts),
-//    quindi si moltiplica per le sedute a settimana del paziente, o per quelle
-//    fatte se non sono scritte.
 // La fase della settimana e' quella dell'ultima seduta che ne ha una. Le sedute
 // al campo non contano nel carico, ma dolore e sforzo si' (sono del paziente).
-import {
-  contaRighe,
-  settimanaDi,
-  type CategoriaConto,
-  type DoseFase,
-  type RigaConto
-} from './dose'
+import { contaRighe, muscoliVoce, settimanaDi, totaleVoce, VOCI, type RigaConto, type Voce } from './dose'
 
 export interface SedutaCarico {
   data: string
-  fase_id: number | null
   fase_nome: string | null
   campo: 0 | 1
   dolore: number | null
@@ -31,32 +17,23 @@ export interface SedutaCarico {
   righe: RigaConto[]
 }
 
-export type EsitoCarico = 'ok' | 'poco' | 'troppo'
-
-export interface VoceSettimana {
-  fatto: number
-  // quanto ci vorrebbe in questa settimana; tutti e due null = la fase non lo dice
-  da: number | null
-  a: number | null
-  // null = non si giudica (niente dose, o "poco" in una settimana non finita)
-  esito: EsitoCarico | null
-}
-
 export interface SettimanaCarico {
   lunedi: string
   domenica: string
-  // la settimana di oggi: "poco" non si dice, puo' ancora arrivare
+  // la settimana di oggi non e' finita
   inCorso: boolean
   sedute: number
   seduteCampo: number
   fase: string | null
-  voci: Record<string, VoceSettimana>
+  // quanto in tutto per voce, e per forza e ipertrofia muscolo per muscolo
+  voci: Partial<Record<Voce, number>>
+  muscoli: Partial<Record<Voce, { categoria: number; fatto: number }[]>>
   dolore: number | null
   sforzo: number | null
 }
 
 export interface AvvisoCarico {
-  chiave: string
+  chiave: Voce
   // dalla piu' vecchia alla piu' recente, tre settimane
   valori: [number, number, number]
   dolori: [number, number, number]
@@ -65,11 +42,10 @@ export interface AvvisoCarico {
 export interface CaricoPaziente {
   // dalla piu' recente alla piu' vecchia, comprese quelle vuote in mezzo
   settimane: SettimanaCarico[]
-  // le voci che hanno una dose in qualche fase o qualcosa di contato
-  chiavi: string[]
-  // il nome da mostrare per ogni chiave della forza (la categoria)
-  nomi: Record<string, string>
-  frequenza: number | null
+  // le voci con qualcosa di contato in almeno una settimana
+  chiavi: Voce[]
+  // il nome di ogni muscolo (la categoria)
+  nomi: Record<number, string>
   avviso: AvvisoCarico | null
 }
 
@@ -86,21 +62,8 @@ function piuGiorni(iso: string, giorni: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-export function esitoCarico(fatto: number, da: number | null, a: number | null, inCorso: boolean): EsitoCarico | null {
-  if (da == null && a == null) return null
-  if (a != null && fatto > a) return 'troppo'
-  if (da != null && fatto < da) return inCorso ? null : 'poco'
-  return 'ok'
-}
-
-export function caricoSettimane(input: {
-  sedute: SedutaCarico[]
-  dosi: Record<number, DoseFase[]>
-  categorie: CategoriaConto[]
-  frequenza: number | null
-  oggi: string
-}): Omit<CaricoPaziente, 'nomi' | 'frequenza'> {
-  const { dosi, categorie, frequenza, oggi } = input
+export function caricoSettimane(input: { sedute: SedutaCarico[]; oggi: string }): Omit<CaricoPaziente, 'nomi'> {
+  const { oggi } = input
   const sedute = input.sedute.filter((s) => s.data <= oggi).sort((a, b) => a.data.localeCompare(b.data))
   if (sedute.length === 0) return { settimane: [], chiavi: [], avviso: null }
 
@@ -110,53 +73,42 @@ export function caricoSettimane(input: {
     perSettimana.set(lun, [...(perSettimana.get(lun) ?? []), s])
   }
 
-  // le chiavi: quelle con una dose nelle fasi usate, e quelle con qualcosa di contato
-  const chiavi = new Set<string>()
-  for (const id of new Set(sedute.map((s) => s.fase_id).filter((x): x is number => x != null))) {
-    for (const d of dosi[id] ?? []) if (d.minimo != null || d.massimo != null) chiavi.add(d.chiave)
-  }
-
+  const chiavi = new Set<Voce>()
   const settimane: SettimanaCarico[] = []
   const [primo] = settimanaDi(sedute[0].data)
   const [ultimo] = settimanaDi(sedute[sedute.length - 1].data)
   for (let lun = primo; lun <= ultimo; lun = piuGiorni(lun, 7)) {
     const tutte = perSettimana.get(lun) ?? []
     const contate = tutte.filter((s) => s.campo === 0)
-    const conto = contaRighe(
-      contate.flatMap((s) => s.righe),
-      categorie
-    )
-    for (const [k, v] of Object.entries(conto)) if (v > 0) chiavi.add(k)
-
-    const conFase = [...contate].reverse().find((s) => s.fase_id != null)
-    const domenica = piuGiorni(lun, 6)
-    const inCorso = domenica >= oggi
-    const dose = conFase?.fase_id != null ? (dosi[conFase.fase_id] ?? []) : []
-    const voci: Record<string, VoceSettimana> = {}
-    for (const k of new Set([...Object.keys(conto), ...dose.map((d) => d.chiave)])) {
-      const d = dose.find((x) => x.chiave === k)
-      const volte = k.startsWith('forza:') ? (frequenza ?? contate.length) : contate.length
-      const da = d?.minimo != null ? d.minimo * volte : null
-      const a = d?.massimo != null ? d.massimo * volte : null
-      const fatto = conto[k] ?? 0
-      voci[k] = { fatto, da, a, esito: contate.length === 0 ? null : esitoCarico(fatto, da, a, inCorso) }
+    const conto = contaRighe(contate.flatMap((s) => s.righe))
+    const voci: SettimanaCarico['voci'] = {}
+    const muscoli: SettimanaCarico['muscoli'] = {}
+    for (const { voce, perMuscolo } of VOCI) {
+      const totale = totaleVoce(conto, voce)
+      if (totale <= 0) continue
+      chiavi.add(voce)
+      voci[voce] = totale
+      if (perMuscolo) muscoli[voce] = muscoliVoce(conto, voce)
     }
 
+    const conFase = [...contate].reverse().find((s) => s.fase_nome != null)
+    const domenica = piuGiorni(lun, 6)
     settimane.push({
       lunedi: lun,
       domenica,
-      inCorso,
+      inCorso: domenica >= oggi,
       sedute: contate.length,
       seduteCampo: tutte.length - contate.length,
       fase: conFase?.fase_nome ?? null,
       voci,
+      muscoli,
       dolore: media(tutte.map((s) => s.dolore)),
       sforzo: media(tutte.map((s) => s.sforzo))
     })
   }
   settimane.reverse()
 
-  const elenco = [...chiavi]
+  const elenco = VOCI.map((v) => v.voce).filter((v) => chiavi.has(v))
   return { settimane, chiavi: elenco, avviso: avvisoCarico(settimane, elenco) }
 }
 
@@ -164,7 +116,7 @@ export function caricoSettimane(input: {
 // con sedute) il dolore medio e' salito ogni settimana, di almeno un punto in
 // tutto, mentre una voce del carico cresceva. Se le voci che crescono sono
 // piu' d'una si dice quella cresciuta di piu', in proporzione.
-export function avvisoCarico(settimane: SettimanaCarico[], chiavi: string[]): AvvisoCarico | null {
+export function avvisoCarico(settimane: SettimanaCarico[], chiavi: Voce[]): AvvisoCarico | null {
   if (settimane.length < 3) return null
   const [w2, w1, w0] = settimane // w2 la piu' recente
   if ([w0, w1, w2].some((w) => w.sedute + w.seduteCampo === 0 || w.dolore == null)) return null
@@ -174,7 +126,7 @@ export function avvisoCarico(settimane: SettimanaCarico[], chiavi: string[]): Av
   let scelta: AvvisoCarico | null = null
   let crescita = 0
   for (const k of chiavi) {
-    const v = [w0, w1, w2].map((w) => w.voci[k]?.fatto ?? 0) as [number, number, number]
+    const v = [w0, w1, w2].map((w) => w.voci[k] ?? 0) as [number, number, number]
     if (!(v[2] > v[0] && v[1] >= v[0])) continue
     const quanto = v[0] === 0 ? Infinity : (v[2] - v[0]) / v[0]
     if (scelta == null || quanto > crescita) {

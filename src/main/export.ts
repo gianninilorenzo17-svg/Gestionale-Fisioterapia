@@ -91,7 +91,12 @@ function leggiSeduta(id: number, illustrata = false): DatiSedutaExport & { pazie
               se.serie, se.cluster, se.ripetizioni,
               se.carico, se.recupero_cluster, se.recupero,
               se.nota, se.variante, se.monopodalico, se.seduta_sezione_id${
-                illustrata ? ', e.nota_tecnica, e.link, e.immagine' : ''
+                illustrata
+                  ? `, e.nota_tecnica, e.link, COALESCE(
+                       (SELECT v.immagine FROM esercizio_varianti v
+                        WHERE v.esercizio_id = se.esercizio_id AND v.nome = se.variante),
+                       e.immagine) AS immagine`
+                  : ''
               }
        FROM seduta_esercizi se
        LEFT JOIN esercizi e ON e.id = se.esercizio_id

@@ -318,12 +318,15 @@ export function generaHtml(
                       break-inside: avoid; page-break-inside: avoid; }
   .esercizio-scheda .testa-es { flex: 1 1 0; min-width: 0; }
   .esercizio-scheda .titolo-es { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
-  .esercizio-scheda .nome { flex: 0 1 auto; min-width: 4ch; font-weight: 600; font-size: 12.5px;
-                            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Il nome ha uno spazio suo: oltre va a capo, al massimo su due righe. */
+  .esercizio-scheda .nome { flex: 0 1 auto; min-width: min(12ch, 100%); max-width: 34ch; font-weight: 600;
+                            font-size: 12.5px; line-height: 1.3; display: -webkit-box;
+                            -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+                            overflow-wrap: break-word; }
   .esercizio-scheda .gambe-es { flex: none; font-size: 10.5px; font-weight: 700; color: #8a4fa0;
                                 white-space: nowrap; }
   .esercizio-scheda .gambe-es .ab { display: none; }
-  .esercizio-scheda .variante-es { flex: 0 8 auto; min-width: 8ch; font-size: 10.5px; font-weight: 700;
+  .esercizio-scheda .variante-es { flex: none; max-width: 45%; font-size: 10.5px; font-weight: 700;
                                    color: #c0502f; overflow: hidden; text-overflow: ellipsis;
                                    white-space: nowrap; }
   .esercizio-scheda .nota-es { display: block; margin-top: 2px; color: #555b66;

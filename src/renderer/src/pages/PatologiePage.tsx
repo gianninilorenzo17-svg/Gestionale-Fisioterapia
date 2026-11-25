@@ -1,18 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ChevronRight, Pencil, Plus, Trees, X } from 'lucide-react'
-import type {
-  Categoria,
-  Distretto,
-  Fase,
-  Obiettivo,
-  Patologia,
-  SezioneConCategorie,
-  TestAvanzamento
-} from '../../../shared/types'
+import type { Distretto, Fase, Obiettivo, Patologia, TestAvanzamento } from '../../../shared/types'
 import CrudList from '../components/CrudList'
 import { daPrecarico, ricorda } from '../precarico'
 import ProgressioniFaseTab from '../components/ProgressioniFase'
 import DoseFaseTab from '../components/DoseFase'
+import StrutturaFase from '../components/StrutturaFase'
 import Aiuto from '../components/Aiuto'
 import { useRiordinoSalvato } from '../riordino'
 import { toastErrore } from '../components/Toast'
@@ -108,7 +101,7 @@ export default function PatologiePage(): React.JSX.Element {
               </button>
             ))}
           </div>
-          {tab === 'struttura' && <StrutturaTab key={faseSel.id} faseId={faseSel.id} />}
+          {tab === 'struttura' && <StrutturaFase key={faseSel.id} faseId={faseSel.id} />}
           {tab === 'obiettivi' && <ObiettiviTab key={faseSel.id} faseId={faseSel.id} />}
           {tab === 'progressioni' && <ProgressioniFaseTab key={faseSel.id} faseId={faseSel.id} />}
           {tab === 'dose' && <DoseFaseTab key={faseSel.id} faseId={faseSel.id} />}
@@ -540,158 +533,6 @@ function ElencoFasi({
           </div>
         )
       })}
-    </div>
-  )
-}
-
-// La struttura della seduta: sezioni ordinate, ognuna con le sue categorie (ordinate).
-function StrutturaTab({ faseId }: { faseId: number }): React.JSX.Element {
-  const [sezioni, setSezioni] = useState<SezioneConCategorie[]>([])
-  const [selSez, setSelSez] = useState<number | null>(null)
-  const [categorie, setCategorie] = useState<Categoria[]>([])
-  const [ricercaCat, setRicercaCat] = useState('')
-
-  const load = useCallback(
-    (): Promise<void> => window.api.sezioni.list(faseId).then(setSezioni),
-    [faseId]
-  )
-
-  useEffect(() => {
-    void load()
-    void window.api.categorie.list().then(setCategorie)
-  }, [load])
-
-  const sez = sezioni.find((s) => s.id === selSez) ?? null
-
-  const salvaCategorie = async (ids: number[]): Promise<void> => {
-    if (selSez == null) return
-    try {
-      await window.api.sezioni.setCategorie(selSez, ids)
-      await load()
-    } catch (e) {
-      toastErrore(errMsg(e))
-    }
-  }
-
-  const toggleCategoria = (cid: number, attiva: boolean): void => {
-    if (!sez) return
-    const ids = attiva ? [...sez.categoria_ids, cid] : sez.categoria_ids.filter((id) => id !== cid)
-    void salvaCategorie(ids)
-  }
-
-  // Un distretto si scrive con la sua categoria davanti: "Quadricipite" da solo
-  // non dice di che lavoro si tratta.
-  const nomeCategoria = (cid: number): string => {
-    const c = categorie.find((x) => x.id === cid)
-    if (!c) return '?'
-    const padre = c.padre_id == null ? null : categorie.find((x) => x.id === c.padre_id)
-    return padre ? `${padre.nome} › ${c.nome}` : c.nome
-  }
-
-  // In elenco i distretti vengono subito dopo la loro categoria.
-  const inOrdine = (elenco: Categoria[]): Categoria[] =>
-    elenco
-      .filter((c) => c.padre_id == null)
-      .flatMap((c) => [c, ...elenco.filter((f) => f.padre_id === c.id)])
-      .concat(
-        // quelli il cui padre non e' nell'elenco (perche' filtrato dalla
-        // ricerca) restano comunque visibili
-        elenco.filter(
-          (c) => c.padre_id != null && !elenco.some((x) => x.id === c.padre_id)
-        )
-      )
-  const nonAssociate = categorie.filter((c) => !sez?.categoria_ids.includes(c.id))
-  const qCat = ricercaCat.trim().toLowerCase()
-  const daAggiungere = inOrdine(
-    qCat === '' ? nonAssociate : nonAssociate.filter((c) => c.nome.toLowerCase().includes(qCat))
-  )
-
-  return (
-    <div className="struttura-tab">
-      <CrudList
-        title="Sezioni della seduta"
-        items={sezioni}
-        selectedId={selSez}
-        onSelect={setSelSez}
-        onAdd={async (n) => {
-          await window.api.sezioni.create(faseId, n)
-          await load()
-        }}
-        onRename={async (id, n) => {
-          await window.api.sezioni.update(id, n)
-          await load()
-        }}
-        onDelete={async (id) => {
-          await window.api.sezioni.remove(id)
-          if (selSez === id) setSelSez(null)
-          await load()
-        }}
-        onReorder={async (ids) => {
-          await window.api.sezioni.reorder(ids)
-          await load()
-        }}
-        etichettaAggiungi="Nuova sezione"
-        addPlaceholder="es. Riscaldamento"
-        emptyHint="Nessuna sezione."
-      />
-      <section className="crud-list">
-        <h3>
-          Categorie della sezione
-          <Aiuto testo="Spuntando una categoria la sezione propone anche gli esercizi dei distretti che ci stanno dentro: «Rinforzo» porta con sé quadricipite, spalla e polpaccio. Se per questa fase ne vuoi solo alcuni, spunta i singoli distretti invece della categoria." />
-        </h3>
-        {sez == null ? (
-          <p className="hint">Seleziona una sezione</p>
-        ) : categorie.length === 0 ? (
-          <p className="hint">Nessuna categoria disponibile: creale in &ldquo;Categorie esercizi&rdquo;.</p>
-        ) : (
-          <>
-            <ul className="checkbox-list">
-              {sez.categoria_ids.map((cid) => (
-                <li key={cid}>
-                  <label>
-                    <input type="checkbox" checked onChange={() => toggleCategoria(cid, false)} />
-                    {nomeCategoria(cid)}
-                  </label>
-                </li>
-              ))}
-              {sez.categoria_ids.length === 0 && (
-                <li className="empty">Nessuna categoria associata: spunta qui sotto.</li>
-              )}
-            </ul>
-            {nonAssociate.length > 0 && (
-              <>
-                <div className="sotto-titolo">Altre categorie</div>
-                {/* Con trenta categorie scorrerle tutte per trovarne una e'
-                    piu' lento che scriverne tre lettere. */}
-                <input
-                  type="search"
-                  className="cerca-categoria"
-                  placeholder="Cerca categoria…"
-                  value={ricercaCat}
-                  onChange={(e) => setRicercaCat(e.target.value)}
-                />
-                <ul className="checkbox-list elenco-categorie-scorre">
-                  {daAggiungere.map((c) => (
-                    <li key={c.id}>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={false}
-                          onChange={() => toggleCategoria(c.id, true)}
-                        />
-                        {c.nome}
-                      </label>
-                    </li>
-                  ))}
-                  {daAggiungere.length === 0 && (
-                    <li className="empty">Nessuna categoria con questo nome.</li>
-                  )}
-                </ul>
-              </>
-            )}
-          </>
-        )}
-      </section>
     </div>
   )
 }

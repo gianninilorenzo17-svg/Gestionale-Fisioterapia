@@ -19,6 +19,8 @@ export type TabellaOrdinabile =
   | 'fasi'
   | 'obiettivi'
   | 'sezioni'
+  | 'sezioni_libreria'
+  | 'dose_modelli'
   | 'test_avanzamento'
   | 'categorie'
   | 'screening_protocolli'

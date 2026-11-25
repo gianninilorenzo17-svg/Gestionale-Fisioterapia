@@ -152,7 +152,6 @@
 .sezione-card,
 .obiettivi-info,
 .riepilogo-prog,
-.riga-dose,
 .settimana-card {
   min-width: 0;
   background: var(--surface);
@@ -208,6 +207,13 @@
    scritta accanto. */
 .btn-solo-icona {
   padding: 7px 9px;
+}
+/* Nella barra degli elenchi ha la stessa altezza delle caselle accanto. */
+.toolbar .btn-solo-icona {
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Un pulsante della barra che e' acceso o spento (mostra gli archiviati,
@@ -383,76 +389,6 @@
   border-color: var(--accent);
   background: var(--accent-soft);
   font-weight: 600;
-}
-
-/* La dose della seduta: una riga sola sopra agli esercizi, che si apre con un
-   clic. Verde quando va bene, ambra quando e' poco o troppo: e' un consiglio,
-   non un errore. */
-.riga-dose {
-  margin-bottom: var(--spazio);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.riga-dose-sintesi {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 6px 14px;
-  width: 100%;
-  padding: 8px 12px;
-  background: transparent;
-  border: none;
-  text-align: left;
-  font-size: 13px;
-  color: var(--text-dim);
-}
-
-.voce-dose {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 600;
-}
-
-.voce-dose.ok {
-  color: var(--success);
-}
-
-.voce-dose.poco,
-.voce-dose.troppo {
-  color: var(--attenzione);
-}
-
-.riga-dose-dettaglio {
-  padding: 0 12px 10px 34px;
-  font-size: 13px;
-}
-
-.riga-dose-dettaglio ul {
-  margin: 0 0 8px;
-  padding-left: 16px;
-}
-
-.riga-dose-dettaglio li {
-  margin: 3px 0;
-}
-
-.riga-dose-dettaglio li.poco b,
-.riga-dose-dettaglio li.troppo b {
-  color: var(--attenzione);
-}
-
-.riga-dose-frequenza {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.riga-dose-frequenza input {
-  width: 64px;
 }
 
 /* La modalita' in corso, "Bipodalico" o "Monopodalico": spenta (bipodalico) e'

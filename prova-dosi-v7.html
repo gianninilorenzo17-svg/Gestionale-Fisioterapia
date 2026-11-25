@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prova dosi v7 — tutto insieme</title>
+<style>
+:root{--bg:#f4efe5;--surface:#fff;--border:#e6dfd3;--bf:#d6ccbb;--text:#241f19;--dim:#77706a;--accent:#55806a;--soft:#e7efe9;--int:#efe8d9;--pan:#f3f3f2;--warn:#b7791f;--ok:#1f9d61;
+--pe:#6fa8d8;--pi:#2f5b8a;--fo:#55806a;--ip:#8e5aa0;--po:#d08a2e;--is:#a8693f;--ec:#b3565f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px 'Inter','Segoe UI',system-ui,sans-serif;padding:24px 16px 80px}
+.wrap{max-width:1000px;margin:0 auto}h1{font-size:22px;margin:0 0 4px}.sub{color:var(--dim);margin:0 0 20px}
+h2{font-size:15px;margin:36px 0 2px}h2 span{display:inline-block;background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;font-size:12px;margin-right:8px}
+.nota{color:var(--dim);font-size:13px;margin:0 0 10px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;overflow-x:auto}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:-16px -16px 14px;padding:8px 12px 0;background:var(--int);border-radius:10px 10px 0 0;flex-wrap:wrap}
+.tabs b{padding:8px 14px;border-radius:8px 8px 0 0;font-weight:500;color:var(--dim)}.tabs b.on{background:var(--surface);color:var(--text);border:1px solid var(--border);border-bottom:1px solid var(--surface);margin-bottom:-1px}
+.cols{display:grid;grid-template-columns:230px 1fr;gap:16px}@media(max-width:760px){.cols,.due{grid-template-columns:1fr!important}}
+.conto{display:flex;flex-wrap:wrap;gap:4px 18px;align-items:center;border:1px solid var(--border);border-radius:8px;padding:7px 12px;margin-bottom:12px;cursor:pointer}.conto i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px}
+.due{display:grid;grid-template-columns:1fr 1.4fr;gap:14px;align-items:start}
+.lista div{padding:8px 12px;border-radius:8px;margin-bottom:2px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.lista .on{background:var(--soft);color:var(--accent);font-weight:600}.lista .nuovo{color:var(--accent)}
+.pill{font-size:11px;border-radius:999px;padding:1px 9px;border:1px solid var(--c,var(--bf));color:var(--c,var(--dim));white-space:nowrap;font-weight:600;background:#fff}
+.pe{--c:#3d7bb0}.pi{--c:var(--pi)}.fo{--c:var(--fo)}.ip{--c:var(--ip)}.po{--c:#9a6012}.is{--c:var(--is)}.ec{--c:var(--ec)}
+.sel{display:inline-flex;gap:10px;align-items:center;border:1px solid var(--bf);border-radius:8px;padding:6px 12px;background:#fff}
+.in{display:inline-block;border:1px solid var(--bf);border-radius:8px;padding:4px 10px;background:#fff;white-space:nowrap}
+.dubbio{border:1.5px dashed var(--warn);color:var(--warn)}
+.lab{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);font-weight:600;margin:14px 0 6px}
+table{border-collapse:collapse;width:100%}td,th{padding:7px 6px;text-align:left;vertical-align:middle}th{font-size:12px;color:var(--dim);font-weight:500}tr+tr td{border-top:1px solid var(--border)}
+.sez{display:flex;align-items:center;gap:10px;background:var(--int);margin:0 -16px;padding:8px 16px;font-weight:600}
+.sez .r{margin-left:auto;font-weight:500;font-size:12px;border:1px solid var(--bf);border-radius:999px;padding:2px 10px;background:#fff}
+.riga{position:relative;padding:10px 0 10px 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center}
+.riga:before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:5px;border-radius:3px;background:var(--c,#cfc6b6)}
+.riga b{flex:1}.d{color:var(--dim);font-size:13px}
+.voce{display:flex;justify-content:space-between;margin:12px 0 4px;gap:8px}.voce i{font-style:normal;display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px}
+.barra{height:6px;background:var(--pan);border-radius:4px}.barra i{display:block;height:100%;border-radius:4px}
+.quote{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:6px 0}
+.bolla{background:#2b2823;color:#fff;border-radius:10px;padding:10px 12px;font-size:13px;margin-top:8px}.bolla div{display:flex;justify-content:space-between;gap:14px;padding:2px 0}
+.chk{display:inline-block;width:16px;height:16px;border:1.5px solid var(--bf);border-radius:4px;vertical-align:-3px;margin-right:6px;background:#fff;text-align:center;line-height:13px;font-size:12px;color:#fff}.chk.s{background:var(--accent);border-color:var(--accent)}
+</style></head><body><div class="wrap">
+<h1>Dosi di lavoro: il disegno con tutte le scelte</h1>
+<p class="sub">Solo bozza, niente è nel programma. Tutto quello che vedi sarebbe già compilato.</p>
+
+<h2><span>1</span>Libreria → Esercizi</h2>
+<p class="nota">Sull'esercizio: solo il <b>tipo</b> e il <b>muscolo principale</b> (la categoria di oggi). L'obiettivo del rinforzo non sta qui.</p>
+<div class="card"><div class="tabs"><b class="on">Esercizi</b><b>Categorie</b><b>Progressioni</b><b>Sezioni</b><b>Dosi</b></div>
+<div style="display:flex;gap:10px;margin-bottom:8px"><span class="in" style="flex:1;color:#b5afa6">Cerca esercizio…</span><span class="sel" style="border-color:var(--warn);color:var(--warn)">Da sistemare <b>3</b></span></div>
+<table><tr><th>Esercizio</th><th>Muscolo principale</th><th>Tipo</th></tr>
+<tr><td><b>Back squat</b></td><td>Quadricipite</td><td><span class="pill">Rinforzo</span></td></tr>
+<tr><td><b>Hip thrust</b></td><td>Gluteo</td><td><span class="pill">Rinforzo</span></td></tr>
+<tr><td><b>CMJ continuo</b></td><td class="d">–</td><td><span class="pill pe">Pliometria estensiva</span></td></tr>
+<tr><td><b>CMJ zavorrato</b></td><td class="d">–</td><td><span class="pill pi">Pliometria intensiva</span></td></tr>
+<tr><td><b>Pogo jump</b></td><td class="d">–</td><td><span class="pill">Non conta</span></td></tr></table>
+<p class="nota" style="margin:12px 0 6px">Quando non c'è più niente da sistemare il pulsante sparisce e la ricerca prende tutta la riga:</p>
+<span class="in" style="display:block;color:#b5afa6">Cerca esercizio…</span></div>
+
+<h2><span>2</span>Libreria → Sezioni</h2>
+<p class="nota">Il valore dice dove va il <b>rinforzo</b> messo in quella sezione. La pliometria si conta ovunque, anche nel riscaldamento.</p>
+<div class="card"><div class="tabs"><b>Esercizi</b><b>Categorie</b><b>Progressioni</b><b class="on">Sezioni</b><b>Dosi</b></div>
+<div class="cols"><div class="lista">
+<div>Riscaldamento <span class="pill">Non conta</span></div>
+<div>Controllo motorio <span class="pill">Non conta</span></div>
+<div>Potenza <span class="pill po">Potenza</span></div>
+<div>Pliometria intensiva <span class="pill pi">Pliometria</span></div>
+<div>Pliometria estensiva <span class="pill pe">Pliometria</span></div>
+<div class="on">Forza <span class="pill fo">Forza</span></div>
+<div>Eccentrica <span class="pill ec">Eccentrica</span></div>
+<div>Isometria massimale <span class="pill is">Isometria</span></div>
+<div>Ipertrofia <span class="pill ip">Ipertrofia</span></div>
+<div>Core e distale <span class="pill">Non conta</span></div>
+<div>Defaticamento <span class="pill">Non conta</span></div>
+<div class="nuovo">+ Nuova sezione</div></div>
+<div><b style="font-size:16px">Forza</b><div class="lab">Obiettivo</div><span class="sel"><span class="pill fo">Forza</span> ▾</span>
+<p class="nota" style="margin-top:8px">Scelte: Forza · Ipertrofia · Potenza · Eccentrica · Isometria · Pliometria · Non conta.</p>
+<div class="lab">Categorie che propone (come oggi)</div><span class="in">Quadricipite</span> <span class="in">Gluteo</span> <span class="in">Ischiocrurali</span></div></div></div>
+
+<h2><span>3</span>Libreria → Dosi</h2>
+<p class="nota">Dose <b>per seduta</b> e <b>volte a settimana</b>. Il totale settimanale lo calcola il programma. Riga vuota = si conta ma non si giudica.</p>
+<div class="card"><div class="tabs"><b>Esercizi</b><b>Categorie</b><b>Progressioni</b><b>Sezioni</b><b class="on">Dosi</b></div>
+<div class="lab" style="margin-top:0">RTP 1</div>
+<table><tr><th style="width:23%">Voce</th><th style="width:19%">Per seduta</th><th style="width:12%">A settimana</th><th>Indicazione</th></tr>
+<tr><td><span class="pill pe">Plio estensiva</span></td><td><span class="in">80–120</span> contatti</td><td><span class="in">3–5</span></td><td class="d">corpo libero, almeno 10 rip.</td></tr>
+<tr><td><span class="pill ip">Ipertrofia</span></td><td><span class="in">almeno 3</span> serie/muscolo</td><td><span class="in">3–5</span></td><td class="d">3 × 10, 70%, RIR 0, TUT 4-1-X</td></tr>
+<tr><td><span class="pill ec">Eccentrica</span></td><td><span class="in">3–5</span> ripetizioni</td><td><span class="in">2</span></td><td class="d">110–130%; facoltativa secondo tolleranza</td></tr>
+<tr><td><span class="pill is">Isometria</span></td><td><span class="in">circa 60</span> secondi</td><td><span class="in">2</span></td><td class="d">massimale, 3–5″ per ripetizione</td></tr></table>
+<div class="lab">RTP 2</div>
+<table><tr><th style="width:23%">Voce</th><th style="width:19%">Per seduta</th><th style="width:12%">A settimana</th><th>Indicazione</th></tr>
+<tr><td><span class="pill pi">Plio intensiva</span></td><td><span class="in">30–40</span> contatti</td><td><span class="in">2–3</span></td><td class="d">4–6 rip., sovraccarico facoltativo</td></tr>
+<tr><td><span class="pill pe">Plio estensiva</span></td><td><span class="in">80–120</span> contatti</td><td><span class="in">2–3</span></td><td class="d">corpo libero, almeno 10 rip.</td></tr>
+<tr><td><span class="pill fo">Forza</span></td><td><span class="in">3–5</span> serie/muscolo</td><td><span class="in">2–3</span></td><td class="d">6–8 rip., 70–80%</td></tr>
+<tr><td><span class="pill ip">Ipertrofia</span></td><td><span class="in" style="color:#b5afa6">vuoto</span></td><td></td><td class="d">solo se c'è un deficit di forza oltre il 20%</td></tr></table>
+<div class="lab">Preparazione atletica</div>
+<table><tr><th style="width:23%">Voce</th><th style="width:19%">Per seduta</th><th style="width:12%">A settimana</th><th>Indicazione</th></tr>
+<tr><td><span class="pill po">Potenza</span></td><td><span class="in">3–5</span> serie in tutto</td><td><span class="in">2</span></td><td class="d">sport di potenza: al posto della plio intensiva; 30–60%, alzate olimpiche 75–85%</td></tr>
+<tr><td><span class="pill pi">Plio intensiva</span></td><td><span class="in">30–40</span> contatti</td><td><span class="in">2</span></td><td class="d">sport di squadra; 4–6 rip.</td></tr>
+<tr><td><span class="pill pe">Plio estensiva</span></td><td><span class="in">80–120</span> contatti</td><td><span class="in">2</span></td><td class="d">a cluster</td></tr>
+<tr><td><span class="pill fo">Forza</span></td><td><span class="in">2–4</span> serie/muscolo</td><td><span class="in">2</span></td><td class="d">3–5 rip., ≥85% (non atleti ≥80%), RIR 2</td></tr></table></div>
+
+<h2><span>4</span>Fase → Sezioni e Dose</h2>
+<p class="nota">Nella fase si spuntano le sezioni e si sceglie un modello: niente numeri da riscrivere.</p>
+<div class="card"><div class="tabs"><b>Obiettivi</b><b>Test</b><b>Progressioni</b><b class="on">Sezioni</b><b>Dose</b></div>
+<span class="chk s">✓</span>Riscaldamento <span class="d">· </span> <span class="chk s">✓</span>Pliometria intensiva &nbsp; <span class="chk s">✓</span>Pliometria estensiva &nbsp; <span class="chk s">✓</span>Forza &nbsp; <span class="chk s">✓</span>Ipertrofia &nbsp; <span class="chk"></span><span class="d">Potenza</span> &nbsp; <span style="color:var(--accent)">+ Sezione solo di questa fase</span>
+<div class="lab">Modello di dose</div><span class="sel">RTP 2 ▾</span></div>
+
+<h2><span>5</span>In seduta</h2>
+<p class="nota">Il conto sta in <b>una riga sola</b> sopra gli esercizi, che tengono tutta la larghezza. Se sei sotto il minimo, solo quel numero diventa arancione, con il minimo accanto. Sopra il minimo non succede niente. Appena aggiungi quello che manca il segnale sparisce, mentre scrivi. Non compare nemmeno se le altre sedute della settimana hanno già raggiunto il minimo (per esempio 2 sedute complete di forza).</p>
+<div class="card" style="padding-top:12px">
+<div class="conto"><b>Dose seduta ▸</b><span><i style="background:var(--pi)"></i>Plio int. <b>30</b></span><span><i style="background:var(--pe)"></i>Plio est. <b>90</b></span><span><i style="background:var(--fo)"></i>Forza <b style="color:var(--warn)">6 · −1</b></span><span><i style="background:var(--ip)"></i>Ipertrofia <b>3</b></span></div>
+<p class="d" style="margin:-6px 0 10px">Se in questa seduta mettessi solo 20 contatti di pliometria estensiva: <span class="conto" style="display:inline-flex;margin:0 0 0 6px;padding:3px 10px"><span><i style="background:var(--pe)"></i>Plio est. <b style="color:var(--warn)">20/80</b></span></span></p>
+<div class="sez">Pliometria intensiva <span class="r" style="color:var(--pi)">Pliometria</span></div>
+<div class="riga" style="--c:var(--pi)"><b>CMJ zavorrato</b><span class="d">5 × 6</span></div>
+<div class="sez">Pliometria estensiva <span class="r" style="color:#3d7bb0">Pliometria</span></div>
+<div class="riga" style="--c:var(--pe)"><b>Single leg hop</b><span class="d">3 × 10 per gamba</span></div>
+<div class="riga" style="--c:var(--pe)"><b>Broad jump</b><span class="d">2 × 15</span></div>
+<div class="sez">Forza <span class="r" style="color:var(--fo)">Forza</span></div>
+<div class="riga" style="--c:var(--fo)"><b>Back squat</b><span class="d">4 × 8 · 75%</span></div>
+<div class="riga" style="--c:var(--fo)"><b>Hip thrust</b><span class="d">2 × 8 · 75%</span></div>
+<div class="sez">Ipertrofia <span class="r" style="color:var(--ip)">Ipertrofia</span></div>
+<div class="riga" style="--c:var(--ip)"><b>Leg extension</b><span class="d">3 × 10 · 70%</span></div>
+<div class="sez">Core e stabilità <span class="d" style="font-weight:400">solo per questa scheda</span><span class="r d">Scegli obiettivo ▾</span></div>
+<div class="riga"><b>Copenhagen plank</b><span class="d">3 × 8</span></div></div>
+
+<div class="due" style="margin-top:14px">
+<div class="card"><p class="nota"><b>Passando il mouse su «Forza»</b>: il dettaglio per muscolo.</p>
+<div class="bolla"><div><span>Quadricipite</span><span>4 forza + 3 ipertrofia = 7 serie</span></div><div><span>Gluteo</span><span>2 forza = 2 serie</span></div></div></div>
+<div class="card"><p class="nota"><b>Solo se clicchi la riga</b>: si apre sopra la scheda, senza spostarla.</p>
+<div style="margin-bottom:6px"><span class="sel" style="padding:3px 10px;background:var(--soft)">Seduta</span> <span class="sel" style="padding:3px 10px">Settimana</span> <span class="d">· RTP 2</span></div>
+<table><tr><th>Voce</th><th>Fatto</th><th>Dose</th><th>Cosa manca</th></tr>
+<tr><td>Plio intensiva</td><td>30</td><td>30–40</td><td class="d">–</td></tr>
+<tr><td>Plio estensiva</td><td>90</td><td>80–120</td><td class="d">–</td></tr>
+<tr><td>Forza · quadricipite</td><td>4</td><td>3–5</td><td class="d">–</td></tr>
+<tr><td>Forza · gluteo</td><td>2</td><td>3–5</td><td>1 serie</td></tr>
+<tr><td>Ipertrofia</td><td>3</td><td class="d">–</td><td class="d">–</td></tr></table>
+<p class="d" style="margin:8px 0 0">Senza obiettivo: 3 serie (Core e stabilità)</p>
+<div class="lab">Come è divisa la seduta (serie)</div>
+<div class="quote"><i style="width:26%;background:var(--pi)"></i><i style="width:26%;background:var(--pe)"></i><i style="width:32%;background:var(--fo)"></i><i style="width:16%;background:var(--ip)"></i></div>
+<div class="d">Plio int. 26% · Plio est. 26% · Forza 32% · Ipertrofia 16%</div></div></div>
+
+<h2><span>6</span>Come si conta</h2>
+<div class="card"><table>
+<tr><th>Voce</th><th>Conto</th></tr>
+<tr><td>Pliometria</td><td>serie × cluster × ripetizioni = contatti; a una gamba si sommano le due (3 × 10 per gamba = 60)</td></tr>
+<tr><td>Forza, ipertrofia</td><td>serie, per muscolo principale; 4 × (3 × 2) = 4 serie</td></tr>
+<tr><td>Potenza</td><td>serie in tutto, senza muscolo</td></tr>
+<tr><td>Eccentrica</td><td>ripetizioni in tutto</td></tr>
+<tr><td>Isometria massimale</td><td>secondi in tutto (serie × cluster × secondi); le isometrie fuori da questa sezione non si contano</td></tr>
+<tr><td>Percentuale della seduta</td><td>sulle serie; ciò che non conta resta fuori</td></tr></table>
+<p class="nota" style="margin:10px 0 0">Le stesse voci e gli stessi colori nella ciambella del Quadro e nel carico settimana per settimana, dove però non ci sono segni né confronti con la dose. Nei documenti del paziente non entra niente.</p></div>
+</div></body></html>

@@ -7,10 +7,13 @@ import { errMsg } from '../lib'
 export default function ImmagineEsercizio({
   esercizioId,
   nome,
+  variante,
   onClose
 }: {
   esercizioId: number
   nome: string
+  // La variante scelta in seduta: se ha una foto sua si vede quella.
+  variante?: string | null
   onClose: () => void
 }): React.JSX.Element {
   const [src, setSrc] = useState<string | null>(null)
@@ -19,7 +22,7 @@ export default function ImmagineEsercizio({
   useEffect(() => {
     let annullato = false
     window.api.esercizi
-      .immagine(esercizioId)
+      .immagine(esercizioId, variante)
       .then((d) => {
         if (annullato) return
         if (d == null) setErrore("Questo esercizio non ha un'immagine.")
@@ -31,7 +34,7 @@ export default function ImmagineEsercizio({
     return () => {
       annullato = true
     }
-  }, [esercizioId])
+  }, [esercizioId, variante])
 
   return (
     <Modale onConferma={onClose}>

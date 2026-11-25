@@ -761,12 +761,7 @@
 /* su cosa si e' lavorato nell'ultima seduta: barra a quote e legenda */
 .q-lavoro { margin-top: 10px; display: flex; align-items: center; gap: 14px; }
 .q-lavoro-ciambella { width: 84px; height: 84px; flex: none; }
-.q-lavoro-ciambella circle { stroke: currentColor; }
+.q-lavoro-ciambella circle { stroke: var(--c); }
 .q-lavoro ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
 .q-lavoro li { display: inline-flex; align-items: center; gap: 5px; }
-.q-lavoro-punto { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-.q-lavoro-plio { background: #f5a524; color: #f5a524; }
-.q-lavoro-potenza { background: #ec4a73; color: #ec4a73; }
-.q-lavoro-forza { background: #22b58b; color: #22b58b; }
-.q-lavoro-accessori { background: #5b8def; color: #5b8def; }
-.q-lavoro-ciambella circle { background: none; }
+.q-lavoro-punto { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--c); }

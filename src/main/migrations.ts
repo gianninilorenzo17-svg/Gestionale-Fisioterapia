@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3-multiple-ciphers'
+import { chiaveNome, obiettivoDaNome, tipoDiPartenza } from '../shared/dose-partenza'
 
 // Ogni voce è una migrazione; l'indice + 1 corrisponde a PRAGMA user_version.
 // Mai modificare una migrazione già rilasciata: aggiungerne una nuova in coda.
@@ -1872,6 +1873,149 @@ export const MIGRATIONS: string[] = [
   CREATE INDEX idx_promemoria_aperti ON promemoria(scadenza) WHERE fatto_il IS NULL;
   CREATE INDEX idx_promemoria_questionario ON promemoria(questionario_id);
   CREATE INDEX idx_promemoria_protocollo ON promemoria(protocollo_id);
+  `,
+
+  // 79 - la dose ridisegnata. L'esercizio ha un tipo (plio_est, plio_int,
+  //      rinforzo, non_conta; vuoto = da sistemare), assegnato qui con le regole
+  //      di shared/dose-partenza.ts. Le sezioni stanno in libreria con il loro
+  //      obiettivo e le fasi le richiamano (sezioni.libreria_id): quelle con lo
+  //      stesso nome si uniscono, e dove le categorie sono diverse dalle piu'
+  //      usate la fase tiene la sua. La riga della seduta fotografa il tipo e
+  //      l'eventuale eccezione, la sezione l'obiettivo. La dose e' un modello
+  //      (per seduta + volte a settimana) che la fase sceglie: quella scritta
+  //      fase per fase (fase_dose) non si usa piu' e resta solo per il cestino.
+  `
+  ALTER TABLE esercizi ADD COLUMN tipo TEXT;
+  UPDATE esercizi SET tipo = (
+    SELECT tipo_di_partenza(esercizi.nome, esercizi.nome_alternativo, c.nome, p.nome,
+                            COALESCE(c.conta_come, p.conta_come))
+    FROM categorie c LEFT JOIN categorie p ON p.id = c.padre_id
+    WHERE c.id = esercizi.categoria_id
+  );
+
+  CREATE TABLE sezioni_libreria (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    obiettivo TEXT,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE TABLE sezione_libreria_categorie (
+    libreria_id INTEGER NOT NULL REFERENCES sezioni_libreria(id) ON DELETE CASCADE,
+    categoria_id INTEGER NOT NULL REFERENCES categorie(id) ON DELETE CASCADE,
+    ordine INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (libreria_id, categoria_id)
+  );
+  CREATE INDEX idx_sezione_libreria_categorie_categoria ON sezione_libreria_categorie(categoria_id);
+  ALTER TABLE sezioni ADD COLUMN libreria_id INTEGER REFERENCES sezioni_libreria(id) ON DELETE SET NULL;
+  ALTER TABLE sezioni ADD COLUMN obiettivo TEXT;
+  CREATE INDEX idx_sezioni_libreria_id ON sezioni(libreria_id);
+
+  CREATE TEMP TABLE firma AS
+    SELECT z.id, z.fase_id, chiave_nome(z.nome) AS chiave, TRIM(z.nome) AS nome,
+      COALESCE((SELECT group_concat(categoria_id) FROM (
+        SELECT categoria_id FROM sezione_categorie WHERE sezione_id = z.id ORDER BY ordine, categoria_id
+      )), '') AS categorie
+    FROM sezioni z;
+  CREATE TEMP TABLE scelta AS
+    SELECT chiave, categorie, id FROM (
+      SELECT chiave, categorie, MIN(id) AS id,
+        ROW_NUMBER() OVER (PARTITION BY chiave ORDER BY COUNT(*) DESC, LENGTH(categorie) DESC, MIN(id)) AS n
+      FROM firma GROUP BY chiave, categorie
+    ) WHERE n = 1;
+
+  INSERT INTO sezioni_libreria (nome, obiettivo, ordine) VALUES
+    ('Riscaldamento', 'non_conta', 0),
+    ('Controllo motorio', 'non_conta', 1),
+    ('Potenza', 'potenza', 2),
+    ('Pliometria intensiva', 'pliometria', 3),
+    ('Pliometria estensiva', 'pliometria', 4),
+    ('Forza', 'forza', 5),
+    ('Eccentrica', 'eccentrica', 6),
+    ('Isometria massimale', 'isometria', 7),
+    ('Ipertrofia', 'ipertrofia', 8),
+    ('Core e distale', 'non_conta', 9),
+    ('Defaticamento', 'non_conta', 10);
+  INSERT INTO sezioni_libreria (nome, obiettivo, ordine)
+    SELECT f.nome, obiettivo_da_nome(f.nome), 10 + ROW_NUMBER() OVER (ORDER BY f.id)
+    FROM scelta s JOIN firma f ON f.id = s.id
+    WHERE s.chiave NOT IN (SELECT chiave_nome(nome) FROM sezioni_libreria);
+
+  INSERT INTO sezione_libreria_categorie (libreria_id, categoria_id, ordine)
+    SELECT l.id, sc.categoria_id, sc.ordine
+    FROM scelta s
+    JOIN sezioni_libreria l ON chiave_nome(l.nome) = s.chiave
+    JOIN sezione_categorie sc ON sc.sezione_id = s.id;
+  INSERT INTO sezione_libreria_categorie (libreria_id, categoria_id, ordine)
+    SELECT l.id, c.id, c.ordine
+    FROM sezioni_libreria l
+    JOIN categorie c ON c.conta_come = CASE l.nome
+      WHEN 'Forza' THEN 'forza' WHEN 'Ipertrofia' THEN 'forza' WHEN 'Eccentrica' THEN 'forza'
+      WHEN 'Isometria massimale' THEN 'forza' WHEN 'Potenza' THEN 'potenza'
+      WHEN 'Pliometria estensiva' THEN 'plio_est' WHEN 'Pliometria intensiva' THEN 'plio_int' END
+    WHERE chiave_nome(l.nome) NOT IN (SELECT chiave FROM scelta);
+
+  UPDATE sezioni SET libreria_id = (
+      SELECT l.id FROM sezioni_libreria l WHERE chiave_nome(l.nome) = chiave_nome(sezioni.nome) LIMIT 1
+    )
+    WHERE id IN (
+      SELECT MIN(f.id) FROM firma f JOIN scelta s ON s.chiave = f.chiave AND s.categorie = f.categorie
+      GROUP BY f.fase_id, f.chiave
+    );
+  UPDATE sezioni SET obiettivo = (
+      SELECT l.obiettivo FROM sezioni_libreria l WHERE chiave_nome(l.nome) = chiave_nome(sezioni.nome) LIMIT 1
+    )
+    WHERE libreria_id IS NULL;
+  DROP TABLE firma;
+  DROP TABLE scelta;
+
+  ALTER TABLE seduta_sezioni ADD COLUMN obiettivo TEXT;
+  UPDATE seduta_sezioni SET obiettivo = (
+    SELECT CASE WHEN z.libreria_id IS NULL THEN z.obiettivo ELSE l.obiettivo END
+    FROM sezioni z LEFT JOIN sezioni_libreria l ON l.id = z.libreria_id
+    WHERE z.id = seduta_sezioni.sezione_id
+  );
+  ALTER TABLE seduta_esercizi ADD COLUMN tipo TEXT;
+  ALTER TABLE seduta_esercizi ADD COLUMN conta TEXT;
+
+  CREATE TABLE dose_modelli (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    alternativa INTEGER NOT NULL DEFAULT 0,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE TABLE dose_modello_voci (
+    modello_id INTEGER NOT NULL REFERENCES dose_modelli(id) ON DELETE CASCADE,
+    voce TEXT NOT NULL,
+    minimo INTEGER,
+    massimo INTEGER,
+    volte_min INTEGER,
+    volte_max INTEGER,
+    indicazione TEXT,
+    PRIMARY KEY (modello_id, voce)
+  );
+  ALTER TABLE fasi ADD COLUMN dose_modello_id INTEGER REFERENCES dose_modelli(id) ON DELETE SET NULL;
+  CREATE INDEX idx_fasi_dose_modello ON fasi(dose_modello_id);
+
+  INSERT INTO dose_modelli (id, nome, alternativa, ordine) VALUES
+    (1, 'RTP 1', 0, 0), (2, 'RTP 2', 0, 1), (3, 'Preparazione atletica', 1, 2);
+  INSERT INTO dose_modello_voci (modello_id, voce, minimo, massimo, volte_min, volte_max, indicazione) VALUES
+    (1, 'plio_est', 80, 120, 3, 5, 'corpo libero, almeno 10 rip.'),
+    (1, 'ipertrofia', 3, NULL, 3, 5, '3 × 10, 70%, RIR 0, TUT 4-1-X'),
+    (1, 'eccentrica', 3, 5, 2, 2, '110–130%; facoltativa secondo tolleranza'),
+    (1, 'isometria', 60, 60, 2, 2, 'circa 60 secondi; massimale, 3–5″ per ripetizione'),
+    (2, 'plio_int', 30, 40, 2, 3, '4–6 rip., sovraccarico facoltativo'),
+    (2, 'plio_est', 80, 120, 2, 3, 'corpo libero, almeno 10 rip.'),
+    (2, 'forza', 3, 5, 2, 3, '6–8 rip., 70–80%'),
+    (2, 'ipertrofia', NULL, NULL, NULL, NULL, 'solo se c''è un deficit di forza oltre il 20%'),
+    (3, 'potenza', 3, 5, 2, 2, 'sport di potenza: al posto della plio intensiva; 30–60%, alzate olimpiche 75–85%'),
+    (3, 'plio_int', 30, 40, 2, 2, 'sport di squadra; 4–6 rip.'),
+    (3, 'plio_est', 80, 120, 2, 2, 'a cluster'),
+    (3, 'forza', 2, 4, 2, 2, '3–5 rip., ≥85% (non atleti ≥80%), RIR 2');
+  `,
+  // 80 - la foto propria di una variante (push up sulle ginocchia): senza, vale
+  //      quella dell'esercizio.
+  `
+  ALTER TABLE esercizio_varianti ADD COLUMN immagine TEXT;
   `
 ]
 
@@ -1929,6 +2073,13 @@ export function runMigrations(
 // vecchie) le registra anche lui, altrimenti la 56 non trova da_data_url.
 export function registraFunzioniMigrazioni(db: Database.Database): void {
   db.function('da_data_url', { deterministic: true }, (valore: unknown) => daDataUrl(valore))
+  // la 79: il tipo di partenza degli esercizi e gli obiettivi delle sezioni
+  const testo = (v: unknown): string | null => (typeof v === 'string' ? v : null)
+  db.function('tipo_di_partenza', { deterministic: true, varargs: true }, (...v: unknown[]) =>
+    tipoDiPartenza(testo(v[0]) ?? '', testo(v[1]), testo(v[2]), testo(v[3]), testo(v[4]))
+  )
+  db.function('obiettivo_da_nome', { deterministic: true }, (nome: unknown) => obiettivoDaNome(testo(nome) ?? ''))
+  db.function('chiave_nome', { deterministic: true }, (nome: unknown) => chiaveNome(testo(nome) ?? ''))
 }
 
 // "data:image/jpeg;base64,...." -> i byte del file. Qualunque altra cosa resta

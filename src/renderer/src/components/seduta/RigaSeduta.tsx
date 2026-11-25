@@ -1,7 +1,16 @@
 import { memo } from 'react'
 import { CornerDownLeft, ImageIcon, Video, X } from 'lucide-react'
 import type { Massimale, UltimaVolta, VarianteEsercizio } from '../../../../shared/types'
-import type { Gambe } from '../../../../shared/dose'
+import {
+  infoVoce,
+  voceRiga,
+  VOCI,
+  type Conta,
+  type Gambe,
+  type ObiettivoSezione,
+  type TipoEsercizio
+} from '../../../../shared/dose'
+import { coloreDose, MenuDose, nomeObiettivo } from '../dose/comune'
 import type { PropsContenitore, PropsPresa } from '../../riordino'
 import { testoMassimale } from '../../../../shared/massimali'
 import { errMsg, formatData } from '../../lib'
@@ -20,6 +29,11 @@ interface Props {
   varianti: VarianteEsercizio[]
   // 'scelta' = si puo' segnare monopodalico (null per un esercizio al volo)
   gambe: Gambe | null
+  // per la dose: il tipo in libreria e l'obiettivo della sezione. dose = false
+  // al campo, dove non si conta niente
+  tipoLibreria: TipoEsercizio | null
+  obiettivo: ObiettivoSezione | null
+  dose: boolean
   // cosa aveva fatto l'ultima volta, se c'e' da mostrarlo
   ultima: UltimaVolta | undefined
   // i massimali segnati per questo esercizio, se ce ne sono
@@ -28,7 +42,7 @@ interface Props {
   presa: PropsPresa
   invia: (a: AzioneSezioni) => void
   onRicopiata: (chiave: string) => void
-  onImmagine: (esercizio: { id: number; nome: string }) => void
+  onImmagine: (esercizio: { id: number; nome: string; variante?: string | null }) => void
 }
 
 // Un esercizio della seduta: nome, i numeri di oggi, e l'ultima volta.
@@ -46,6 +60,9 @@ function RigaSeduta({
   rir,
   varianti,
   gambe,
+  tipoLibreria,
+  obiettivo,
+  dose,
   ultima,
   massimali,
   dnd,
@@ -55,15 +72,46 @@ function RigaSeduta({
   onImmagine
 }: Props): React.JSX.Element {
   const mono = r.monopodalico === 1
+  // La barretta a sinistra: il colore e' la voce in cui finisce la riga, e il
+  // clic apre le eccezioni. Un esercizio al volo non ha un tipo: niente.
+  const conBarra = dose && r.esercizio_id != null
+  const tipo = r.tipo ?? tipoLibreria
+  const voce = voceRiga({ tipo, conta: r.conta, obiettivo })
+  const nomeVoce = (v: typeof voce): string =>
+    v == null ? 'Non conta' : v === 'senza' ? 'Senza obiettivo' : infoVoce(v).nome
+  const normale = voceRiga({ tipo, conta: null, obiettivo })
   const cambia = (campo: CampoRiga) => (e: { target: { value: string } }) =>
     invia({ tipo: 'valore', sez, riga: indice, campo, valore: e.target.value })
 
   return (
-    <li {...dnd} {...presa} className={['riga-esercizio', dnd.className].filter(Boolean).join(' ')}>
+    <li
+      {...dnd}
+      {...presa}
+      className={['riga-esercizio', conBarra ? 'con-barra' : '', dnd.className].filter(Boolean).join(' ')}
+    >
+      {conBarra && (
+        <MenuDose
+          titolo={`${r.nome}: ${tipo == null ? 'tipo da sistemare in libreria, non conta' : `conta come ${nomeVoce(voce)}`}. Clic per cambiare.`}
+          className={`barra-dose ${coloreDose(voce)}${r.conta ? ' eccezione' : ''}`}
+          valore={r.conta ?? ''}
+          voci={[
+            { valore: '', etichetta: `Come nella sezione (${nomeVoce(normale)})` },
+            { valore: 'non_conta', etichetta: 'Non conta', separa: true },
+            ...VOCI.map((v, i) => ({ valore: v.voce, etichetta: v.nome, separa: i === 0 }))
+          ]}
+          onScegli={(v) =>
+            invia({ tipo: 'conta', sez, riga: indice, conta: v === '' ? null : (v as Conta) })
+          }
+        >
+          <span aria-hidden="true" />
+        </MenuDose>
+      )}
       <div className="riga-principale">
       <div className="riga-testata">
-        <span className="item-nome">
-          {r.nome}
+        <span className="item-nome item-nome-corto">
+          <span className="item-nome-testo" title={r.nome}>
+            {r.nome}
+          </span>
           {r.link && (
             <button
               className="icona-esercizio"
@@ -75,11 +123,12 @@ function RigaSeduta({
           )}
           {/* Il pulsante compare solo con ha_immagine === 1, cosa vera solo per
               un esercizio di libreria: qui esercizio_id c'e' sempre. */}
-          {r.ha_immagine === 1 && (
+          {/* La foto della variante scelta vale anche dove l'esercizio non ne ha. */}
+          {(r.ha_immagine === 1 || varianti.some((v) => v.nome === r.variante && v.ha_immagine === 1)) && (
             <button
               className="icona-esercizio"
               title="Vedi immagine"
-              onClick={() => onImmagine({ id: r.esercizio_id!, nome: r.nome })}
+              onClick={() => onImmagine({ id: r.esercizio_id!, nome: r.nome, variante: r.variante })}
             >
               <ImageIcon size={16} />
             </button>
@@ -183,6 +232,20 @@ function RigaSeduta({
         <X size={16} />
       </button>
       </div>
+      {/* L'eccezione si legge sotto la riga; il caso normale non si scrive mai. */}
+      {conBarra && r.conta && (
+        <div className="ultima-volta eccezione-dose">
+          <span>
+            Qui conta come <b>{r.conta === 'non_conta' ? 'niente' : infoVoce(r.conta).nome.toLowerCase()}</b>
+          </span>
+          <span className="ultima-quando">
+            (nella sezione: {normale === 'senza' ? nomeObiettivo(null).toLowerCase() : nomeVoce(normale).toLowerCase()})
+          </span>
+          <button className="btn-piccolo" onClick={() => invia({ tipo: 'conta', sez, riga: indice, conta: null })}>
+            Ripristina
+          </button>
+        </div>
+      )}
       {/* Cosa aveva fatto l'ultima volta con questo esercizio. Sta sotto ai
           numeri di oggi, dove serve: la progressione si decide guardando il
           dato, non a memoria. Il pulsante li rimette in riga tutti insieme,
@@ -228,6 +291,9 @@ const uguali = (a: Props, b: Props): boolean =>
   a.rir === b.rir &&
   a.varianti === b.varianti &&
   a.gambe === b.gambe &&
+  a.tipoLibreria === b.tipoLibreria &&
+  a.obiettivo === b.obiettivo &&
+  a.dose === b.dose &&
   a.ultima === b.ultima &&
   a.massimali === b.massimali &&
   a.dnd.draggable === b.dnd.draggable &&

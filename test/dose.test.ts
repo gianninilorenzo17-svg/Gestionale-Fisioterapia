@@ -1,112 +1,209 @@
-// La dose: il conto di contatti e serie (shared/dose.ts), la dose della fase,
-// le altre sedute della settimana, le sedute a settimana del paziente e il
-// segno monopodalico sulla riga della seduta.
+// La dose: il conto (shared/dose.ts), cosa manca al minimo del modello, i
+// modelli e le sezioni in libreria, le altre sedute della settimana e quello che
+// si fotografa sulla seduta.
 import { test } from 'vitest'
 import assert from 'node:assert/strict'
 import { archivioDiProva } from './archivio-di-prova'
 import { getDb } from '../src/main/db'
 import {
   contaRighe,
-  controllaDose,
   intervalloTesto,
+  livelloDose,
   primoNumero,
   quanto,
+  quoteLavoro,
+  secondiDi,
   settimanaDi,
-  tipoDiCategoria,
-  type CategoriaConto
+  testoVoceSeduta,
+  valutaSeduta,
+  voceRiga,
+  type DoseModello,
+  type RigaConto,
+  type VoceModello
 } from '../src/shared/dose'
 import { nomeConMonopodalico } from '../src/shared/varianti'
-import { doseSettimana, leggiDoseFase, salvaDoseFase } from '../src/main/dose'
-import { creaEsercizio, elencoEsercizi, impostaContaCome } from '../src/main/esercizi'
+import {
+  creaModello,
+  doseSettimana,
+  elencoModelli,
+  eliminaModello,
+  fasiConModello,
+  impostaModelloFase,
+  modelloDiFase,
+  salvaModello
+} from '../src/main/dose'
+import { creaEsercizio, elencoEsercizi, impostaTipo } from '../src/main/esercizi'
+import {
+  creaSezione,
+  creaSezioneLibreria,
+  elencoSezioni,
+  elencoSezioniLibreria,
+  eliminaSezioneLibreria,
+  impostaCategorieLibreria,
+  impostaObiettivoSezione,
+  rinominaSezioneLibreria,
+  usaSezioneDiLibreria
+} from '../src/main/percorso'
+import { elencoCestino, ripristina } from '../src/main/cestino'
 import { impostaSeduteSettimana } from '../src/main/pazienti'
-import { creaSeduta, leggiSeduta, programmaSeduta } from '../src/main/sedute'
+import { creaSeduta, elencoSedute, leggiSeduta, programmaSeduta } from '../src/main/sedute'
 import { ultimaVoltaPerPaziente } from '../src/main/ultima-volta'
 import { datiScheda } from '../src/main/scheda-dati'
 import type { SedutaInput } from '../src/shared/types'
 
 archivioDiProva()
 
-test('I numeri scritti: "8-10" vale 8, un tempo non e\' un numero', () => {
+const riga = (altro: Partial<RigaConto> = {}): RigaConto => ({
+  categoria_id: 1,
+  tipo: 'rinforzo',
+  obiettivo: 'forza',
+  gambe: 'due',
+  serie: '3',
+  cluster: null,
+  ripetizioni: '8',
+  ...altro
+})
+
+test('I numeri scritti: "8-10" vale 8, un tempo si legge in secondi', () => {
   assert.equal(primoNumero('8-10'), 8)
   assert.equal(primoNumero('10 per gamba'), 10)
-  assert.equal(primoNumero(' 12 '), 12)
   assert.equal(primoNumero('30"'), null)
-  assert.equal(primoNumero("45''"), null)
-  assert.equal(primoNumero('40 sec'), null)
-  assert.equal(primoNumero('2 min'), null)
   assert.equal(primoNumero('max'), null)
-  assert.equal(primoNumero(null), null)
+  assert.equal(secondiDi('30"'), 30)
+  assert.equal(secondiDi("45''"), 45)
+  assert.equal(secondiDi('30-45 sec'), 30)
+  assert.equal(secondiDi("1'"), 60)
+  assert.equal(secondiDi("1'30\""), 90)
+  assert.equal(secondiDi('2 min'), 120)
+  assert.equal(secondiDi('5s'), 5)
+  assert.equal(secondiDi('10'), null)
 })
 
-test('Il conto: contatti per la pliometria (a una gamba doppio), serie per la forza', () => {
-  const riga = { categoria_id: 1, gambe: 'due' as const, monopodalico: 0 as const, cluster: null }
-  // 3 × 10 a due gambe = 30 contatti; a una gamba (segnato o sempre) = 60
-  assert.equal(quanto({ ...riga, serie: '3', ripetizioni: '10' }, 'plio_est'), 30)
-  assert.equal(quanto({ ...riga, monopodalico: 1, serie: '3', ripetizioni: '10' }, 'plio_est'), 60)
-  assert.equal(quanto({ ...riga, gambe: 'una', serie: '3', ripetizioni: '10' }, 'plio_est'), 60)
-  // a cluster: 3 serie × (3 cluster × 4) = 36, come negli appunti
-  assert.equal(quanto({ ...riga, serie: '3', cluster: '3', ripetizioni: '4' }, 'plio_est'), 36)
-  // la forza conta le serie, a una gamba come a due
-  assert.equal(quanto({ ...riga, monopodalico: 1, serie: '3', ripetizioni: '8-10' }, 'forza'), 3)
-  // un'isometria a tempo resta fuori
-  assert.equal(quanto({ ...riga, serie: '5', ripetizioni: '45"' }, 'forza'), 0)
+test("La voce di una riga: la sezione decide solo il rinforzo, la pliometria si conta ovunque", () => {
+  assert.equal(voceRiga(riga()), 'forza')
+  assert.equal(voceRiga(riga({ obiettivo: 'ipertrofia' })), 'ipertrofia')
+  assert.equal(voceRiga(riga({ obiettivo: 'non_conta' })), null)
+  assert.equal(voceRiga(riga({ obiettivo: 'pliometria' })), null)
+  assert.equal(voceRiga(riga({ obiettivo: null })), 'senza')
+  assert.equal(voceRiga(riga({ tipo: 'plio_int', obiettivo: 'non_conta' })), 'plio_int')
+  assert.equal(voceRiga(riga({ tipo: 'non_conta' })), null)
+  assert.equal(voceRiga(riga({ tipo: null })), null)
+  // l'eccezione sulla riga vince su tutto
+  assert.equal(voceRiga(riga({ conta: 'ipertrofia' })), 'ipertrofia')
+  assert.equal(voceRiga(riga({ conta: 'non_conta' })), null)
+  assert.equal(voceRiga(riga({ tipo: 'non_conta', conta: 'plio_est' })), 'plio_est')
 })
 
-test('La categoria si conta come la sua, o come quella che la contiene', () => {
-  const cats: CategoriaConto[] = [
-    { id: 1, padre_id: null, conta_come: 'forza' },
-    { id: 2, padre_id: 1, conta_come: null },
-    { id: 3, padre_id: null, conta_come: null },
-    { id: 4, padre_id: 1, conta_come: 'potenza' }
-  ]
-  assert.equal(tipoDiCategoria(2, cats), 'forza')
-  assert.equal(tipoDiCategoria(3, cats), null)
-  assert.equal(tipoDiCategoria(4, cats), 'potenza')
-  const conto = contaRighe(
-    [
-      { categoria_id: 2, gambe: 'due', serie: '3', cluster: null, ripetizioni: '10' },
-      { categoria_id: 2, gambe: 'scelta', monopodalico: 1, serie: '2', cluster: null, ripetizioni: '8' },
-      { categoria_id: 3, gambe: 'due', serie: '3', cluster: null, ripetizioni: '10' },
-      { categoria_id: null, gambe: null, serie: '3', cluster: null, ripetizioni: '10' }
-    ],
-    cats
-  )
-  assert.deepEqual(conto, { 'forza:2': 5 })
+test('Quanto vale una riga, voce per voce', () => {
+  // contatti: 3 × 10 = 30, a una gamba si sommano le due
+  assert.equal(quanto(riga({ ripetizioni: '10' }), 'plio_est'), 30)
+  assert.equal(quanto(riga({ ripetizioni: '10', monopodalico: 1 }), 'plio_est'), 60)
+  assert.equal(quanto(riga({ ripetizioni: '10', gambe: 'una' }), 'plio_int'), 60)
+  assert.equal(quanto(riga({ cluster: '3', ripetizioni: '4' }), 'plio_est'), 36)
+  // un cluster 4 × (3 × 2) vale 4 serie; a una gamba le serie non raddoppiano
+  assert.equal(quanto(riga({ serie: '4', cluster: '3', ripetizioni: '2', gambe: 'una' }), 'forza'), 4)
+  assert.equal(quanto(riga({ ripetizioni: '45"' }), 'forza'), 0)
+  // eccentrica in ripetizioni, isometria in secondi
+  assert.equal(quanto(riga({ serie: '2', ripetizioni: '3', gambe: 'una' }), 'eccentrica'), 6)
+  assert.equal(quanto(riga({ serie: '4', ripetizioni: '5"', cluster: '3' }), 'isometria'), 60)
+  // tenute in secondi scritte nel carico
+  assert.equal(quanto(riga({ serie: '3', ripetizioni: null, carico: '20', unita_carico: 'sec' }), 'isometria'), 60)
+  assert.equal(quanto(riga({ serie: '3', ripetizioni: '4', carico: '80', unita_carico: 'kg' }), 'isometria'), 0)
 })
 
-test('Il controllo: la pliometria per seduta, la forza divisa sulle sedute che restano', () => {
-  const dosi = [
-    { chiave: 'plio_est', minimo: 80, massimo: 120 },
-    { chiave: 'forza:2', minimo: 3, massimo: 6 },
-    { chiave: 'plio_int', minimo: null, massimo: null }
-  ]
-  // 3 sedute a settimana, una gia' fatta con 3 serie: in settimana 9–18, ne
-  // mancano 6–15 su 2 sedute → da 3 a 7 oggi
-  const c = controllaDose(dosi, { plio_est: 90, 'forza:2': 2 }, { frequenza: 3, altreSedute: 1, altre: { 'forza:2': 3 } })
-  assert.equal(c.length, 2, 'una voce senza numeri non si controlla')
+test('Il conto: forza e ipertrofia per muscolo, il resto in tutto', () => {
   assert.deepEqual(
-    c.map((x) => [x.chiave, x.esito, x.da, x.a]),
-    [
-      ['plio_est', 'ok', 80, 120],
-      ['forza:2', 'poco', 3, 7]
-    ]
+    contaRighe([
+      riga({ categoria_id: 2, serie: '4' }),
+      riga({ categoria_id: 2, serie: '3', obiettivo: 'ipertrofia' }),
+      riga({ categoria_id: 3, serie: '2' }),
+      riga({ tipo: 'plio_int', serie: '5', ripetizioni: '6' }),
+      riga({ obiettivo: 'potenza', serie: '3' }),
+      riga({ obiettivo: null }),
+      riga({ tipo: null })
+    ]),
+    { 'forza:2': 4, 'ipertrofia:2': 3, 'forza:3': 2, plio_int: 30, potenza: 3 }
   )
-  assert.deepEqual(c[1].settimana, { fatte: 3, da: 9, a: 18, restano: 2 })
-  // senza le sedute a settimana la forza si controlla per seduta
-  const senza = controllaDose(dosi, { 'forza:2': 8 }, { frequenza: null, altreSedute: 0, altre: {} })
-  assert.equal(senza[1].esito, 'troppo')
-  assert.equal(senza[1].settimana, null)
-  // piu' sedute del previsto: resta questa
-  const oltre = controllaDose(dosi, {}, { frequenza: 2, altreSedute: 3, altre: { 'forza:2': 12 } })
-  assert.deepEqual([oltre[1].da, oltre[1].a, oltre[1].settimana?.restano], [0, 0, 1])
+})
+
+const voce = (v: VoceModello['voce'], minimo: number | null, massimo: number | null, volte: number | null): VoceModello => ({
+  voce: v,
+  minimo,
+  massimo,
+  volte_min: volte,
+  volte_max: volte,
+  indicazione: null
+})
+const modello = (voci: VoceModello[], alternativa: 0 | 1 = 0): DoseModello => ({
+  id: 1,
+  nome: 'prova',
+  ordine: 0,
+  alternativa,
+  voci
+})
+const testi = (m: DoseModello | null, conto: Record<string, number>, altre: Record<string, number>[] = []): string[] =>
+  valutaSeduta(m, conto, altre).map((v) => `${v.voce} ${testoVoceSeduta(v)}`)
+
+test('Si segnala solo cio\' che manca al minimo, compreso quello non ancora messo', () => {
+  const m = modello([voce('plio_est', 80, 120, 2), voce('forza', 3, 5, 2), voce('eccentrica', 3, 5, 2), voce('ipertrofia', null, null, null)])
+  assert.deepEqual(testi(m, {}), ['plio_est 0/80', 'forza 0/3', 'eccentrica 0/3'])
+  assert.deepEqual(testi(m, { plio_est: 20, 'forza:1': 4, 'forza:2': 2, eccentrica: 4 }), [
+    'plio_est 20/80',
+    'forza 6 · −1',
+    'eccentrica 4'
+  ])
+  // sopra la dose non succede niente; senza minimo si conta e basta
+  assert.deepEqual(testi(m, { plio_est: 500, 'forza:1': 12, eccentrica: 9, 'ipertrofia:1': 1 }), [
+    'plio_est 500',
+    'forza 12',
+    'ipertrofia 1',
+    'eccentrica 9'
+  ])
+  // senza modello: solo i numeri
+  assert.deepEqual(testi(null, { plio_est: 20 }), ['plio_est 20'])
+})
+
+test('La settimana: se le altre sedute hanno gia\' dato il minimo le volte chieste, niente segnale', () => {
+  const m = modello([voce('plio_est', 80, 120, 2), voce('forza', 3, 5, 2)])
+  const piena = { plio_est: 90, 'forza:1': 3 }
+  // una sola seduta piena: non basta
+  assert.deepEqual(testi(m, {}, [piena, { plio_est: 40 }]), ['plio_est 0/80', 'forza 0/3'])
+  // due: le voci non fatte qui non compaiono nemmeno
+  assert.deepEqual(testi(m, {}, [piena, piena]), [])
+  // muscolo per muscolo: il quadricipite e' a posto, il gluteo no
+  assert.deepEqual(testi(m, { plio_est: 90, 'forza:1': 1, 'forza:2': 1 }, [piena, piena]), ['plio_est 90', 'forza 2 · −2'])
+})
+
+test('Potenza e pliometria intensiva alternative: ne basta una', () => {
+  const m = modello([voce('potenza', 3, 5, 2), voce('plio_int', 30, 40, 2)], 1)
+  assert.deepEqual(testi(m, {}), ['potenza 0/3', 'plio_int 0/30'])
+  assert.deepEqual(testi(m, { potenza: 3 }), ['potenza 3'])
+  assert.deepEqual(testi(m, { plio_int: 30, potenza: 1 }), ['potenza 1', 'plio_int 30'])
+  // una volta l'una e una volta l'altra fanno le due della settimana
+  assert.deepEqual(testi(m, {}, [{ potenza: 4 }, { plio_int: 36 }]), [])
+  // non alternative: si segnalano tutte e due
+  assert.deepEqual(testi({ ...m, alternativa: 0 }, { potenza: 3 }), ['potenza 3', 'plio_int 0/30'])
+})
+
+test("Com'e' divisa la seduta: sulle serie, somma 100, cio' che non conta resta fuori", () => {
+  const q = quoteLavoro([
+    { tipo: 'plio_int', obiettivo: 'pliometria', serie: '5' },
+    { tipo: 'plio_est', obiettivo: 'pliometria', serie: '5' },
+    { tipo: 'rinforzo', obiettivo: 'forza', serie: '6' },
+    { tipo: 'rinforzo', obiettivo: 'ipertrofia', serie: '3' },
+    { tipo: 'non_conta', obiettivo: 'forza', serie: '10' },
+    { tipo: 'rinforzo', obiettivo: null, serie: '10' }
+  ])
+  assert.deepEqual(q.map((x) => [x.voce, x.percento]), [['plio_int', 26], ['plio_est', 26], ['forza', 32], ['ipertrofia', 16]])
+  assert.deepEqual(quoteLavoro([]), [])
   assert.equal(intervalloTesto(3, null), 'almeno 3')
   assert.equal(intervalloTesto(null, 40), 'al massimo 40')
-  assert.equal(intervalloTesto(80, 120), 'da 80 a 120')
+  assert.equal(intervalloTesto(80, 120), '80–120')
+  assert.equal(intervalloTesto(60, 60), '60')
 })
 
 test('La settimana va dal lunedi\' alla domenica', () => {
   assert.deepEqual(settimanaDi('2026-11-04'), ['2026-11-02', '2026-11-08']) // mercoledi'
-  assert.deepEqual(settimanaDi('2026-11-02'), ['2026-11-02', '2026-11-08']) // lunedi'
   assert.deepEqual(settimanaDi('2026-11-08'), ['2026-11-02', '2026-11-08']) // domenica
   assert.deepEqual(settimanaDi('2026-12-31'), ['2026-12-28', '2027-01-03'])
 })
@@ -114,22 +211,75 @@ test('La settimana va dal lunedi\' alla domenica', () => {
 test('Il nome sulla scheda: "Squat monopodalico" solo se segnato', () => {
   assert.equal(nomeConMonopodalico('Squat', 1), 'Squat monopodalico')
   assert.equal(nomeConMonopodalico('Squat', 0), 'Squat')
-  assert.equal(nomeConMonopodalico('Squat', undefined), 'Squat')
 })
 
-test('Dose della fase, sedute a settimana e conto delle altre sedute della settimana', () => {
-  const c = getDb()
-  const ins = (sql: string, ...a: unknown[]): number => Number(c.prepare(sql).run(...a).lastInsertRowid)
-  const pat = ins("INSERT INTO patologie (nome) VALUES ('LCA dose')")
-  const fase = ins("INSERT INTO fasi (patologia_id, nome, ordine) VALUES (?, 'RTP 1', 0)", pat)
-  const faseCampo = ins("INSERT INTO fasi (patologia_id, nome, ordine, campo) VALUES (?, 'Campo', 1, 1)", pat)
-  const rinforzo = ins("INSERT INTO categorie (nome) VALUES ('Rinforzo dose')")
-  const quad = ins("INSERT INTO categorie (nome, padre_id) VALUES ('Quadricipite dose', ?)", rinforzo)
-  const plio = ins("INSERT INTO categorie (nome) VALUES ('Pliometria dose')")
-  impostaContaCome(rinforzo, 'forza')
-  impostaContaCome(plio, 'plio_est')
-  assert.throws(() => impostaContaCome(plio, 'corsa' as never), /non valido/)
+const ins = (sql: string, ...a: unknown[]): number => Number(getDb().prepare(sql).run(...a).lastInsertRowid)
 
+test('I modelli: i tre pronti, si cambiano, la fase ne sceglie uno', () => {
+  assert.deepEqual(
+    elencoModelli().map((m) => [m.nome, m.alternativa, m.voci.length]),
+    [
+      ['RTP 1', 0, 4],
+      ['RTP 2', 0, 4],
+      ['Preparazione atletica', 1, 4]
+    ]
+  )
+  const pat = ins("INSERT INTO patologie (nome) VALUES ('LCA modelli')")
+  const fase = ins("INSERT INTO fasi (patologia_id, nome, ordine) VALUES (?, 'Fase uno', 0)", pat)
+  assert.equal(modelloDiFase(fase), null)
+  const mio = creaModello('Mantenimento')
+  salvaModello(mio, {
+    nome: 'Mantenimento',
+    alternativa: 0,
+    voci: [voce('forza', 2, null, 1), voce('potenza', null, null, null)]
+  })
+  impostaModelloFase(fase, mio)
+  assert.deepEqual(modelloDiFase(fase)?.voci.map((v) => [v.voce, v.minimo]), [['forza', 2]], 'una voce vuota non resta')
+  assert.equal(fasiConModello().find((f) => f.id === fase)?.dose_modello_id, mio)
+  assert.throws(() => salvaModello(mio, { nome: 'x', alternativa: 0, voci: [voce('forza', 5, 3, 1)] }), /più alto/)
+  assert.throws(() => salvaModello(mio, { nome: 'x', alternativa: 0, voci: [voce('forza', 2.5, null, 1)] }), /intero/)
+  assert.throws(() => salvaModello(mio, { nome: ' ', alternativa: 0, voci: [] }), /nome/)
+  assert.equal(modelloDiFase(fase)?.nome, 'Mantenimento', 'un errore non cambia niente')
+  // eliminato, la fase resta senza; dal cestino torna anche il collegamento
+  eliminaModello(mio)
+  assert.equal(modelloDiFase(fase), null)
+  ripristina(elencoCestino().find((v) => v.etichetta === 'Mantenimento')!.id)
+  assert.equal(modelloDiFase(fase)?.nome, 'Mantenimento')
+})
+
+test('Le sezioni della libreria: si spuntano nella fase, e eliminandole la fase non perde niente', () => {
+  const pat = ins("INSERT INTO patologie (nome) VALUES ('LCA sezioni')")
+  const fase = ins("INSERT INTO fasi (patologia_id, nome, ordine) VALUES (?, 'Fase sezioni', 0)", pat)
+  const cat = ins("INSERT INTO categorie (nome) VALUES ('Quadricipite sezioni')")
+  assert.ok(elencoSezioniLibreria().some((s) => s.nome === 'Forza' && s.obiettivo === 'forza'))
+  const mia = creaSezioneLibreria('Rinforzo mio')
+  assert.throws(() => creaSezioneLibreria('rinforzo MIO'), /già/)
+  impostaCategorieLibreria(mia, [cat])
+  usaSezioneDiLibreria(fase, mia, true)
+  usaSezioneDiLibreria(fase, mia, true)
+  const propria = creaSezione(fase, 'Solo qui')
+  impostaObiettivoSezione(propria, 'ipertrofia')
+  rinominaSezioneLibreria(mia, 'Rinforzo gamba')
+  const letta = (): [string, number | null, string | null, number[]][] =>
+    elencoSezioni(fase).map((s) => [s.nome, s.libreria_id, s.obiettivo, s.categoria_ids])
+  assert.deepEqual(letta(), [
+    ['Rinforzo gamba', mia, 'forza', [cat]],
+    ['Solo qui', null, 'ipertrofia', []]
+  ])
+  assert.deepEqual(elencoSezioniLibreria().find((s) => s.id === mia)?.usata_in, ['LCA sezioni — Fase sezioni'])
+  eliminaSezioneLibreria(mia)
+  assert.deepEqual(letta()[0], ['Rinforzo gamba', null, 'forza', [cat]])
+  ripristina(elencoCestino().find((v) => v.etichetta === 'Rinforzo gamba')!.id)
+  assert.deepEqual(letta()[0], ['Rinforzo gamba', mia, 'forza', [cat]])
+  usaSezioneDiLibreria(fase, mia, false)
+  assert.deepEqual(letta().map((s) => s[0]), ['Solo qui'])
+})
+
+test('La seduta fotografa tipo, eccezione e obiettivo; la settimana conta le altre sedute', () => {
+  const pat = ins("INSERT INTO patologie (nome) VALUES ('LCA seduta')")
+  const fase = ins("INSERT INTO fasi (patologia_id, nome, ordine) VALUES (?, 'RTP', 0)", pat)
+  const faseCampo = ins("INSERT INTO fasi (patologia_id, nome, ordine, campo) VALUES (?, 'Campo', 1, 1)", pat)
+  const quad = ins("INSERT INTO categorie (nome) VALUES ('Quadricipite seduta')")
   const base = {
     serie_default: null,
     cluster_default: null,
@@ -142,33 +292,29 @@ test('Dose della fase, sedute a settimana e conto delle altre sedute della setti
     nota_tecnica: null,
     link: null
   }
-  const legExt = creaEsercizio({ ...base, nome: 'Leg extension dose', categoria_id: quad })
-  const hop = creaEsercizio({ ...base, nome: 'Single leg hop dose', categoria_id: plio, gambe: 'una' })
-  const cmj = creaEsercizio({ ...base, nome: 'CMJ dose', categoria_id: plio, gambe: 'scelta' })
-  const elenco = elencoEsercizi(false) as { id: number; gambe: string }[]
-  assert.equal(elenco.find((e) => e.id === legExt)?.gambe, 'due', 'un esercizio nuovo nasce a due gambe')
-  assert.equal(elenco.find((e) => e.id === hop)?.gambe, 'una')
-
-  // la dose della fase: si salva intera, le voci vuote non restano
-  salvaDoseFase(fase, [
-    { chiave: 'plio_est', minimo: 80, massimo: 120 },
-    { chiave: `forza:${quad}`, minimo: 3, massimo: null },
-    { chiave: 'plio_int', minimo: null, massimo: null }
-  ])
-  assert.deepEqual(leggiDoseFase(fase), [
-    { chiave: `forza:${quad}`, minimo: 3, massimo: null },
-    { chiave: 'plio_est', minimo: 80, massimo: 120 }
-  ])
-  assert.throws(() => salvaDoseFase(fase, [{ chiave: 'plio_est', minimo: 120, massimo: 80 }]), /più alto/)
-  assert.throws(() => salvaDoseFase(fase, [{ chiave: 'plio_est', minimo: 2.5, massimo: null }]), /intero/)
-  assert.throws(() => salvaDoseFase(fase, [{ chiave: 'forza', minimo: 3, massimo: null }]), /non è valida/)
-  assert.equal(leggiDoseFase(fase).length, 2, 'un errore non cancella la dose di prima')
+  const legExt = creaEsercizio({ ...base, nome: 'Leg extension seduta', categoria_id: quad })
+  const hop = creaEsercizio({ ...base, nome: 'Hop seduta', categoria_id: quad, gambe: 'una', tipo: 'plio_est' })
+  const tipoDi = (id: number): unknown => (elencoEsercizi(false) as { id: number; tipo: unknown }[]).find((e) => e.id === id)?.tipo
+  assert.equal(tipoDi(legExt), null, 'un esercizio nuovo senza tipo e\' da sistemare')
 
   const pz = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Dose', 'Prova')")
   impostaSeduteSettimana(pz, 3)
   assert.throws(() => impostaSeduteSettimana(pz, 0), /da 1 a 14/)
-  assert.throws(() => impostaSeduteSettimana(pz, 2.5), /da 1 a 14/)
 
+  const es = (esercizio_id: number, serie: string, ripetizioni: string, altro: Partial<SedutaInput['esercizi'][number]> = {}) => ({
+    esercizio_id,
+    nome_libero: null,
+    serie,
+    cluster: null,
+    ripetizioni,
+    rir: null,
+    carico: null,
+    recupero_cluster: null,
+    recupero: null,
+    nota: null,
+    sezioneIndex: 0,
+    ...altro
+  })
   const seduta = (data: string, faseId: number, esercizi: SedutaInput['esercizi']): number =>
     creaSeduta({
       paziente_id: pz,
@@ -184,94 +330,51 @@ test('Dose della fase, sedute a settimana e conto delle altre sedute della setti
       tecnica_ids: [],
       trattamento: null,
       note: null,
-      sezioni: [{ sezione_id: null, nome: 'Esercizi' }],
+      sezioni: [{ sezione_id: null, nome: 'Forza', obiettivo: 'forza' }],
       esercizi
     })
-  const riga = (esercizio_id: number, serie: string, ripetizioni: string, monopodalico: 0 | 1 = 0) => ({
-    esercizio_id,
-    nome_libero: null,
-    serie,
-    cluster: null,
-    ripetizioni,
-    rir: null,
-    carico: null,
-    recupero_cluster: null,
-    recupero: null,
-    nota: null,
-    monopodalico,
-    sezioneIndex: 0
+  const lun = seduta('2026-11-02', fase, [es(legExt, '3', '10'), es(hop, '3', '10'), es(legExt, '2', '8', { conta: 'ipertrofia' })])
+  seduta('2026-11-04', faseCampo, [es(legExt, '4', '8')])
+  seduta('2026-11-09', fase, [es(legExt, '4', '8')])
+
+  // senza tipo il leg extension non conta; sistemandolo, conta anche prima
+  assert.deepEqual(doseSettimana(pz, '2026-11-06', null), { altre: [{ plio_est: 60, [`ipertrofia:${quad}`]: 2 }] })
+  impostaTipo(legExt, 'rinforzo')
+  assert.deepEqual(doseSettimana(pz, '2026-11-06', null), {
+    altre: [{ [`forza:${quad}`]: 3, plio_est: 60, [`ipertrofia:${quad}`]: 2 }]
   })
-  // lunedi': 3 × 10 leg extension, 3 × 10 hop (60), 2 × 15 CMJ a una gamba (60)
-  const lun = seduta('2026-11-02', fase, [
-    riga(legExt, '3', '10'),
-    riga(hop, '3', '10'),
-    riga(cmj, '2', '15', 1)
+  assert.deepEqual(doseSettimana(pz, '2026-11-02', lun), { altre: [] })
+
+  // il tipo scritto sulla riga resta anche se la libreria cambia
+  impostaTipo(hop, 'non_conta')
+  const letta = leggiSeduta(lun)
+  assert.equal(letta.sezioni[0].obiettivo, 'forza')
+  assert.deepEqual(letta.sezioni[0].esercizi.map((e) => [e.tipo, e.conta]), [
+    ['rinforzo', null],
+    ['plio_est', null],
+    ['rinforzo', 'ipertrofia']
   ])
-  // mercoledi' al campo: non conta
-  seduta('2026-11-04', faseCampo, [riga(legExt, '4', '8')])
-  // la settimana dopo: non conta
-  seduta('2026-11-09', fase, [riga(legExt, '4', '8')])
-
-  const sett = doseSettimana(pz, '2026-11-06', null)
-  assert.deepEqual(sett, { frequenza: 3, altreSedute: 1, altre: { [`forza:${quad}`]: 3, plio_est: 120 } })
-  // riaprendo la seduta di lunedi', lei stessa non e' fra le "altre"
-  assert.deepEqual(doseSettimana(pz, '2026-11-02', lun), { frequenza: 3, altreSedute: 0, altre: {} })
-
-  // il segno monopodalico si salva, si rilegge, si copia, e arriva alla scheda
-  const letta = leggiSeduta(lun).sezioni[0].esercizi
-  assert.deepEqual(
-    letta.map((e) => e.monopodalico),
-    [0, 0, 1]
+  assert.equal(
+    elencoSedute(pz).find((s) => s.id === lun)?.carico,
+    '60 contatti · 3 serie di forza · 2 serie di ipertrofia'
   )
   const [copia] = programmaSeduta(lun, ['2026-11-13'])
-  assert.equal(leggiSeduta(copia).sezioni[0].esercizi[2].monopodalico, 1)
-  assert.equal(datiScheda(lun).sezioni[0].esercizi[2].monopodalico, 1)
-  const ultima = ultimaVoltaPerPaziente(pz, null, '2026-11-03').find((u) => u.esercizio_id === cmj)
-  assert.equal(ultima?.monopodalico, 1)
+  const copiata = leggiSeduta(copia).sezioni[0]
+  assert.equal(copiata.obiettivo, 'forza')
+  assert.equal(copiata.esercizi[2].conta, 'ipertrofia')
+  assert.equal(copiata.esercizi[1].tipo, 'plio_est')
 
-  // eliminando la fase se ne va anche la sua dose
-  c.prepare('DELETE FROM sedute WHERE paziente_id = ?').run(pz)
-  c.prepare('DELETE FROM fasi WHERE id = ?').run(fase)
-  assert.equal(leggiDoseFase(fase).length, 0)
+  assert.throws(() => seduta('2026-11-20', fase, [es(legExt, '1', '1', { conta: 'corsa' as never })]), /non è valido/)
+
+  // il monopodalico, l'ultima volta e la scheda: della dose sulla scheda niente
+  const mono = seduta('2026-11-16', fase, [es(hop, '2', '15', { monopodalico: 1 })])
+  assert.equal(leggiSeduta(mono).sezioni[0].esercizi[0].monopodalico, 1)
+  assert.equal(ultimaVoltaPerPaziente(pz, null, '2026-11-17').find((u) => u.esercizio_id === hop)?.monopodalico, 1)
+  const scheda = JSON.stringify(datiScheda(lun))
+  assert.ok(!/"(tipo|conta|obiettivo)"/.test(scheda))
 })
 
-test('quoteLavoro: poche famiglie, pesate sulle serie, somma 100', async () => {
-  const { quoteLavoro } = await import('../src/shared/dose')
-  const categorie = [
-    { id: 1, padre_id: null, conta_come: 'plio_est' as const },
-    { id: 2, padre_id: null, conta_come: 'forza' as const },
-    { id: 3, padre_id: null, conta_come: null }
-  ]
-  const q = quoteLavoro(
-    [
-      { categoria_id: 1, serie: '3', cluster: '2' }, // 6
-      { categoria_id: 2, serie: '3', cluster: null }, // 3
-      { categoria_id: 3, serie: '1', cluster: null }, // 1
-      { categoria_id: null, serie: null, cluster: null } // al volo: 1 accessorio
-    ],
-    categorie
-  )
-  assert.deepEqual(q.map((x) => x.famiglia), ['plio', 'forza', 'accessori'])
-  assert.deepEqual(q.map((x) => x.percento), [55, 27, 18])
-  assert.equal(q.reduce((t, x) => t + x.percento, 0), 100)
-  assert.deepEqual(quoteLavoro([], categorie), [])
-})
-
-test('quoteLavoro: senza "conta come" si prova dal nome della categoria', async () => {
-  const { quoteLavoro } = await import('../src/shared/dose')
-  const categorie = [
-    { id: 1, padre_id: null, conta_come: null, nome: 'Pliometria estensiva' },
-    { id: 2, padre_id: null, conta_come: null, nome: 'Rinforzo' },
-    { id: 3, padre_id: 2, conta_come: null, nome: 'Hamstring' },
-    { id: 4, padre_id: null, conta_come: null, nome: 'Mobilità' }
-  ]
-  const q = quoteLavoro(
-    [
-      { categoria_id: 1, serie: '2', cluster: null },
-      { categoria_id: 3, serie: '2', cluster: null },
-      { categoria_id: 4, serie: '1', cluster: null }
-    ],
-    categorie
-  )
-  assert.deepEqual(q.map((x) => x.famiglia).sort(), ['accessori', 'forza', 'plio'])
+test('il colore della dose: verde raggiunta, arancione da metà, rosso sotto', () => {
+  assert.deepEqual([80, 40, 39, 0].map((n) => livelloDose(n, 80)), ['raggiunta', 'vicina', 'lontana', 'lontana'])
+  assert.equal(livelloDose(10, null), null)
 })

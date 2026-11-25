@@ -1,19 +1,20 @@
-import { useEffect, useId, useMemo, useState } from 'react'
-import { Check, TriangleAlert } from 'lucide-react'
+import { useEffect, useId, useState } from 'react'
+import { TriangleAlert } from 'lucide-react'
 import type { PazienteDettaglio } from '../../../shared/types'
-import { TIPI_LAVORO } from '../../../shared/dose'
-import type { CaricoPaziente, SettimanaCarico, VoceSettimana } from '../../../shared/carico-settimane'
+import { infoVoce, type Voce } from '../../../shared/dose'
+import type { CaricoPaziente, SettimanaCarico } from '../../../shared/carico-settimane'
+import { coloreDose } from './dose/comune'
 import { errMsg } from '../lib'
 import { toastErrore } from './Toast'
 import Aiuto from './Aiuto'
 import Tendina from './Tendina'
 
-// Il carico settimana per settimana, confrontato con la dose della fase: una
-// tabella (dalla settimana piu' recente) e sopra due grafici piccoli sulle
-// stesse settimane, il carico di una voce con la fascia della dose e, sotto,
-// dolore e sforzo medi (da 0 a 10: su un asse loro, non su quello dei contatti).
+// Il carico settimana per settimana: una tabella (dalla settimana piu' recente)
+// e sopra due grafici piccoli sulle stesse settimane, il carico di una voce e,
+// sotto, dolore e sforzo medi (da 0 a 10: su un asse loro, non su quello dei
+// contatti). Qui si legge cosa e' stato fatto: nessun confronto con la dose.
 // Come la dose serve SOLO a programmare: non compare in nessun documento. Senza
-// dose nelle fasi ne' esercizi che si contano (una lombalgia) il riquadro non c'e'.
+// esercizi che si contano (una lombalgia) il riquadro non c'e'.
 
 const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 const SETTIMANE_GRAFICO = 12
@@ -39,19 +40,9 @@ const breve = (s: SettimanaCarico): string => {
   return `${g} ${MESI[m - 1]}`
 }
 
-// "160–240", "≥ 9", "≤ 40"
-function intervallo(v: VoceSettimana): string {
-  if (v.da != null && v.a != null) return v.da === v.a ? `${v.da}` : `${v.da}–${v.a}`
-  if (v.da != null) return `≥ ${v.da}`
-  if (v.a != null) return `≤ ${v.a}`
-  return ''
-}
-
-const ESITO = { ok: 'nella dose', poco: 'sotto la dose', troppo: 'sopra la dose' } as const
-
 export default function CaricoSettimane({ paziente }: { paziente: PazienteDettaglio }): React.JSX.Element | null {
   const [dati, setDati] = useState<CaricoPaziente | null>(null)
-  const [voce, setVoce] = useState<string | null>(null)
+  const [voce, setVoce] = useState<Voce | null>(null)
   const [tutte, setTutte] = useState(false)
   const [sopra, setSopra] = useState<number | null>(null)
 
@@ -67,40 +58,28 @@ export default function CaricoSettimane({ paziente }: { paziente: PazienteDettag
     }
   }, [paziente])
 
-  const nome = (k: string): string =>
-    dati?.nomi[k] ?? TIPI_LAVORO.find((t) => t.tipo === k)?.breve ?? k
-  const unita = (k: string): string => (k.startsWith('plio') ? 'contatti' : 'serie')
+  if (!dati || dati.chiavi.length === 0 || dati.settimane.length === 0) return null
 
-  // nell'ordine della seduta: prima la pliometria, poi potenza e forza
-  const chiavi = useMemo(() => {
-    if (!dati) return []
-    const ordine = (k: string): number => TIPI_LAVORO.findIndex((t) => k.startsWith(t.tipo))
-    const n = (k: string): string => dati.nomi[k] ?? k
-    return [...dati.chiavi].sort((a, b) => ordine(a) - ordine(b) || n(a).localeCompare(n(b), 'it'))
-  }, [dati])
+  const chiavi = dati.chiavi
+  const nome = (k: Voce): string => infoVoce(k).breve
+  const unita = (k: Voce): string => infoVoce(k).unita
+  // "Quadricipite 6, Ischiocrurali 3": il dettaglio per muscolo sotto il mouse
+  const muscoli = (s: SettimanaCarico, k: Voce): string | undefined =>
+    s.muscoli[k]?.map((m) => `${dati.nomi[m.categoria] ?? 'altro'} ${m.fatto}`).join(', ')
 
-  if (!dati || chiavi.length === 0 || dati.settimane.length === 0) return null
-
-  // la voce del grafico: quella scelta, o la prima con una dose nell'ultima settimana
-  const scelta =
-    voce != null && chiavi.includes(voce)
-      ? voce
-      : (chiavi.find((k) => {
-          const v = dati.settimane.find((s) => s.sedute > 0)?.voci[k]
-          return v != null && (v.da != null || v.a != null)
-        }) ?? chiavi[0])
+  // la voce del grafico: quella scelta, o la prima
+  const scelta = voce != null && chiavi.includes(voce) ? voce : chiavi[0]
 
   const nelGrafico = dati.settimane.slice(0, SETTIMANE_GRAFICO).reverse()
   const inTabella = tutte ? dati.settimane : dati.settimane.slice(0, RIGHE_TABELLA)
   const settimanaSopra = sopra == null ? null : nelGrafico[sopra]
   const avviso = dati.avviso
-  const senzaFrequenza = dati.frequenza == null && chiavi.some((k) => k.startsWith('forza:'))
 
   return (
     <section className="card carico-settimane">
       <h3>
         Carico settimana per settimana
-        <Aiuto testo="Quanto ha fatto il paziente ogni settimana, confrontato con la dose della fase: contatti di pliometria e serie di potenza e di forza, contati come nella riga della dose in seduta. La pliometria e la potenza hanno la dose per seduta, quindi la settimana vale la dose per le sedute fatte; la forza vale la dose per le sedute a settimana del paziente. La fase della settimana è quella dell'ultima seduta. Le sedute al campo non contano nel carico, ma dolore e sforzo sì. Nella settimana in corso non si segna mai 'poco': può ancora arrivare. Serve solo a programmare: non compare nella cartella né nei referti." />
+        <Aiuto testo="Quanto ha fatto il paziente ogni settimana, contato come nella riga della dose in seduta: contatti di pliometria, serie di forza, ipertrofia e potenza, ripetizioni eccentriche e secondi di isometria. Passando sopra a forza e ipertrofia si vede il dettaglio per muscolo. La fase della settimana è quella dell'ultima seduta. Le sedute al campo non contano nel carico, ma dolore e sforzo sì. Serve solo a programmare: non compare nella cartella né nei referti." />
       </h3>
 
       {avviso && (
@@ -117,7 +96,7 @@ export default function CaricoSettimane({ paziente }: { paziente: PazienteDettag
         <div className="carico-testata">
           <label className="compila-data">
             Nel grafico
-            <Tendina value={scelta} onChange={(e) => setVoce(e.target.value)}>
+            <Tendina value={scelta} onChange={(e) => setVoce(e.target.value as Voce)}>
               {chiavi.map((k) => (
                 <option key={k} value={k}>
                   {nome(k)}
@@ -128,21 +107,15 @@ export default function CaricoSettimane({ paziente }: { paziente: PazienteDettag
           {/* Quello che c'e' sotto il mouse: una riga sola, sempre allo stesso posto. */}
           <span className="carico-lettura" aria-live="polite">
             {settimanaSopra ? (
-              <Lettura s={settimanaSopra} k={scelta} nome={nome(scelta)} unita={unita(scelta)} />
+              <Lettura s={settimanaSopra} k={scelta} />
             ) : (
               <span className="hint">Passa sopra una settimana per leggerne i numeri.</span>
             )}
           </span>
         </div>
-        <GraficoCarico settimane={nelGrafico} k={scelta} unita={unita(scelta)} sopra={sopra} onSopra={setSopra} />
+        <GraficoCarico settimane={nelGrafico} k={scelta} sopra={sopra} onSopra={setSopra} />
         <GraficoDoloreSforzo settimane={nelGrafico} sopra={sopra} onSopra={setSopra} />
       </div>
-
-      {senzaFrequenza && (
-        <p className="hint">
-          Scrivi le sedute a settimana (qui sopra): senza, la dose di forza si moltiplica per le sedute fatte.
-        </p>
-      )}
 
       <div className="carico-tabella-scorre">
         <table className="data-table tabella-carico">
@@ -152,6 +125,7 @@ export default function CaricoSettimane({ paziente }: { paziente: PazienteDettag
               <th>Fase</th>
               {chiavi.map((k) => (
                 <th key={k} title={unita(k)}>
+                  <span className={`punto-voce ${coloreDose(k)}`} aria-hidden="true" />
                   {nome(k)}
                 </th>
               ))}
@@ -180,8 +154,8 @@ export default function CaricoSettimane({ paziente }: { paziente: PazienteDettag
                   <>
                     <td>{s.fase ?? <span className="hint">—</span>}</td>
                     {chiavi.map((k) => (
-                      <td key={k}>
-                        <Cella v={s.voci[k]} />
+                      <td key={k} className="voce-dose" title={muscoli(s, k)}>
+                        {s.voci[k] ?? <span className="hint">—</span>}
                       </td>
                     ))}
                     <td>{s.sforzo == null ? <span className="hint">—</span> : numero(s.sforzo)}</td>
@@ -202,37 +176,12 @@ export default function CaricoSettimane({ paziente }: { paziente: PazienteDettag
   )
 }
 
-function Cella({ v }: { v: VoceSettimana | undefined }): React.JSX.Element {
-  if (!v) return <span className="hint">—</span>
-  const dose = intervallo(v)
-  return (
-    <span className="carico-cella" title={v.esito ? ESITO[v.esito] : undefined}>
-      <span className={`voce-dose ${v.esito ?? ''}`}>
-        {v.fatto}
-        {v.esito === 'ok' && <Check size={14} aria-label="nella dose" />}
-        {(v.esito === 'poco' || v.esito === 'troppo') && <TriangleAlert size={14} aria-label={ESITO[v.esito]} />}
-      </span>
-      {dose && <span className="hint"> / {dose}</span>}
-    </span>
-  )
-}
-
-function Lettura({
-  s,
-  k,
-  nome,
-  unita
-}: {
-  s: SettimanaCarico
-  k: string
-  nome: string
-  unita: string
-}): React.JSX.Element {
-  const v = s.voci[k]
+function Lettura({ s, k }: { s: SettimanaCarico; k: Voce }): React.JSX.Element {
+  const { breve, unita } = infoVoce(k)
   const pezzi = [nomeSettimana(s)]
   if (s.sedute + s.seduteCampo === 0) pezzi.push('nessuna seduta')
   else {
-    pezzi.push(`${nome} ${v?.fatto ?? 0} ${unita}${v && intervallo(v) ? ` (dose ${intervallo(v)})` : ''}`)
+    pezzi.push(`${breve} ${s.voci[k] ?? 0} ${unita}`)
     if (s.dolore != null) pezzi.push(`dolore ${numero(s.dolore)}`)
     if (s.sforzo != null) pezzi.push(`sforzo ${numero(s.sforzo)}`)
   }
@@ -286,13 +235,11 @@ function passo(massimo: number): number {
 function GraficoCarico({
   settimane,
   k,
-  unita,
   sopra,
   onSopra
 }: {
   settimane: SettimanaCarico[]
-  k: string
-  unita: string
+  k: Voce
   sopra: number | null
   onSopra: (i: number | null) => void
 }): React.JSX.Element {
@@ -302,10 +249,8 @@ function GraficoCarico({
   const alto = A - SU - GIU
   const n = settimane.length
   const idBarra = `sfum-barra-${useId().replace(/:/g, '')}`
-  const valori = settimane.flatMap((s) => {
-    const v = s.voci[k]
-    return v ? [v.fatto, v.da ?? 0, v.a ?? 0] : [0]
-  })
+  const valori = settimane.map((s) => s.voci[k] ?? 0)
+  const { unita } = infoVoce(k)
   const p = passo(Math.max(...valori, 1))
   const cima = Math.ceil((Math.max(...valori, 1) * 1.05) / p) * p
   const y = (v: number): number => SU + (1 - v / cima) * alto
@@ -316,11 +261,11 @@ function GraficoCarico({
   const ogni = n > 8 ? 2 : 1
 
   return (
-    <svg className="grafico grafico-carico" viewBox={`0 0 ${L} ${A}`} role="img" aria-label={`Carico per settimana, in ${unita}`}>
+    <svg className={`grafico grafico-carico ${coloreDose(k)}`} viewBox={`0 0 ${L} ${A}`} role="img" aria-label={`Carico per settimana, in ${unita}`}>
       <defs>
         <linearGradient id={idBarra} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" style={{ stopColor: 'var(--accent)', stopOpacity: 1 }} />
-          <stop offset="1" style={{ stopColor: 'var(--accent)', stopOpacity: 0.35 }} />
+          <stop offset="0" style={{ stopColor: 'var(--c)', stopOpacity: 1 }} />
+          <stop offset="1" style={{ stopColor: 'var(--c)', stopOpacity: 0.35 }} />
         </linearGradient>
       </defs>
       {righe.map((v) => (
@@ -335,22 +280,14 @@ function GraficoCarico({
         <rect className="carico-colonna-sopra" x={SX + colonna(n) * sopra} y={SU} width={colonna(n)} height={alto} />
       )}
       {settimane.map((s, i) => {
-        const v = s.voci[k]
+        const fatto = s.voci[k] ?? 0
         const cx = centro(i, n)
-        const fascia = colonna(n) * 0.78
         return (
           <g key={s.lunedi}>
-            {/* la dose della settimana: una fascia se ha due numeri, una riga se ne ha uno */}
-            {v && v.da != null && v.a != null && (
-              <rect className="carico-fascia-dose" x={cx - fascia / 2} y={y(v.a)} width={fascia} height={y(v.da) - y(v.a)} rx={3} />
-            )}
-            {v && (v.da == null) !== (v.a == null) && (
-              <line className="carico-soglia-dose" x1={cx - fascia / 2} x2={cx + fascia / 2} y1={y((v.da ?? v.a)!)} y2={y((v.da ?? v.a)!)} />
-            )}
-            {v && v.fatto > 0 && (
+            {fatto > 0 && (
               <path
                 className={`carico-barra${s.inCorso ? ' in-corso' : ''}`}
-                d={barra(cx - larga / 2, y(v.fatto), larga, y(0) - y(v.fatto))}
+                d={barra(cx - larga / 2, y(fatto), larga, y(0) - y(fatto))}
                 style={{ fill: `url(#${idBarra})` }}
               />
             )}

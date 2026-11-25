@@ -544,7 +544,7 @@ export function SchedaPaziente({
                 </label>
               )}
               {/* Un numero solo, che si cambia al volo: dipende dalla fase ma anche
-                  da quanto puo' spendere. Divide la dose di forza sulla settimana. */}
+                  da quanto puo' spendere. Il Quadro ci conta la settimana in corso. */}
               <label className="field campo-sedute-settimana">
                 Sedute a settimana
                 <input

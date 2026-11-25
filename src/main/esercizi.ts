@@ -7,11 +7,22 @@ import { eliminaConCestino, nomeDi } from './cestino'
 import { validaImmagine, validaLink } from './validazione'
 import { progressioniConEsercizio, progressioniConVariante } from './progressioni'
 import type { EsercizioInput, VarianteEsercizio, VarianteInput } from '../shared/types'
-import { tipoValido, type Gambe, type TipoLavoro } from '../shared/dose'
+import { tipoEsercizioValido, type Gambe, type TipoEsercizio } from '../shared/dose'
 
 const GAMBE: Gambe[] = ['due', 'scelta', 'una']
 const validaGambe = (g: Gambe | undefined): void => {
   if (g !== undefined && !GAMBE.includes(g)) throw new Error('Scelta delle gambe non valida: riprova.')
+}
+
+const validaTipo = (t: TipoEsercizio | null | undefined): void => {
+  if (t != null && !tipoEsercizioValido(t)) throw new Error('Tipo di esercizio non valido: riprova.')
+}
+
+// Il tipo dell'esercizio (pliometria, rinforzo, non conta) per la dose; null =
+// ancora da sistemare.
+export function impostaTipo(id: number, tipo: TipoEsercizio | null): void {
+  validaTipo(tipo)
+  getDb().prepare('UPDATE esercizi SET tipo = ? WHERE id = ?').run(tipo, id)
 }
 
 // Sta nel database (quindi cifrata e inclusa nel backup della cartella) come
@@ -36,10 +47,13 @@ export function elencoEsercizi(includiArchiviati: boolean): unknown[] {
   // una query per esercizio sarebbe lenta con la libreria aperta.
   const varianti = new Map<number, VarianteEsercizio[]>()
   for (const v of db
-    .prepare('SELECT id, esercizio_id, nome FROM esercizio_varianti ORDER BY ordine, id')
+    .prepare(
+      `SELECT id, esercizio_id, nome, (immagine IS NOT NULL) AS ha_immagine
+       FROM esercizio_varianti ORDER BY ordine, id`
+    )
     .all() as (VarianteEsercizio & { esercizio_id: number })[]) {
     const elenco = varianti.get(v.esercizio_id) ?? []
-    elenco.push({ id: v.id, nome: v.nome })
+    elenco.push({ id: v.id, nome: v.nome, ha_immagine: v.ha_immagine })
     varianti.set(v.esercizio_id, elenco)
   }
   const esercizi = db
@@ -47,7 +61,7 @@ export function elencoEsercizi(includiArchiviati: boolean): unknown[] {
       `SELECT e.id, e.nome, e.nome_alternativo, e.categoria_id, e.serie_default, e.cluster_default,
               e.ripetizioni_default, e.rir_default, e.carico_default, e.unita_carico,
               e.recupero_cluster_default,
-              e.recupero_default, e.nota_tecnica, e.link, e.gambe, e.archiviato,
+              e.recupero_default, e.nota_tecnica, e.link, e.gambe, e.tipo, e.archiviato,
               c.nome AS categoria_nome, c.dosaggio_cluster, c.dosaggio_rir,
               (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.esercizio_id = e.id) AS usi,
               (e.immagine IS NOT NULL) AS ha_immagine
@@ -84,13 +98,6 @@ export function impostaRir(id: number, attivo: boolean): void {
   getDb().prepare('UPDATE categorie SET dosaggio_rir = ? WHERE id = ?').run(attivo ? 1 : 0, id)
 }
 
-// Come si contano gli esercizi della categoria nella dose della fase (null =
-// fuori dal conto, o come la categoria che la contiene).
-export function impostaContaCome(id: number, tipo: TipoLavoro | null): void {
-  if (tipo != null && !tipoValido(tipo)) throw new Error('Tipo di lavoro non valido: riprova.')
-  getDb().prepare('UPDATE categorie SET conta_come = ? WHERE id = ?').run(tipo, id)
-}
-
 export function impostaPadre(id: number, padreId: number | null): void {
   const db = getDb()
   if (padreId != null) {
@@ -124,7 +131,8 @@ export function eliminaCategoria(id: number): void {
 // l'esercizio normale.
 function salvaVarianti(esercizioId: number, varianti: VarianteInput[]): void {
   const db = getDb()
-  const nuove = varianti.map((v) => ({ id: v.id, nome: v.nome.trim() })).filter((v) => v.nome !== '')
+  const nuove = varianti.map((v) => ({ ...v, nome: v.nome.trim() })).filter((v) => v.nome !== '')
+  for (const v of nuove) if (v.immagine !== undefined) controllaImmagine(v.immagine)
   const visti = new Set<string>()
   for (const v of nuove) {
     const chiave = v.nome.toLowerCase()
@@ -145,15 +153,20 @@ function salvaVarianti(esercizioId: number, varianti: VarianteInput[]): void {
   }
   const aggiorna = db.prepare('UPDATE esercizio_varianti SET nome = ?, ordine = ? WHERE id = ? AND esercizio_id = ?')
   const inserisci = db.prepare('INSERT INTO esercizio_varianti (esercizio_id, nome, ordine) VALUES (?, ?, ?)')
+  const foto = db.prepare('UPDATE esercizio_varianti SET immagine = ? WHERE id = ?')
   nuove.forEach((v, i) => {
-    if (v.id != null && attuali.some((a) => a.id === v.id)) aggiorna.run(v.nome, i, v.id, esercizioId)
-    else inserisci.run(esercizioId, v.nome, i)
+    let id = v.id
+    if (id != null && attuali.some((a) => a.id === id)) aggiorna.run(v.nome, i, id, esercizioId)
+    else id = Number(inserisci.run(esercizioId, v.nome, i).lastInsertRowid)
+    // undefined = foto non toccata
+    if (v.immagine !== undefined) foto.run(v.immagine, id)
   })
 }
 
 export function creaEsercizio(data: EsercizioInput): number {
   validaLink(data.link, 'Il link del video')
   validaGambe(data.gambe)
+  validaTipo(data.tipo)
   const { varianti, ...campi } = data
   const db = getDb()
   return db.transaction(() => {
@@ -163,18 +176,19 @@ export function creaEsercizio(data: EsercizioInput): number {
           `INSERT INTO esercizi (nome, nome_alternativo, categoria_id, serie_default, cluster_default,
                                  ripetizioni_default, rir_default, carico_default, unita_carico,
                                  recupero_cluster_default,
-                                 recupero_default, nota_tecnica, link, gambe)
+                                 recupero_default, nota_tecnica, link, gambe, tipo)
            VALUES (@nome, @nome_alternativo, @categoria_id, @serie_default, @cluster_default,
                    @ripetizioni_default, @rir_default, @carico_default, @unita_carico,
                    @recupero_cluster_default,
-                   @recupero_default, @nota_tecnica, @link, @gambe)`
+                   @recupero_default, @nota_tecnica, @link, @gambe, @tipo)`
         )
         .run({
           ...campi,
           nome: campi.nome.trim(),
           nome_alternativo: campi.nome_alternativo?.trim() || null,
           link: campi.link?.trim() || null,
-          gambe: campi.gambe ?? 'due'
+          gambe: campi.gambe ?? 'due',
+          tipo: campi.tipo ?? null
         })
         .lastInsertRowid
     )
@@ -186,6 +200,7 @@ export function creaEsercizio(data: EsercizioInput): number {
 export function aggiornaEsercizio(id: number, data: EsercizioInput): void {
   validaLink(data.link, 'Il link del video')
   validaGambe(data.gambe)
+  validaTipo(data.tipo)
   const { varianti, ...campi } = data
   const db = getDb()
   db.transaction(() => {
@@ -199,7 +214,8 @@ export function aggiornaEsercizio(id: number, data: EsercizioInput): void {
        unita_carico = @unita_carico,
        recupero_cluster_default = @recupero_cluster_default,
        recupero_default = @recupero_default,
-       nota_tecnica = @nota_tecnica, link = @link, gambe = COALESCE(@gambe, gambe)
+       nota_tecnica = @nota_tecnica, link = @link, gambe = COALESCE(@gambe, gambe),
+       tipo = CASE WHEN @cambia_tipo = 1 THEN @tipo ELSE tipo END
        WHERE id = @id`
     ).run({
       ...campi,
@@ -208,6 +224,8 @@ export function aggiornaEsercizio(id: number, data: EsercizioInput): void {
       cambia_alternativo: campi.nome_alternativo === undefined ? 0 : 1,
       link: campi.link?.trim() || null,
       gambe: campi.gambe ?? null,
+      tipo: campi.tipo ?? null,
+      cambia_tipo: campi.tipo === undefined ? 0 : 1,
       id
     })
     if (varianti) salvaVarianti(id, varianti)
@@ -241,18 +259,36 @@ export function eliminaEsercizio(id: number): void {
   eliminaConCestino('esercizi', id, 'Esercizio', nomeDi('esercizi', id))
 }
 
-export function leggiImmagine(id: number): string | null {
-  const riga = getDb().prepare('SELECT immagine FROM esercizi WHERE id = ?').get(id) as
-    | { immagine: string | null }
-    | undefined
+// Con `variante`, la foto di quella variante se ne ha una, altrimenti quella
+// dell'esercizio.
+export function leggiImmagine(id: number, variante?: string | null): string | null {
+  const riga = getDb()
+    .prepare(
+      `SELECT COALESCE(
+         (SELECT v.immagine FROM esercizio_varianti v WHERE v.esercizio_id = e.id AND v.nome = ?),
+         e.immagine) AS immagine
+       FROM esercizi e WHERE e.id = ?`
+    )
+    .get(variante ?? null, id) as { immagine: string | null } | undefined
   if (!riga) throw new Error('Esercizio non trovato.')
   return riga.immagine
 }
 
-export function impostaImmagine(id: number, dataUrl: string | null): void {
+// Le foto proprie delle varianti, per il modulo di modifica.
+export function immaginiVarianti(esercizioId: number): { id: number; immagine: string }[] {
+  return getDb()
+    .prepare('SELECT id, immagine FROM esercizio_varianti WHERE esercizio_id = ? AND immagine IS NOT NULL')
+    .all(esercizioId) as { id: number; immagine: string }[]
+}
+
+function controllaImmagine(dataUrl: string | null): void {
   if (dataUrl != null && dataUrl.length > IMG_PESO_MAX) {
     throw new Error('Immagine troppo pesante.')
   }
   validaImmagine(dataUrl)
+}
+
+export function impostaImmagine(id: number, dataUrl: string | null): void {
+  controllaImmagine(dataUrl)
   getDb().prepare('UPDATE esercizi SET immagine = ? WHERE id = ?').run(dataUrl, id)
 }

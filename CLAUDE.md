@@ -55,23 +55,31 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   scheda non si scrive niente; altrimenti si legge sotto il nome (`nomeConVariante` in
   `shared/varianti.ts`, PDF/Word/finestra della scheda/CSV). Prove: `esercizi`, `progressioni`,
   `sedute`, `costruzione-seduta`, `export-seduta`, `e2e/varianti.spec.ts`.
-- La **dose** (migrazione 72) serve SOLO a programmare, come le progressioni: non entra in documenti.
-  La categoria dice come si contano i suoi esercizi (`categorie.conta_come`: pliometria estensiva o
-  intensiva in contatti, forza o potenza con carico in serie; un distretto vuoto eredita dalla
-  categoria che lo contiene). La forza si conta per categoria, cioè per muscolo. La fase ha la sua
-  dose per seduta (`fase_dose`, chiave `plio_est` / `plio_int` / `potenza` / `forza:<id categoria>`,
-  linguetta «Dose» = `components/DoseFase.tsx`, con i modelli RTP 1 / RTP 2 / Preparazione atletica
-  presi dagli appunti dell'utente). Il paziente ha `sedute_settimana` (in Percorso e nella riga della
-  dose). In seduta `seduta/RigaDose.tsx` confronta la seduta con la fase: la pliometria per seduta, la
-  forza per settimana (dose × sedute a settimana, meno le altre sedute della settimana, divisa su quelle
-  che restano; le sedute in una fase «al campo» non contano). Il calcolo è in `shared/dose.ts`
-  («8-10» = 8, una ripetizione a tempo è un'isometria e non conta, a una gamba i contatti valgono
-  doppio, i cluster si moltiplicano), le query in `main/dose.ts`; prove in `test/dose.test.ts` ed
-  `e2e/dose.spec.ts`. Nel Percorso del paziente `components/CaricoSettimane.tsx` mette in fila le
-  settimane fatte contro la dose (pliometria e potenza × sedute fatte, forza × sedute a settimana),
-  con due grafici (carico; dolore e sforzo, asse 0–10 a parte) e un avviso se il dolore sale tre
-  settimane con il carico: calcolo in `shared/carico-settimane.ts`, lettura `caricoPaziente` in
-  `main/dose.ts`, prove in `test/carico-settimane.test.ts` ed `e2e/carico.spec.ts`. Solo a video.
+  Una variante può avere la **foto sua** (`esercizio_varianti.immagine`, migrazione 80; `VarianteInput.immagine`
+  assente = non toccata, null = tolta): scheda illustrata, PDF e «Vedi immagine» usano quella della variante
+  scelta, altrimenti quella dell'esercizio (si ritrova dal nome della variante).
+- La **dose** (ridisegnata con la migrazione 79) serve SOLO a programmare, come le progressioni: non entra in
+  nessun documento. Disegno di riferimento: `prova-dosi-v7.html`. L'esercizio ha un **tipo** (`esercizi.tipo`:
+  `rinforzo` / `plio_est` / `plio_int` / `non_conta`, vuoto = «Da sistemare») e per muscolo la sua categoria; le
+  **sezioni** stanno in libreria (`sezioni_libreria`) con un **obiettivo** e le fasi le richiamano
+  (`sezioni.libreria_id`; senza = «solo di questa fase», con categorie e obiettivo propri; eliminando quella di
+  libreria le fasi la tengono come propria). L'obiettivo decide solo il rinforzo, la pliometria si conta ovunque.
+  La dose è un **modello** (`dose_modelli` + `dose_modello_voci`: per seduta, volte a settimana, indicazione;
+  `alternativa` = potenza o plio intensiva, ne basta una) scelto dalla fase (`fasi.dose_modello_id`), in Libreria →
+  Dosi o nella linguetta «Dose». Sulla riga della seduta si fotografano `tipo` e l'eccezione `conta` (barretta
+  colorata), sulla sezione `obiettivo`. Il calcolo è tutto in `shared/dose.ts` (`voceRiga`, `contaRighe`,
+  `valutaSeduta`): la dose è un **minimo** — si segnala solo ciò che manca, mai l'eccesso, e niente se le altre
+  sedute della settimana hanno già dato il minimo le volte chieste (muscolo per muscolo). Non aggiungere avvisi:
+  l'utente non li vuole. In seduta `seduta/RigaDose.tsx` è UNA riga sopra gli esercizi (dettaglio solo cliccando,
+  in sovraimpressione, senza velo: la pagina si scorre). I numeri sono verdi / arancioni (almeno metà) / rossi
+  (`livelloDose`), chiesti dall'utente. Le regole con cui la migrazione ha assegnato tipi e obiettivi sono in
+  `shared/dose-partenza.ts`; le query in `main/dose.ts`. Il Quadro (ciambella) e il carico settimanale
+  (`components/CaricoSettimane.tsx`, `shared/carico-settimane.ts`) usano le stesse voci e colori
+  (`stili/16-dose.css`, `.voce-…`), **senza confronti con la dose**; resta l'avviso se il dolore sale tre settimane
+  con il carico. La tabella `fase_dose` e `categorie.conta_come` non si usano più (restano per il cestino e per la
+  migrazione). Prove: `dose`, `dose-aggiornamento`, `carico-settimane`, `e2e/dose.spec.ts`, `e2e/carico.spec.ts`.
+- **Nomi lunghi**: nella riga della seduta il nome sta su una riga con i puntini e le icone subito accanto;
+  nelle schede del paziente (finestra e PDF, con e senza immagini) va a capo fino a due righe.
 - **Monopodalico**: l'esercizio in libreria ha `gambe` (`due` / `scelta` / `una`). Su quelli «a
   scelta» la riga della seduta ha un bottoncino che mostra la modalità in corso («Bipodalico» / «Monopodalico»; il clic passa all'altra); «Monopodalico» si salva sulla riga
   (`seduta_esercizi.monopodalico`, fotografato come la dose: si copia, si ricopia dall'ultima volta) e

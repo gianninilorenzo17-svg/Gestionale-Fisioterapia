@@ -117,7 +117,7 @@
    e' larga e allineata come il nome dell'esercizio. */
 .variante-riga input {
   width: 100%;
-  padding-right: 112px;
+  padding-right: 168px;
 }
 
 .variante-riga .variante-azioni {
@@ -127,6 +127,15 @@
   transform: translateY(-50%);
   display: flex;
   gap: 2px;
+}
+
+.variante-riga .variante-foto {
+  display: block;
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #fff;
 }
 
 .variante-riga .variante-azioni button {

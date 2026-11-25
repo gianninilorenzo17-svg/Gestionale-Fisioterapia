@@ -70,7 +70,7 @@ export const percorso: ArgomentoGuida = {
         'Apri la fase: [[Configurazione > Patologie e fasi > la patologia > la fase]]. Ha cinque linguette:',
         {
           punti: [
-            '**Struttura della seduta**: le sezioni (es. «Riscaldamento») e, per ognuna, le categorie di esercizi che propone. Spuntando una categoria la sezione propone anche gli esercizi dei suoi distretti.',
+            '**Struttura della seduta**: le sezioni (es. «Riscaldamento»). Quelle della libreria si spuntano (categorie e obiettivo si scrivono in **Libreria esercizi > Sezioni**); **Sezione solo di questa fase** ne aggiunge una con le sue categorie. Si riordinano trascinando.',
             '**Obiettivi**: quelli della fase.',
             '**Progressioni**: vedi **Progressioni a step**.',
             '**Dose**: vedi **Dose per seduta e per settimana**.',

@@ -9,7 +9,7 @@ import Modale from './Modale'
 import { errMsg } from '../lib'
 import { useRiordinoSalvato } from '../riordino'
 import { daPrecarico, ricorda } from '../precarico'
-import { TIPI_LAVORO, type TipoLavoro } from '../../../shared/dose'
+import { TIPI_ESERCIZIO, type TipoEsercizio } from '../../../shared/dose'
 import Tendina from './Tendina'
 import { esercizioCorrisponde } from '../../../shared/varianti'
 
@@ -31,8 +31,6 @@ interface FormCat {
   rir: boolean
   // Dentro a quale categoria nasce (null = e' un tipo di lavoro a se').
   padre: number | null
-  // Come si contano i suoi esercizi nella dose della fase.
-  contaCome: TipoLavoro | null
 }
 
 export default function CategorieEsercizi({
@@ -42,8 +40,13 @@ export default function CategorieEsercizi({
   ricerca,
   onRicerca,
   onNuovoEsercizio,
-  renderEsercizi
+  renderEsercizi,
+  onModificaEsercizio,
+  onTipo
 }: {
+  // per la dose: gli esercizi senza tipo si sistemano da qui
+  onModificaEsercizio: (e: EsercizioConCategoria) => void
+  onTipo: (id: number, tipo: TipoEsercizio) => Promise<void>
   tornaAllInizio: number
   // La libreria ricarica i suoi esercizi: cambiando una categoria cambia
   // quello che si legge nelle righe.
@@ -76,6 +79,8 @@ export default function CategorieEsercizi({
   const [form, setForm] = useState<FormCat | null>(null)
   const [nuovoDistretto, setNuovoDistretto] = useState<string | null>(null)
   const [spostaAperto, setSpostaAperto] = useState(false)
+  // La finestra degli esercizi senza tipo: non entrano nel conto della dose.
+  const [sistema, setSistema] = useState(false)
 
   const carica = useCallback(
     (): Promise<void> => window.api.categorie.list().then(ricorda('categorie')).then(setCategorie),
@@ -138,6 +143,8 @@ export default function CategorieEsercizi({
       )
     : []
 
+  const daSistemare = esercizi.filter((e) => e.tipo == null && !e.archiviato)
+
   const esegui = async (fn: () => Promise<unknown>): Promise<void> => {
     try {
       await fn()
@@ -168,7 +175,6 @@ export default function CategorieEsercizi({
           : (await window.api.categorie.update(form.id, nome), form.id)
       await window.api.categorie.setCluster(id, form.cluster)
       await window.api.categorie.setRir(id, form.rir)
-      await window.api.categorie.setContaCome(id, form.contaCome)
       if (form.id == null && form.padre != null) {
         await window.api.categorie.setPadre(id, form.padre)
       }
@@ -212,17 +218,13 @@ export default function CategorieEsercizi({
       nome: c.nome,
       cluster: c.dosaggio_cluster === 1,
       rir: c.dosaggio_rir === 1,
-      padre: c.padre_id,
-      contaCome: c.conta_come
+      padre: c.padre_id
     })
 
   const etichette = (c: Categoria): React.JSX.Element => (
     <>
       {c.dosaggio_cluster === 1 && <span className="badge">cluster</span>}
       {c.dosaggio_rir === 1 && <span className="badge">RIR</span>}
-      {c.conta_come && (
-        <span className="badge">{TIPI_LAVORO.find((t) => t.tipo === c.conta_come)?.breve.toLowerCase()}</span>
-      )}
     </>
   )
 
@@ -251,10 +253,20 @@ export default function CategorieEsercizi({
               value={ricerca}
               onChange={(e) => onRicerca(e.target.value)}
             />
+            {/* C'e' solo finche' c'e' qualcosa da sistemare. */}
+            {daSistemare.length > 0 && (
+              <button
+                className="btn-da-sistemare"
+                title="Esercizi senza tipo: non entrano nel conto della dose"
+                onClick={() => setSistema(true)}
+              >
+                Da sistemare <b>{daSistemare.length}</b>
+              </button>
+            )}
             <button
               className="primary"
               onClick={() =>
-                setForm({ id: null, nome: '', cluster: false, rir: false, padre: null, contaCome: null })
+                setForm({ id: null, nome: '', cluster: false, rir: false, padre: null })
               }
             >
               <Plus size={18} /> Nuova categoria
@@ -450,6 +462,45 @@ export default function CategorieEsercizi({
         </section>
       )}
 
+      {sistema && (
+        <Modale onConferma={() => setSistema(false)}>
+          <h3>Da sistemare</h3>
+          <p className="hint">
+            Scegli il tipo: finché manca, questi esercizi non entrano nel conto della dose. Il muscolo principale è la
+            categoria.
+          </p>
+          {daSistemare.map((e) => (
+            <div className="riga-da-sistemare" key={e.id}>
+              <span>
+                <b>{e.nome}</b>
+                <span className="hint"> · {e.categoria_nome}</span>
+              </span>
+              <button className="btn-icona" title={`Modifica ${e.nome}`} onClick={() => onModificaEsercizio(e)}>
+                <Pencil size={16} />
+              </button>
+              <Tendina
+                title={`Tipo di ${e.nome}`}
+                value=""
+                onChange={(ev) => void onTipo(e.id, ev.target.value as TipoEsercizio)}
+              >
+                <option value="">Scegli…</option>
+                {TIPI_ESERCIZIO.map((x) => (
+                  <option key={x.tipo} value={x.tipo}>
+                    {x.nome}
+                  </option>
+                ))}
+              </Tendina>
+            </div>
+          ))}
+          {daSistemare.length === 0 && <p>Fatto: non c'è più niente da sistemare.</p>}
+          <div className="modal-actions">
+            <button className="primary" onClick={() => setSistema(false)}>
+              Chiudi
+            </button>
+          </div>
+        </Modale>
+      )}
+
       {form && (
         // Cliccando fuori (o premendo Invio) si salva; si butta via solo una
         // categoria nuova ancora senza nome. "Annulla" resta per uscire senza
@@ -503,27 +554,6 @@ export default function CategorieEsercizi({
               />
               Ripetizioni di riserva (RIR)
               <Aiuto testo="Quante ripetizioni restano in canna a fine serie: RIR 2 vuol dire fermarsi due prima del cedimento. Dice quanto è pesante la serie meglio del carico da solo, e serve nella forza più che nella mobilità. Spuntandola, gli esercizi di questa categoria hanno una casellina in più nella seduta." />
-            </label>
-            <label className="riga-staccata">
-              <span>
-                Nel conto della dose
-                <Aiuto testo="Come si contano gli esercizi di questa categoria nella dose della fase: la pliometria in contatti per seduta (un esercizio a una gamba vale doppio), la forza in serie per settimana, una voce per ogni distretto (quadricipite, hamstring), la potenza con carico in serie per seduta. I numeri della dose si scrivono in Patologie e fasi, linguetta «Dose». Isometrie, core e accessori restano fuori." />
-              </span>
-              <Tendina
-                value={form.contaCome ?? ''}
-                onChange={(e) => setForm({ ...form, contaCome: (e.target.value || null) as TipoLavoro | null })}
-              >
-                <option value="">
-                  {form.padre != null
-                    ? `Come «${categorie.find((c) => c.id === form.padre)?.nome ?? 'la categoria'}»`
-                    : 'Non si conta'}
-                </option>
-                {TIPI_LAVORO.map((t) => (
-                  <option key={t.tipo} value={t.tipo}>
-                    {t.nome} ({t.unita})
-                  </option>
-                ))}
-              </Tendina>
             </label>
 
             <div className="modal-actions">

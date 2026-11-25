@@ -1,6 +1,6 @@
 import type { ApiDaCanali } from './canali'
 import type { Tema } from './temi'
-import type { Gambe, TipoLavoro } from './dose'
+import type { Conta, Gambe, ObiettivoSezione, TipoEsercizio } from './dose'
 
 export interface Patologia {
   id: number
@@ -46,9 +46,6 @@ export interface Categoria {
   dosaggio_cluster: 0 | 1
   // ...e/o con le ripetizioni di riserva (la forza).
   dosaggio_rir: 0 | 1
-  // Come si contano i suoi esercizi nella dose della fase. null = fuori dal
-  // conto, o come la categoria che la contiene.
-  conta_come: TipoLavoro | null
 }
 
 export interface Esercizio {
@@ -73,6 +70,8 @@ export interface Esercizio {
   link: string | null
   // A una gamba: mai, a scelta in seduta (il segno monopodalico), sempre.
   gambe: Gambe
+  // Come si conta nella dose; null = da sistemare.
+  tipo: TipoEsercizio | null
   archiviato: 0 | 1
   // Quante volte l'esercizio compare in una seduta: serve solo a ordinare
   // l'elenco per i piu' usati.
@@ -85,12 +84,16 @@ export interface Esercizio {
 export interface VarianteEsercizio {
   id: number
   nome: string
+  // La foto propria della variante; senza, vale quella dell'esercizio.
+  ha_immagine?: 0 | 1
 }
 
 // id null = variante nuova, non ancora salvata
 export interface VarianteInput {
   id: number | null
   nome: string
+  // Se manca la foto resta com'e'; null la toglie.
+  immagine?: string | null
 }
 
 // ha_immagine e' un flag, non l'immagine: l'elenco non trasporta i dati binari.
@@ -117,6 +120,8 @@ export interface EsercizioInput {
   link: string | null
   // Se manca resta com'e' (un esercizio nuovo nasce a due gambe).
   gambe?: Gambe
+  // Il tipo per la dose; se manca resta com'e', null = da sistemare.
+  tipo?: TipoEsercizio | null
   // L'elenco intero delle varianti, in ordine. Se manca, le varianti
   // dell'esercizio restano come sono.
   varianti?: VarianteInput[]
@@ -127,10 +132,35 @@ export interface Sezione {
   fase_id: number
   nome: string
   ordine: number
+  // La sezione della libreria che richiama; null = solo di questa fase.
+  libreria_id: number | null
+  // Dove va il rinforzo messo qui dentro (quello della libreria, se la richiama).
+  obiettivo: ObiettivoSezione | null
 }
 
 // categoria_ids è ordinato secondo la sequenza riabilitativa scelta
 export type SezioneConCategorie = Sezione & { categoria_ids: number[] }
+
+// Una sezione della libreria: si scrive una volta e le fasi la spuntano.
+export interface SezioneLibreria {
+  id: number
+  nome: string
+  obiettivo: ObiettivoSezione | null
+  ordine: number
+  categoria_ids: number[]
+  // "LCA — RTP 1": le fasi che la usano
+  usata_in: string[]
+}
+
+// Una fase con il modello di dose che usa (Libreria → Dosi).
+export interface FaseConModello {
+  id: number
+  nome: string
+  campo: 0 | 1
+  dose_modello_id: number | null
+  patologia_id: number
+  patologia_nome: string
+}
 
 export interface TestAvanzamento {
   id: number
@@ -310,6 +340,10 @@ export interface SedutaEsercizioInput {
   variante?: string | null
   // 1 = fatto a una gamba (segnato in seduta): si legge "Squat monopodalico".
   monopodalico?: 0 | 1
+  // Per la dose: il tipo dell'esercizio com'e' sulla riga e l'eccezione "qui
+  // conta come". Non compaiono in nessun documento.
+  tipo?: TipoEsercizio | null
+  conta?: Conta | null
   // indice nella lista sezioni della seduta; null = fuori sezione (dati vecchi)
   sezioneIndex: number | null
 }
@@ -317,6 +351,8 @@ export interface SedutaEsercizioInput {
 export interface SedutaSezioneInput {
   sezione_id: number | null // riferimento alla sezione del template, se derivata da esso
   nome: string
+  // Dove va il rinforzo della sezione, per la dose.
+  obiettivo?: ObiettivoSezione | null
 }
 
 export interface SedutaInput {
@@ -503,6 +539,7 @@ export type SedutaEsercizioDettaglio = Omit<SedutaEsercizioInput, 'sezioneIndex'
 export interface SedutaSezioneDettaglio {
   sezione_id: number | null
   nome: string
+  obiettivo?: ObiettivoSezione | null
   esercizi: SedutaEsercizioDettaglio[]
 }
 
