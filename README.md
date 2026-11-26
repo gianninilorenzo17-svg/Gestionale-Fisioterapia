@@ -64,6 +64,12 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.28
+
+- Dosi settimanali a modelli: il tipo si sceglie sull'esercizio, sezioni e modelli stanno in libreria.
+- Ogni variante di un esercizio può avere la sua foto.
+- In seduta il nome lungo si abbrevia con le icone accanto; nelle schede del paziente va su due righe.
+
 ### v0.5.27
 
 - Impostazioni a cinque schede: Profilo, Aspetto, Sicurezza, Dati e backup, Guida. Una riga per scelta con la sua spiegazione, anteprima del colore e dello stile della dose, la dimensione dei caratteri spostata in Aspetto
