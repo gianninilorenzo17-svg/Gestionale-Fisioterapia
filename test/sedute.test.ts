@@ -456,3 +456,44 @@ test("L'ultima volta porta anche la nota scritta sulla riga dell'esercizio", () 
   const ultima = ultimaVoltaPerPaziente(pz, null, '2030-01-01').find((u) => u.esercizio_id != null)!
   assert.equal(ultima.nota, 'compenso al terzo set')
 })
+
+test('La seduta copiata prende la fase in cui il paziente e\' adesso', () => {
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number => Number(c.prepare(sql).run(...a).lastInsertRowid)
+  const { pz, input } = sedutaDiProva()
+  const pat = ins("INSERT INTO patologie (nome, ha_campo) VALUES ('Copia fase', 1)")
+  const intermedia = ins("INSERT INTO fasi (patologia_id, nome) VALUES (?, 'Intermedia')", pat)
+  const avanzata = ins("INSERT INTO fasi (patologia_id, nome) VALUES (?, 'Avanzata')", pat)
+  const campo = ins("INSERT INTO fasi (patologia_id, nome, campo) VALUES (?, 'Campo', 1)", pat)
+  const vecchia = ins("INSERT INTO sezioni (fase_id, nome) VALUES (?, 'Rinforzo')", intermedia)
+  const nuova = ins("INSERT INTO sezioni (fase_id, nome, obiettivo) VALUES (?, 'rinforzo', 'potenza')", avanzata)
+  c.prepare('UPDATE pazienti SET patologia_id = ?, fase_corrente_id = ? WHERE id = ?').run(pat, avanzata, pz)
+  const origine = creaSeduta({
+    ...input,
+    fase_id: intermedia,
+    sezioni: [
+      { sezione_id: null, nome: 'Riscaldamento' },
+      { sezione_id: vecchia, nome: 'Rinforzo', obiettivo: 'forza' }
+    ]
+  })
+
+  const [copia] = programmaSeduta(origine, ['2026-09-30'])
+  const letta = leggiSeduta(copia)
+  assert.equal(letta.fase_id, avanzata)
+  assert.deepEqual(
+    letta.sezioni.map((s) => [s.sezione_id, s.obiettivo]),
+    [
+      [null, null],
+      [nuova, 'potenza']
+    ]
+  )
+  assert.deepEqual(nomiPerSezione(copia).map((s) => s.slice(1)), nomiPerSezione(origine).map((s) => s.slice(1)))
+
+  // una seduta al campo resta sulla sua fase del campo
+  const alCampo = creaSeduta({ ...input, segni: [], fase_id: campo })
+  assert.equal(leggiSeduta(programmaSeduta(alCampo, ['2026-10-01'])[0]).fase_id, campo)
+
+  // senza una fase impostata resta quella copiata
+  c.prepare('UPDATE pazienti SET fase_corrente_id = NULL WHERE id = ?').run(pz)
+  assert.equal(leggiSeduta(programmaSeduta(origine, ['2026-10-02'])[0]).fase_id, intermedia)
+})

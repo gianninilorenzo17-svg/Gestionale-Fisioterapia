@@ -102,7 +102,7 @@ export const dose: ArgomentoGuida = {
             '**Eccentrica** = ripetizioni in tutto.',
             '**Isometria massimale** = secondi in tutto: scrivi il tempo nelle ripetizioni (per esempio 5"). Le isometrie fuori da una sezione con obiettivo **Isometria** non si contano.',
             '**«8-10» conta come 8** (il primo numero).',
-            'Un esercizio **solo per questa seduta** non ha un tipo e non si conta.'
+            'Un esercizio **solo per questa seduta** parte da **Non conta**: dal menu accanto al nome scegli in cosa contarlo (Forza, Potenza…). Non avendo una categoria, in forza e ipertrofia finisce sotto «altro».'
           ]
         }
       ]

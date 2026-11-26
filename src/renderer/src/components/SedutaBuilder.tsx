@@ -47,6 +47,7 @@ import SezioneSeduta from './seduta/SezioneSeduta'
 import ChiusuraSeduta from './seduta/ChiusuraSeduta'
 import RigaDose from './seduta/RigaDose'
 import CiambellaDose from './seduta/CiambellaDose'
+import { faseDellaCopia, sezioniNellaFase } from '../../../shared/copia-seduta'
 import type { DoseModello, DoseSettimana, ObiettivoSezione } from '../../../shared/dose'
 
 // La costruzione di una seduta. Qui stanno il caricamento, il salvataggio e
@@ -264,7 +265,13 @@ export default function SedutaBuilder({
         } else if (copiata) {
           iniziali = assegnaChiavi(copiata.sezioni)
           letti.focus = copiata.focus ?? ''
+          fase = faseDellaCopia(fase, copiata.fase_id, (id) => elencoFasi.find((f) => f.id === id)?.campo === 1)
+          if (fase !== paziente.fase_corrente_id) {
+            faseNome = elencoFasi.find((f) => f.id === fase)?.nome ?? copiata.fase_nome
+          }
         }
+        // Una copia da un'altra fase: le sue sezioni vanno portate in questa.
+        let daRiportare = copiata != null && copiata.fase_id !== fase
 
         // Bozza rimasta da una volta in cui l'app si e' chiusa a meta': si
         // chiede prima di rimetterla, perche' potrebbe essere di giorni fa.
@@ -278,6 +285,7 @@ export default function SedutaBuilder({
               const salvata = JSON.parse(bozza.contenuto) as BozzaSeduta
               Object.assign(letti, campiDaBozza(salvata))
               iniziali = salvata.sezioni
+              daRiportare = false
               // La fase della bozza (al campo, per esempio): con il suo nome,
               // i suoi obiettivi e le proposte della sua struttura. Prima si
               // leggeva e poi si perdeva, e la seduta ripresa si salvava con la
@@ -313,6 +321,7 @@ export default function SedutaBuilder({
           ctx.progressioni = progr
           ctx.templateCats = Object.fromEntries(template.map((t) => [t.id, t.categoria_ids]))
           ctx.templateObiettivi = Object.fromEntries(template.map((t) => [t.id, t.obiettivo]))
+          if (daRiportare && iniziali != null) iniziali = sezioniNellaFase(iniziali, template)
           // nuova seduta: struttura di default dal template della fase
           iniziali =
             iniziali == null

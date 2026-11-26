@@ -90,10 +90,11 @@ export default function App(): React.JSX.Element {
   // Si apre sulla settimana: la prima domanda della giornata e' chi viene oggi.
   const [sezione, setSezione] = useState<Sezione>('settimana')
   // Il pannello a destra scorre per conto suo e terrebbe la posizione della
-  // pagina di prima: ogni sezione parte dall'alto.
+  // pagina di prima: ogni sezione parte dall'alto. La settimana no: si mette da
+  // sola su oggi, e riportarla in cima qui annullava quello scorrimento.
   const contenutoRef = useRef<HTMLElement>(null)
   useEffect(() => {
-    contenutoRef.current?.scrollTo({ top: 0 })
+    if (sezione !== 'settimana') contenutoRef.current?.scrollTo({ top: 0 })
   }, [sezione])
   // Il tema scelto: si applica mettendolo sull'elemento radice, e il foglio di
   // stile ridichiara i suoi colori. Arriva dal file delle impostazioni, cosi'

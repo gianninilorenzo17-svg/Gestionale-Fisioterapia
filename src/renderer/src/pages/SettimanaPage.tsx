@@ -103,11 +103,18 @@ export default function SettimanaPage({
       .catch(() => undefined)
   }, [])
 
-  // Ripremendo la voce del menu si torna alla settimana in corso.
+  // Per quale settimana si e' gia' scorso fino a oggi.
+  const scorsaPer = useRef<string | null>(null)
+  const vaiAOggi = useCallback((): void => {
+    scorsaPer.current = null
+    setLunedi(lunediDi(new Date()))
+  }, [])
+
+  // Ripremendo la voce del menu si torna alla settimana in corso, su oggi.
   useEffect(() => {
     if (tornaAllElenco === 0) return
-    setLunedi(lunediDi(new Date()))
-  }, [tornaAllElenco])
+    vaiAOggi()
+  }, [tornaAllElenco, vaiAOggi])
 
   // Quale settimana ha gia' le sue sedute: prima di allora i giorni sono
   // vuoti e piu' bassi, e scorrere adesso sbaglierebbe la posizione.
@@ -174,17 +181,19 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
   }
 
   const oggi = oggiIso()
-  // Aprendo la settimana (o cambiandola) si arriva gia' sul giorno di oggi,
-  // senza scorrere; una volta sola per settimana, cosi' un salvataggio o un
-  // ricaricamento non riportano su mentre si sta lavorando piu' in basso.
+  // Aprendo la settimana (o cambiandola) oggi e' gia' al centro della finestra,
+  // senza scorrere; una volta sola, cosi' un salvataggio o un ricaricamento non
+  // spostano la pagina mentre si sta lavorando piu' in basso.
   const giornoOggi = useRef<HTMLDivElement | null>(null)
-  const scorsaPer = useRef<string | null>(null)
   // useLayoutEffect: lo scorrimento avviene prima che la pagina sia disegnata,
   // cosi' non si vede la lista partire dall'alto e saltare.
   useLayoutEffect(() => {
-    if (caricataPer !== iso(lunedi) || scorsaPer.current === caricataPer || !giornoOggi.current) return
+    const riquadro = giornoOggi.current
+    if (caricataPer !== iso(lunedi) || scorsaPer.current === caricataPer || !riquadro) return
     scorsaPer.current = caricataPer
-    giornoOggi.current.scrollIntoView({ block: 'start' })
+    // un giorno piu' alto della finestra si legge dall'inizio, non da meta'
+    const troppoAlto = riquadro.offsetHeight > (riquadro.closest('main')?.clientHeight ?? window.innerHeight)
+    riquadro.scrollIntoView({ block: troppoAlto ? 'start' : 'center' })
   }, [lunedi, caricataPer])
   const giorni = GIORNI.map((nome, i) => {
     const d = new Date(lunedi)
@@ -225,7 +234,7 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
         <button title="Settimana successiva" onClick={() => sposta(1)}>
           <ChevronRight size={18} />
         </button>
-        <button onClick={() => setLunedi(lunediDi(new Date()))}>
+        <button onClick={vaiAOggi}>
           <CalendarDays size={16} /> Questa settimana
         </button>
         <span className="spacer" />

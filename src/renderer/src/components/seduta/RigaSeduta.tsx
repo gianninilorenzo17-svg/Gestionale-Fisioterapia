@@ -73,8 +73,10 @@ function RigaSeduta({
 }: Props): React.JSX.Element {
   const mono = r.monopodalico === 1
   // La barretta a sinistra: il colore e' la voce in cui finisce la riga, e il
-  // clic apre le eccezioni. Un esercizio al volo non ha un tipo: niente.
-  const conBarra = dose && r.esercizio_id != null
+  // clic apre le eccezioni. Un esercizio al volo non ha un tipo: parte da "Non
+  // conta", e in cosa conta si sceglie anche dal menu accanto al nome.
+  const conBarra = dose
+  const alVolo = r.esercizio_id == null
   const tipo = r.tipo ?? tipoLibreria
   const voce = voceRiga({ tipo, conta: r.conta, obiettivo })
   const nomeVoce = (v: typeof voce): string =>
@@ -91,12 +93,16 @@ function RigaSeduta({
     >
       {conBarra && (
         <MenuDose
-          titolo={`${r.nome}: ${tipo == null ? 'tipo da sistemare in libreria, non conta' : `conta come ${nomeVoce(voce)}`}. Clic per cambiare.`}
-          className={`barra-dose ${coloreDose(voce)}${r.conta ? ' eccezione' : ''}`}
+          titolo={`${r.nome}: ${tipo == null && !r.conta ? (alVolo ? 'non conta' : 'tipo da sistemare in libreria, non conta') : `conta come ${nomeVoce(voce)}`}. Clic per cambiare.`}
+          className={`barra-dose ${coloreDose(voce)}${r.conta && !alVolo ? ' eccezione' : ''}`}
           valore={r.conta ?? ''}
           voci={[
-            { valore: '', etichetta: `Come nella sezione (${nomeVoce(normale)})` },
-            { valore: 'non_conta', etichetta: 'Non conta', separa: true },
+            ...(alVolo
+              ? [{ valore: '', etichetta: 'Non conta' }]
+              : [
+                  { valore: '', etichetta: `Come nella sezione (${nomeVoce(normale)})` },
+                  { valore: 'non_conta', etichetta: 'Non conta', separa: true }
+                ]),
             ...VOCI.map((v, i) => ({ valore: v.voce, etichetta: v.nome, separa: i === 0 }))
           ]}
           onScegli={(v) =>
@@ -134,6 +140,28 @@ function RigaSeduta({
             </button>
           )}
         </span>
+        {alVolo && dose && (
+          <Tendina
+            className={`select-variante${r.conta ? ' con-variante' : ''}`}
+            title={`In cosa conta ${r.nome}`}
+            value={r.conta ?? ''}
+            onChange={(e) =>
+              invia({
+                tipo: 'conta',
+                sez,
+                riga: indice,
+                conta: e.target.value === '' ? null : (e.target.value as Conta)
+              })
+            }
+          >
+            <option value="">Non conta</option>
+            {VOCI.map((v) => (
+              <option key={v.voce} value={v.voce}>
+                {v.breve}
+              </option>
+            ))}
+          </Tendina>
+        )}
         {/* Solo sugli esercizi che in libreria si fanno "a scelta" a una o due
             gambe (o su una riga gia' segnata): il testo e' la modalita' in
             corso, "Bipodalico" (grigio) o "Monopodalico" (acceso); il clic passa
@@ -233,7 +261,7 @@ function RigaSeduta({
       </button>
       </div>
       {/* L'eccezione si legge sotto la riga; il caso normale non si scrive mai. */}
-      {conBarra && r.conta && (
+      {conBarra && !alVolo && r.conta && (
         <div className="ultima-volta eccezione-dose">
           <span>
             Qui conta come <b>{r.conta === 'non_conta' ? 'niente' : infoVoce(r.conta).nome.toLowerCase()}</b>

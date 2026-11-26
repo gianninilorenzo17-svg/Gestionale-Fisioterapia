@@ -12,6 +12,8 @@ import { getDb } from './db'
 import { dataIt, eliminaConCestino } from './cestino'
 import { validaData, validaOra, validaScala010 } from './validazione'
 import { OBIETTIVO_SEZIONE, perSeduta, righeConto } from './dose'
+import { elencoSezioni } from './percorso'
+import { faseDellaCopia, sezioniNellaFase } from '../shared/copia-seduta'
 import {
   contaRighe,
   contaValida,
@@ -318,9 +320,26 @@ export function programmaSeduta(origineId: number, date: string[], ora: string |
     | { paziente_id: number; fase_id: number | null; focus: string | null; note: string | null }
     | undefined
   if (!sorgente) throw new Error('Seduta da copiare non trovata.')
-  const sezioni = db
-    .prepare('SELECT id, sezione_id, nome, obiettivo FROM seduta_sezioni WHERE seduta_id = ? ORDER BY ordine, id')
+  // La fase e' quella in cui il paziente e' adesso (vedi shared/copia-seduta.ts).
+  const paziente = db
+    .prepare('SELECT patologia_id, fase_corrente_id FROM pazienti WHERE id = ?')
+    .get(sorgente.paziente_id) as { patologia_id: number | null; fase_corrente_id: number | null }
+  const campo = db.prepare('SELECT campo FROM fasi WHERE id = ? AND patologia_id = ?')
+  const faseId = faseDellaCopia(
+    paziente.fase_corrente_id,
+    sorgente.fase_id,
+    (id) => (campo.get(id, paziente.patologia_id) as { campo: number } | undefined)?.campo === 1
+  )
+  const sezioniDiAllora = db
+    .prepare(
+      `SELECT ss.id, ss.sezione_id, ss.nome, ${OBIETTIVO_SEZIONE} AS obiettivo
+       FROM seduta_sezioni ss WHERE ss.seduta_id = ? ORDER BY ss.ordine, ss.id`
+    )
     .all(origineId) as { id: number; sezione_id: number | null; nome: string; obiettivo: ObiettivoSezione | null }[]
+  const sezioni =
+    faseId != null && faseId !== sorgente.fase_id
+      ? sezioniNellaFase(sezioniDiAllora, elencoSezioni(faseId))
+      : sezioniDiAllora
   const esercizi = db
     .prepare(
       `SELECT esercizio_id, nome_libero, serie, cluster, ripetizioni, rir, carico,
@@ -350,14 +369,14 @@ export function programmaSeduta(origineId: number, date: string[], ora: string |
     for (const data of date) {
       const sid = db
         .prepare('INSERT INTO sedute (paziente_id, data, ora, fase_id, focus, note) VALUES (?, ?, ?, ?, ?, ?)')
-        .run(sorgente.paziente_id, data, ora, sorgente.fase_id, sorgente.focus, sorgente.note).lastInsertRowid
+        .run(sorgente.paziente_id, data, ora, faseId, sorgente.focus, sorgente.note).lastInsertRowid
       scriviFigli(sid, {
         paziente_id: sorgente.paziente_id,
         data,
         // L'orario e' quello scelto per il nuovo appuntamento, non quello
         // (se mai ce l'aveva) della seduta da cui si copia il programma.
         ora,
-        fase_id: sorgente.fase_id,
+        fase_id: faseId,
         focus: sorgente.focus,
         // Dolore e sforzo non si copiano: sono come e' andata quella volta,
         // non qualcosa da programmare.
