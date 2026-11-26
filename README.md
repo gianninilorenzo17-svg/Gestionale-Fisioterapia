@@ -64,6 +64,12 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.30
+
+- La settimana si apre già scorsa sul giorno di oggi, anche tornandoci dal menu
+- Copiando o programmando una seduta si prende la fase impostata nel Percorso
+- Per un esercizio solo per quella seduta si può scegliere in cosa conta per la dose
+
 ### v0.5.29
 
 - Gli aggiornamenti arrivano da un indirizzo nuovo: questa versione va installata a mano una volta
