@@ -64,6 +64,12 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.29
+
+- Gli aggiornamenti arrivano da un indirizzo nuovo: questa versione va installata a mano una volta
+- Pedana: i tracciati destro e sinistro restano affiancati anche su schermi piccoli
+- Farmaci: Esc sulla scheda di un farmaco non chiude più anche l’anamnesi
+
 ### v0.5.28
 
 - Dosi settimanali a modelli: il tipo si sceglie sull'esercizio, sezioni e modelli stanno in libreria.
@@ -464,8 +470,8 @@ Editor consigliato: VS Code. Per contribuire con push diretto serve essere colla
 (Settings → Collaborators su GitHub); in alternativa fork + pull request.
 
 ```bash
-git clone https://github.com/vitopalmisano11/riabilitazione-sportiva.git
-cd riabilitazione-sportiva
+git clone https://github.com/gianninilorenzo17-svg/Gestionale-Fisioterapia.git
+cd Gestionale-Fisioterapia
 npm install       # scarica Electron e prepara il modulo nativo (qualche minuto la prima volta)
 npm run dev       # avvia l'app con ricarica automatica
 ```

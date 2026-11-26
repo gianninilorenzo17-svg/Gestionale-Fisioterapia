@@ -294,6 +294,7 @@
 /* I tracciati dei due lati affiancati, per il confronto a colpo d'occhio. */
 .tracciati-pedana {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 420px));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  max-width: 862px;
   gap: 22px;
 }

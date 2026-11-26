@@ -21,5 +21,5 @@ nsis:
 # pubblica release.yml.
 publish:
   provider: github
-  owner: vitopalmisano11
-  repo: riabilitazione-sportiva
+  owner: gianninilorenzo17-svg
+  repo: Gestionale-Fisioterapia

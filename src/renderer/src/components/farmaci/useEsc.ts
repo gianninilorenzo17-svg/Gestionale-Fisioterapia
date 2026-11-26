@@ -12,6 +12,9 @@ export function useEsc(azione: () => void, attiva = true): void {
       // un elenco di suggerimenti aperto usa Esc per chiudersi
       if (document.querySelector('.menu-scelta-popup, .elenco-scelta')) return
       e.preventDefault()
+      // la finestra sotto non deve ricevere lo stesso Esc: chiusa la scheda, non la
+      // troverebbe piu e si chiuderebbe anche lei
+      e.stopImmediatePropagation()
       azione()
     }
     window.addEventListener('keydown', gestisci)
